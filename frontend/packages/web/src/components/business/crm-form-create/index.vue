@@ -1,0 +1,908 @@
+<template>
+  <n-form
+    ref="formRef"
+    :model="formDetail"
+    :label-placement="formConfig.labelPos"
+    :require-mark-placement="formConfig.labelPos === 'left' ? 'left' : 'right'"
+    label-width="auto"
+    class="crm-form-create"
+  >
+    <n-scrollbar>
+      <div class="flex h-full w-full flex-wrap content-start">
+        <template v-for="item in fieldList" :key="item.id">
+          <div
+            v-if="item.show !== false && item.readable"
+            class="crm-form-create-item"
+            :style="{ width: item.type === FieldTypeEnum.ATTACHMENT ? '100%' : `${item.fieldWidth * 100}%` }"
+          >
+            <component
+              :is="getItemComponent(item)"
+              :id="item.id"
+              v-model:value="formDetail[item.id]"
+              :field-config="item.resourceFieldId ? { ...item, rules: [] } : item"
+              :form-detail="formDetail"
+              :origin-form-detail="originFormDetail"
+              :path="item.id"
+              :need-init-detail="needInitDetail"
+              :form-config="formConfig"
+              @change="(value: any, source: Record<string, any>[], dataSourceFormFields?: FormCreateField[]) => handleFieldChange(value, source, item, dataSourceFormFields)"
+            />
+          </div>
+        </template>
+      </div>
+    </n-scrollbar>
+    <div class="crm-form-create-footer" :class="formConfig.optBtnPos">
+      <n-button v-if="props.isEdit" type="primary" @click="handleSave(false)">
+        {{ t('common.update') }}
+      </n-button>
+      <template v-else>
+        <n-button v-if="formConfig.optBtnContent[0].enable" type="primary" @click="handleSave(false)">
+          {{ formConfig.optBtnContent[0].text }}
+        </n-button>
+        <n-button v-if="formConfig.optBtnContent[1].enable" type="primary" ghost @click="handleSave(true)">
+          {{ formConfig.optBtnContent[1].text }}
+        </n-button>
+      </template>
+      <n-button v-if="reviewAction.visible" type="primary" ghost @click="handleReview">
+        {{ reviewAction.text }}
+      </n-button>
+      <n-button v-if="formConfig.optBtnContent[2].enable" secondary @click="emit('cancel')">
+        {{ formConfig.optBtnContent[2].text }}
+      </n-button>
+    </div>
+  </n-form>
+</template>
+
+<script setup lang="ts">
+  import { h } from 'vue';
+  import { FormInst, NButton, NForm, NFormItem, NInput, NScrollbar, useMessage } from 'naive-ui';
+  import { cloneDeep, isEqual } from 'lodash-es';
+  import dayjs from 'dayjs';
+
+  import {
+    FieldDataSourceTypeEnum,
+    FieldTypeEnum,
+    FormDesignKeyEnum,
+    FormLinkScenarioEnum,
+  } from '@lib/shared/enums/formDesignEnum';
+  import { useI18n } from '@lib/shared/hooks/useI18n';
+  import { getCityPath, getGenerateId, getIndustryPath } from '@lib/shared/method';
+  import {
+    dataSourceTypes,
+    getDisplayFieldText,
+    getFieldItemId,
+    linkAllAcceptTypes,
+    mergeUniqueOptions,
+    multipleTypes,
+    singleTypes,
+    specialBusinessKeyMap,
+    transformData,
+    transformFieldValue,
+  } from '@lib/shared/method/formCreate';
+  import { FormViewSize } from '@lib/shared/models/system/module';
+
+  import CrmFormCreateComponents from '@/components/business/crm-form-create/components';
+  import { type DataSourceSubFieldLinkField, FormCreateField } from '@/components/business/crm-form-create/types';
+
+  import { getDatasourceRefDetailList } from '@/api/modules';
+  import useFormCreateApi from '@/hooks/useFormCreateApi';
+  import useFormReviewAction from '@/hooks/useFormReviewAction';
+  import useModal from '@/hooks/useModal';
+
+  import { formKeyMap } from '../crm-data-source-select/config';
+  import { isCustomDataSourceType } from '../crm-data-source-select/utils';
+  import { FormulaDataSourceMap } from '../crm-formula/formula-runtime/types';
+  import { formatFormulaResultValue } from '../crm-formula/utils';
+  import { safeParseFormula } from '../crm-formula-editor/utils';
+  import { getFormConfigApiMap, multipleValueTypeList } from './config';
+
+  const props = defineProps<{
+    isEdit?: boolean;
+    sourceId?: string;
+    formKey: FormDesignKeyEnum;
+    needInitDetail?: boolean; // 是否需要初始化详情
+    initialSourceName?: string; // 初始化详情时的名称
+    otherSaveParams?: Record<string, any>;
+    linkFormInfo?: Record<string, any>; // 关联表单信息
+    linkFormKey?: FormDesignKeyEnum;
+    linkScenario?: FormLinkScenarioEnum; // 关联表单场景
+    customFormId?: string;
+  }>();
+  const emit = defineEmits<{
+    (e: 'cancel'): void;
+    (e: 'init', title: string, formViewSize?: FormViewSize): void;
+    (e: 'saved', isContinue: boolean, res: any, isUpdateReview?: boolean): void;
+    (e: 'review', res: any): void;
+  }>();
+
+  const { t } = useI18n();
+  const Message = useMessage();
+  const { openModal } = useModal();
+
+  const formLoading = defineModel<boolean>('loading', {
+    default: false,
+  });
+  const formUnsaved = defineModel<boolean>('unsaved', {
+    default: false,
+  });
+
+  const formRef = ref<FormInst>();
+  const {
+    needInitDetail,
+    formKey,
+    sourceId,
+    initialSourceName,
+    otherSaveParams,
+    linkFormInfo,
+    linkFormKey,
+    linkScenario,
+    customFormId,
+  } = toRefs(props);
+
+  const {
+    fieldList,
+    formConfig,
+    formDetail,
+    originFormDetail,
+    unsaved,
+    loading,
+    formCreateTitle,
+    initFormConfig,
+    initFormDetail,
+    saveForm,
+    initForm,
+    initFormShowControl,
+    applyFieldLink,
+    detail,
+  } = useFormCreateApi({
+    formKey,
+    sourceId,
+    needInitDetail,
+    initialSourceName,
+    otherSaveParams,
+    linkFormInfo,
+    linkFormKey,
+    linkScenario,
+    customFormId,
+  });
+
+  const { reviewAction, shouldConfirmUpdateChange, initApprovalReviewConfig } = useFormReviewAction({
+    formKey,
+    isEdit: computed(() => props.isEdit),
+    approvalStatus: computed(() => detail.value?.approvalStatus),
+    detail,
+  });
+
+  function getItemComponent(item: FormCreateField) {
+    if (item.type === FieldTypeEnum.INPUT || item.resourceFieldId) {
+      return CrmFormCreateComponents.basicComponents.singleText;
+    }
+    if (item.type === FieldTypeEnum.TEXTAREA) {
+      return CrmFormCreateComponents.basicComponents.textarea;
+    }
+    if (item.type === FieldTypeEnum.INPUT_NUMBER) {
+      return CrmFormCreateComponents.basicComponents.inputNumber;
+    }
+    if (item.type === FieldTypeEnum.DATE_TIME) {
+      return CrmFormCreateComponents.basicComponents.dateTime;
+    }
+    if (item.type === FieldTypeEnum.RADIO) {
+      return CrmFormCreateComponents.basicComponents.radio;
+    }
+    if (item.type === FieldTypeEnum.CHECKBOX) {
+      return CrmFormCreateComponents.basicComponents.checkbox;
+    }
+    if ([FieldTypeEnum.SELECT, FieldTypeEnum.SELECT_MULTIPLE].includes(item.type)) {
+      return CrmFormCreateComponents.basicComponents.select;
+    }
+    if ([FieldTypeEnum.MEMBER, FieldTypeEnum.MEMBER_MULTIPLE].includes(item.type)) {
+      return CrmFormCreateComponents.basicComponents.memberSelect;
+    }
+    if ([FieldTypeEnum.DEPARTMENT, FieldTypeEnum.DEPARTMENT_MULTIPLE].includes(item.type)) {
+      return CrmFormCreateComponents.basicComponents.memberSelect;
+    }
+    if (item.type === FieldTypeEnum.DIVIDER) {
+      return CrmFormCreateComponents.basicComponents.divider;
+    }
+    if (item.type === FieldTypeEnum.INPUT_MULTIPLE) {
+      return CrmFormCreateComponents.basicComponents.tagInput;
+    }
+    if (item.type === FieldTypeEnum.PICTURE) {
+      return CrmFormCreateComponents.advancedComponents.upload;
+    }
+    if (item.type === FieldTypeEnum.LOCATION) {
+      return CrmFormCreateComponents.advancedComponents.location;
+    }
+    if (item.type === FieldTypeEnum.PHONE) {
+      return CrmFormCreateComponents.advancedComponents.phone;
+    }
+    if ([FieldTypeEnum.DATA_SOURCE, FieldTypeEnum.DATA_SOURCE_MULTIPLE].includes(item.type)) {
+      return CrmFormCreateComponents.advancedComponents.dataSource;
+    }
+    if (item.type === FieldTypeEnum.SERIAL_NUMBER) {
+      return CrmFormCreateComponents.advancedComponents.serialNumber;
+    }
+    if (item.type === FieldTypeEnum.LINK) {
+      return CrmFormCreateComponents.advancedComponents.link;
+    }
+    if (item.type === FieldTypeEnum.ATTACHMENT) {
+      return CrmFormCreateComponents.advancedComponents.file;
+    }
+    if (item.type === FieldTypeEnum.INDUSTRY) {
+      return CrmFormCreateComponents.advancedComponents.industry;
+    }
+    if (item.type === FieldTypeEnum.FORMULA) {
+      return CrmFormCreateComponents.advancedComponents.formula;
+    }
+    if ([FieldTypeEnum.SUB_PRICE, FieldTypeEnum.SUB_PRODUCT].includes(item.type)) {
+      return CrmFormCreateComponents.advancedComponents.dataTable;
+    }
+  }
+
+  function applyDatasourceFieldLink(
+    value: any,
+    item: FormCreateField,
+    currentSource?: Record<string, any>,
+    dataSourceFormFields?: FormCreateField[]
+  ) {
+    item.linkFields?.forEach((linkField) => {
+      if (linkField.enable === false) {
+        return;
+      }
+      const targetField = fieldList.value.find((f) => f.id === linkField.current);
+      // 如果联动字段是当前字段本身，则直接赋值；若是当前字段内的其他字段，则赋值对应的值
+      if (targetField && (item.id === linkField.link || item.businessKey === linkField.link)) {
+        // 暂时只有这一种联动
+        if (linkField.method === 'fill') {
+          // 处理多选/单选数据源
+          if (targetField.dataSourceType !== item.dataSourceType) {
+            // 不同数据源类型不填充
+            return;
+          }
+          formDetail.value[targetField.id] = value;
+          if (!targetField.initialOptions) {
+            targetField.initialOptions = [
+              {
+                id: Array.isArray(value) ? value[0] : value,
+                name: currentSource?.name,
+              },
+            ];
+          } else {
+            targetField.initialOptions.push({
+              id: Array.isArray(value) ? value[0] : value,
+              name: currentSource?.name,
+            });
+          }
+        }
+      } else {
+        // 获取目标数据源表单的目标字段，用来读取业务 key 值
+        const currentDatasourceFormField = dataSourceFormFields?.find((f) => f.id === linkField.link);
+        if (targetField && currentDatasourceFormField) {
+          if (linkField.method === 'fill') {
+            // 暂时只有这一种联动
+            if (targetField.dataSourceType !== currentDatasourceFormField.dataSourceType) {
+              // 不同数据源类型不填充
+              return;
+            }
+            const currentSourceValue = currentDatasourceFormField.businessKey
+              ? currentSource?.[currentDatasourceFormField.businessKey]
+              : currentSource?.moduleFields?.find((e: any) => e.fieldId === currentDatasourceFormField.id)?.fieldValue;
+            if (currentSourceValue === undefined || currentSourceValue === null) {
+              targetField.initialOptions = [];
+              // 处理多选/单选值
+              if (multipleValueTypeList.includes(targetField.type) || targetField.type === FieldTypeEnum.DATA_SOURCE) {
+                formDetail.value[targetField.id] = [];
+              } else {
+                formDetail.value[targetField.id] = '';
+              }
+              if (targetField.showFields?.length) {
+                // 无值清空显示字段
+                const showFields = fieldList.value.filter((f) => targetField.showFields?.includes(getFieldItemId(f)));
+                showFields.forEach((field) => {
+                  formDetail.value[field.id] = '';
+                });
+              }
+              return;
+            }
+            // 如果有业务 key，则取业务 key 的值（specialBusinessKeyMap读取特殊业务字段值），否则取字段值
+            const currentSourceName = currentDatasourceFormField.businessKey
+              ? currentSource?.[
+                  specialBusinessKeyMap[currentDatasourceFormField.businessKey] ||
+                    currentDatasourceFormField.businessKey
+                ]
+              : currentSource?.[linkField.link];
+            // 处理多选/单选值
+            if (multipleValueTypeList.includes(targetField.type) || targetField.type === FieldTypeEnum.DATA_SOURCE) {
+              formDetail.value[targetField.id] = Array.isArray(currentSourceValue)
+                ? currentSourceValue
+                : [currentSourceValue];
+            } else {
+              formDetail.value[targetField.id] = currentSourceValue;
+            }
+            if (!targetField.initialOptions) {
+              targetField.initialOptions = Array.isArray(currentSourceValue)
+                ? currentSourceValue.map((e, i) => ({
+                    name: currentSourceName[i],
+                    id: e,
+                  }))
+                : [
+                    {
+                      name: Array.isArray(currentSourceName) ? currentSourceName[0] : currentSourceName,
+                      id: currentSourceValue,
+                    },
+                  ];
+            } else if (Array.isArray(currentSourceValue)) {
+              // 多选
+              targetField.initialOptions = currentSourceValue.map((e, i) => ({
+                name: currentSourceName[i],
+                id: e,
+              }));
+            } else {
+              targetField.initialOptions = [
+                {
+                  name: Array.isArray(currentSourceName) ? currentSourceName[0] : currentSourceName,
+                  id: currentSourceValue,
+                },
+              ];
+            }
+          }
+        }
+      }
+    });
+    nextTick(() => {
+      formRef.value?.restoreValidation();
+    });
+  }
+
+  async function initDatasourceLinkOptions(
+    beFilledSubFields: FormCreateField[],
+    datasourceMap: Record<string, string[]>
+  ) {
+    try {
+      const paramsList = Object.keys(datasourceMap).map((key) => ({
+        sourceIds: datasourceMap[key],
+        dataSourceType: key,
+      }));
+      const resList = await Promise.all(paramsList.map((params) => getDatasourceRefDetailList(params)));
+      const datasourceFormConfigGroup = await Promise.all(
+        paramsList.map((params) => {
+          if (isCustomDataSourceType(params.dataSourceType)) {
+            return getFormConfigApiMap[FormDesignKeyEnum.CUSTOM_FORM](params.dataSourceType);
+          }
+          return getFormConfigApiMap[
+            formKeyMap[params.dataSourceType as FieldDataSourceTypeEnum] as FormDesignKeyEnum
+          ]();
+        })
+      );
+      beFilledSubFields.forEach((field) => {
+        const currentRes = resList[paramsList.findIndex((params) => params.dataSourceType === field.dataSourceType)];
+        const currentFormConfig =
+          datasourceFormConfigGroup[paramsList.findIndex((params) => params.dataSourceType === field.dataSourceType)];
+        const newOptions = field.initialOptions?.map((option) => {
+          const currentOption = currentRes.find((res) => res.id === option.id);
+          if (currentOption) {
+            return {
+              ...transformData({
+                item: currentOption,
+                originalData: currentOption as any,
+                fields: currentFormConfig.fields || [],
+                excludeFieldIds: [],
+                needParseSubTable: true,
+              }),
+              ...option,
+            };
+          }
+          return option;
+        });
+        field.initialOptions = newOptions;
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.log(error);
+      Message.warning(t('crmFormCreate.dataSourceLinkOptionsFailed'));
+    }
+  }
+
+  function applySubFieldLink(
+    subLinkFieldParents: DataSourceSubFieldLinkField[],
+    currentSource?: Record<string, any>,
+    dataSourceFormFields?: FormCreateField[]
+  ) {
+    const datasourceMap: Record<string, string[]> = {};
+    const beFilledSubFields: FormCreateField[] = []; // 需要填充的子字段列表
+    subLinkFieldParents.forEach((linkField) => {
+      if (linkField.enable === false) {
+        return;
+      }
+      const currentParentField = fieldList.value.find((f) => f.id === linkField.current); // 被填充的字段
+      const parentLinkField = dataSourceFormFields?.find((f) => f.id === linkField.link); // 填充字段
+      if (currentParentField && parentLinkField && currentSource) {
+        if (linkField.method === 'fill') {
+          const linkFieldInfo = currentSource[parentLinkField.businessKey || parentLinkField.id];
+          const result: Record<string, any>[] = [];
+          linkFieldInfo?.forEach((subData: Record<string, any>) => {
+            const line: Record<string, any> = {
+              id: getGenerateId(),
+            };
+            linkField.childLinks?.forEach((childLink) => {
+              if (childLink.enable === false) {
+                return;
+              }
+              const currentChildField = currentParentField.subFields?.find((f) => f.id === childLink.current); // 被填充的子字段
+              const childLinkField = parentLinkField.subFields?.find((f) => f.id === childLink.link); // 填充字段
+              if (currentChildField && childLinkField) {
+                const key = childLinkField.businessKey || childLinkField.id;
+                const currentKey = currentChildField.businessKey || currentChildField.id;
+                switch (true) {
+                  case dataSourceTypes.includes(currentChildField.type):
+                    if (subData[`${childLinkField.id}_original`] && currentChildField.dataSourceType) {
+                      if (datasourceMap[currentChildField.dataSourceType] === undefined) {
+                        datasourceMap[currentChildField.dataSourceType] = [];
+                      }
+                      datasourceMap[currentChildField.dataSourceType].push(subData[`${childLinkField.id}_original`]); // 先将数据源字段的值存起来，等循环结束后一起去重填充到initialOptions中，避免重复请求接口
+                      currentChildField.initialOptions = mergeUniqueOptions(currentChildField.initialOptions || [], [
+                        {
+                          id: subData[`${childLinkField.id}_original`],
+                          name: currentSource.optionMap[key]?.find(
+                            (e: any) => e.id === subData[`${childLinkField.id}_original`]
+                          )?.name,
+                          isFormLinkFilled: true, // 用于区分是表单联动填充的选项还是其他途径的选项，主要用于数据源显示字段的回显
+                        },
+                      ]);
+                      line[currentKey] = [subData[`${childLinkField.id}_original`]];
+                      if (subData.price_sub && childLinkField.dataSourceType === FieldDataSourceTypeEnum.PRICE) {
+                        line.price_sub = subData.price_sub; // 价格表子表格特殊处理，price_sub是行号
+                        line[currentKey].push(subData.price_sub);
+                        // 同时在initialOptions里填充行号子项以区分父子
+                        currentChildField.initialOptions?.push({
+                          id: subData.price_sub,
+                          parentId: subData[`${childLinkField.id}_original`],
+                          isFormLinkFilled: true, // 用于区分是表单联动填充的选项还是其他途径的选项，主要用于数据源显示字段的回显
+                        });
+                      }
+                      currentChildField.fieldValue = subData[`${childLinkField.id}_original`];
+                      beFilledSubFields.push(currentChildField);
+                    }
+                    break;
+                  case multipleTypes.includes(currentChildField.type):
+                    // 多选填充
+                    if (childLinkField.type === FieldTypeEnum.INPUT_MULTIPLE) {
+                      // 标签直接填充
+                      line[currentKey] = Array.isArray(subData[key]) ? subData[key].slice(0, 10) : [subData[key]];
+                    } else {
+                      // 其他多选类型需匹配名称相等的选项值
+                      line[currentKey] =
+                        currentChildField.options?.filter((e) => subData[key].includes(e.label)).map((e) => e.value) ||
+                        [];
+                    }
+                    break;
+                  case singleTypes.includes(currentChildField.type):
+                    // 单选填充需要匹配名称相同的选项值
+                    line[currentKey] = currentChildField.options?.find((e) => e.label === subData[key])?.value || '';
+                    break;
+                  case linkAllAcceptTypes.includes(currentChildField.type):
+                    // 文本输入类型可填充任何字段类型值
+                    const limitLength = currentChildField.type === FieldTypeEnum.INPUT ? 255 : 3000;
+                    if (dataSourceTypes.includes(childLinkField.type)) {
+                      // 联动的字段是数据源则填充选项名
+                      line[currentKey] = currentSource.optionMap[key]?.find(
+                        (e: any) => e.id === subData[`${childLinkField.id}_original`]
+                      )?.name;
+                      line[currentKey] = line[currentKey]?.slice(0, limitLength);
+                    } else if (multipleTypes.includes(childLinkField.type)) {
+                      // 联动的字段是多选则拼接选项名
+                      line[currentKey] = subData[key].join(',').slice(0, limitLength);
+                    } else if (childLinkField.type === FieldTypeEnum.DATE_TIME) {
+                      // 联动的字段是日期时间则转换
+                      if (childLinkField.dateType === 'month') {
+                        line[currentKey] = dayjs(subData[key]).format('YYYY-MM');
+                      } else if (childLinkField.dateType === 'date') {
+                        line[currentKey] = dayjs(subData[key]).format('YYYY-MM-DD');
+                      } else {
+                        line[currentKey] = dayjs(subData[key]).format('YYYY-MM-DD HH:mm:ss');
+                      }
+                    } else if (childLinkField.type === FieldTypeEnum.LOCATION) {
+                      // 联动的字段是省市区则填充城市路径
+                      const addressArr: string[] = subData[key].split('-') || [];
+                      line[currentKey] = addressArr.length
+                        ? `${getCityPath(addressArr[0])}-${addressArr.filter((e, i) => i > 0).join('-')}`
+                        : '-';
+                    } else if (childLinkField.type === FieldTypeEnum.INDUSTRY) {
+                      line[currentKey] = subData[key] ? getIndustryPath(subData[key] as string) : '-';
+                    } else if (
+                      childLinkField.type === FieldTypeEnum.TEXTAREA &&
+                      currentChildField.type === FieldTypeEnum.INPUT
+                    ) {
+                      line[currentKey] = subData[key].slice(0, limitLength);
+                    } else if ([FieldTypeEnum.INPUT_NUMBER, FieldTypeEnum.FORMULA].includes(childLinkField.type)) {
+                      line[currentKey] = subData[key]?.toString();
+                    } else {
+                      line[currentKey] = subData[key];
+                    }
+                    break;
+                  case [FieldTypeEnum.INPUT_NUMBER, FieldTypeEnum.DATE_TIME, FieldTypeEnum.PHONE].includes(
+                    currentChildField.type
+                  ):
+                    line[currentKey] = subData[`${childLinkField.id}_original`];
+                    break;
+                  case [FieldTypeEnum.MEMBER, FieldTypeEnum.DEPARTMENT].includes(currentChildField.type):
+                    line[currentKey] = subData[`${childLinkField.id}_original`];
+                    currentChildField.initialOptions = mergeUniqueOptions(currentChildField.initialOptions || [], [
+                      {
+                        id: subData[`${childLinkField.id}_original`],
+                        name: currentSource.optionMap[key]?.find(
+                          (opt: any) => opt.id === subData[`${childLinkField.id}_original`]
+                        )?.name,
+                        isFormLinkFilled: true, // 用于区分是表单联动填充的选项还是其他途径的选项，主要用于数据源显示字段的回显
+                      },
+                    ]);
+                    break;
+                  case [FieldTypeEnum.MEMBER_MULTIPLE, FieldTypeEnum.DEPARTMENT_MULTIPLE].includes(
+                    currentChildField.type
+                  ):
+                    line[currentKey] = Array.isArray(subData[`${childLinkField.id}_original`])
+                      ? subData[`${childLinkField.id}_original`]
+                      : [subData[`${childLinkField.id}_original`]];
+                    currentChildField.initialOptions = mergeUniqueOptions(
+                      currentChildField.initialOptions || [],
+                      Array.from(subData[`${childLinkField.id}_original`] || []).map((e) => ({
+                        id: e,
+                        name: currentSource.optionMap[key]?.find((opt: any) => opt.id === e)?.name,
+                        isFormLinkFilled: true, // 用于区分是表单联动填充的选项还是其他途径的选项，主要用于数据源显示字段的回显
+                      }))
+                    );
+                    break;
+                  default:
+                    line[currentKey] = subData[key] === '-' ? '' : subData[key];
+                    break;
+                }
+              }
+            });
+            result.push(line);
+          });
+          formDetail.value[currentParentField.id] = result;
+        }
+      }
+    });
+    if (Object.keys(datasourceMap).length > 0) {
+      // 将数据源字段的值去重后填充到对应字段的initialOptions中
+      initDatasourceLinkOptions(beFilledSubFields, datasourceMap);
+    }
+  }
+
+  const formulaDataSource = ref<FormulaDataSourceMap>({});
+
+  const evaluationNow = ref<Date | null>(new Date());
+
+  const formulaFormContext = computed(() => ({
+    fields: fieldList.value,
+    formulaDataSource: formulaDataSource.value,
+    evaluationNow,
+  }));
+
+  provide('formFieldsProvider', readonly(formulaFormContext));
+
+  function initFormulaDataSourceRemark() {
+    formulaDataSource.value = {};
+    const fieldMap = new Map(fieldList.value.map((item) => [item.id, item]));
+    fieldList.value.forEach((item) => {
+      if ([FieldTypeEnum.FORMULA, FieldTypeEnum.INPUT, FieldTypeEnum.SERIAL_NUMBER].includes(item.type)) {
+        const { fields } = safeParseFormula(item.formula ?? '');
+        fields?.forEach((e: any) => {
+          let options = [];
+          const targetField = fieldMap.get(e.fieldId);
+
+          if ([FieldTypeEnum.DATA_SOURCE, FieldTypeEnum.DATA_SOURCE_MULTIPLE].includes(e.fieldType)) {
+            options = props.needInitDetail ? targetField?.initialOptions ?? [] : [];
+          } else if (e.fieldType === FieldTypeEnum.SELECT) {
+            options = targetField?.options ?? [];
+          } else {
+            return;
+          }
+
+          formulaDataSource.value[e.fieldId] = {
+            parserName: true,
+            options,
+          };
+        });
+      }
+    });
+  }
+
+  function handleFieldChange(
+    value: any,
+    source: Record<string, any>[],
+    item: FormCreateField,
+    dataSourceFormFields?: FormCreateField[]
+  ) {
+    // 控制显示规则
+    if (item.showControlRules?.length) {
+      initFormShowControl(value);
+      nextTick(() => {
+        const labelNodes = Array.from(document.querySelectorAll('.n-form-item-label'));
+        const noWidthLabelNodes = labelNodes.filter((e) => (e as HTMLElement).style.width === '');
+        const hasWidthLabelNode = labelNodes.filter((e) => (e as HTMLElement).style.width !== '')[0];
+        if (noWidthLabelNodes.length > 0) {
+          noWidthLabelNodes.forEach((e) => {
+            (e as HTMLElement).style.width = `${hasWidthLabelNode?.clientWidth}px`;
+          });
+        }
+      });
+    }
+    // 字段联动
+    if (item.linkProp?.targetField && item.linkProp?.linkOptions.length) {
+      applyFieldLink(item, () => {
+        nextTick(() => {
+          formRef.value?.restoreValidation();
+        });
+      });
+    }
+    // 单选数据源字段联动
+    if (item.linkFields?.length && value && value.length) {
+      applyDatasourceFieldLink(
+        value,
+        item,
+        source.find((s) => s.id === value[0]), // 当前选中的数据源对象，因为本身字段只能是单选数据源
+        dataSourceFormFields
+      );
+    }
+    // 单选数据源子表格数据联动
+    if (item.childLinkFields?.length && value && value.length) {
+      applySubFieldLink(
+        item.childLinkFields,
+        source.find((s) => s.id === value[0]), // 当前选中的数据源对象，因为本身字段只能是单选数据源
+        dataSourceFormFields
+      );
+    }
+    if (item.type === FieldTypeEnum.DATA_SOURCE && item.showFields?.length) {
+      // 数据源显示字段联动
+      const showFields = fieldList.value.filter((f) => f.resourceFieldId === item.id);
+      showFields.forEach((field) => {
+        const target = source.find((s) => s.id === value[0]);
+        const fieldValue =
+          field.businessKey && specialBusinessKeyMap[field.businessKey]
+            ? target?.[specialBusinessKeyMap[field.businessKey]]
+            : target?.[field.businessKey || getFieldItemId(field)];
+
+        formDetail.value[field.id] =
+          field.type === FieldTypeEnum.FORMULA
+            ? formatFormulaResultValue(fieldValue, field)
+            : getDisplayFieldText(field, fieldValue);
+      });
+    }
+
+    // 计算组件的数据源标记source 用于获取数据源name
+    if (
+      formulaDataSource.value[item.id]?.parserName &&
+      [FieldTypeEnum.DATA_SOURCE, FieldTypeEnum.DATA_SOURCE_MULTIPLE].includes(item.type)
+    ) {
+      formulaDataSource.value[item.id].options = source;
+    }
+
+    unsaved.value = true;
+  }
+
+  function transformSubFieldsValue(item: FormCreateField, result: Record<string, any>[]) {
+    const currentFieldValues = result.map((res) => res[item.businessKey || item.id]);
+    currentFieldValues.forEach((fieldValue, index) => {
+      if (
+        [FieldTypeEnum.DATA_SOURCE, FieldTypeEnum.MEMBER, FieldTypeEnum.DEPARTMENT].includes(item.type) &&
+        Array.isArray(fieldValue)
+      ) {
+        // 处理数据源/成员/部门字段，单选传单个值
+        result[index][item.businessKey || item.id] = result[index].price_sub
+          ? fieldValue?.filter((e) => e !== result[index].price_sub)[0] // 价格表子表格特殊处理，price_sub是行号，这里不填充到fieldValue中
+          : fieldValue?.[0];
+      } else if (item.type === FieldTypeEnum.PHONE) {
+        // 去空格
+        result[index][item.businessKey || item.id] = fieldValue?.replace(/[\s\uFEFF\xA0]+/g, '');
+      } else if (item.type === FieldTypeEnum.DATE_TIME && typeof fieldValue === 'string') {
+        // 去空格
+        result[index][item.businessKey || item.id] = dayjs(fieldValue).valueOf();
+      } else if (item.type === FieldTypeEnum.INPUT_NUMBER) {
+        // 数字字段需要重置一下小数位，确保每次保存按照最新配置的小数位保存
+        result[index][item.businessKey || item.id] = Number(Number(fieldValue).toFixed(item.precision));
+      }
+    });
+  }
+
+  function scrollToFirstError(errors: any[]) {
+    const firstErrorId = errors[0]?.[0]?.field;
+    if (firstErrorId) {
+      const fieldElement = document.getElementById(firstErrorId);
+      fieldElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function buildSavePayload() {
+    const result = cloneDeep(formDetail.value);
+    fieldList.value.forEach((item) => {
+      if ([FieldTypeEnum.SUB_PRODUCT, FieldTypeEnum.SUB_PRICE].includes(item.type) && item.subFields?.length) {
+        item.subFields.forEach((subField) => {
+          transformSubFieldsValue(subField, result[item.id]);
+        });
+      } else {
+        transformFieldValue(item, result, item.id);
+      }
+    });
+    return result;
+  }
+
+  function openUpdateChangeModal() {
+    return new Promise<string | undefined>((resolve) => {
+      const changeDescription = ref('');
+      let modalReactive: ReturnType<typeof openModal> | null = null;
+      const syncPositiveDisabled = (disabled: boolean) => {
+        if (!modalReactive) {
+          return;
+        }
+        modalReactive.positiveButtonProps = {
+          ...(modalReactive.positiveButtonProps ?? {}),
+          disabled,
+        };
+      };
+
+      modalReactive = openModal({
+        maskClosable: false,
+        size: 'medium',
+        title: t('crm.approval.change'),
+        positiveText: t('crm.approval.confirmChange'),
+        negativeText: t('common.cancel'),
+        positiveButtonProps: {
+          size: 'medium',
+          disabled: true,
+        },
+        content: () =>
+          h(
+            NFormItem,
+            {
+              label: t('crm.approval.changeDescription'),
+              required: true,
+              showFeedback: false,
+            },
+            {
+              default: () =>
+                h(NInput, {
+                  value: changeDescription.value,
+                  type: 'textarea',
+                  maxlength: 300,
+                  showCount: true,
+                  autosize: {
+                    minRows: 3,
+                  },
+                  onUpdateValue: (value: string) => {
+                    changeDescription.value = value;
+                    syncPositiveDisabled(!value.trim().length);
+                  },
+                }),
+            }
+          ),
+        onPositiveClick: () => {
+          const description = changeDescription.value.trim();
+          if (!description.length) {
+            Message.warning(t('common.notNull', { value: t('crm.approval.changeDescription') }));
+            return false;
+          }
+          resolve(description);
+        },
+        onNegativeClick: () => {
+          resolve(undefined);
+        },
+        onAfterLeave: () => {
+          resolve(undefined);
+        },
+      });
+    });
+  }
+
+  async function getUpdateReviewExtraParams() {
+    if (!shouldConfirmUpdateChange.value) {
+      return {};
+    }
+
+    const comment = await openUpdateChangeModal();
+    if (!comment) {
+      return false;
+    }
+
+    return { comment };
+  }
+
+  function handleSave(isContinue = false) {
+    formRef.value?.validate(async (errors) => {
+      if (!errors) {
+        const result = buildSavePayload();
+        // 获取变更说明
+        const extraParams = await getUpdateReviewExtraParams();
+        if (extraParams === false) {
+          return;
+        }
+        saveForm(
+          result,
+          isContinue,
+          (_isContinue, res) => {
+            emit('saved', isContinue, res, Boolean((extraParams as Record<string, any>).comment));
+          },
+          false,
+          false,
+          extraParams
+        );
+      } else {
+        scrollToFirstError(errors);
+      }
+    });
+  }
+
+  function handleReview() {
+    formRef.value?.validate((errors) => {
+      if (!errors) {
+        const result = buildSavePayload();
+        saveForm(
+          result,
+          false,
+          (_isContinue, res) => {
+            emit('review', res);
+          },
+          false,
+          true
+        );
+      } else {
+        scrollToFirstError(errors);
+      }
+    });
+  }
+
+  watch(
+    () => loading.value,
+    (val) => {
+      formLoading.value = val;
+    }
+  );
+
+  watch(
+    () => unsaved.value,
+    (val) => {
+      formUnsaved.value = val;
+    }
+  );
+
+  onBeforeMount(async () => {
+    const initApprovalReviewConfigPromise = initApprovalReviewConfig();
+    await initFormConfig();
+    emit('init', formCreateTitle.value, formConfig.value.viewSize);
+    if (props.sourceId && props.needInitDetail) {
+      await initFormDetail();
+    }
+    initForm(props.linkScenario);
+    initFormulaDataSourceRemark();
+    await initApprovalReviewConfigPromise;
+  });
+</script>
+
+<style lang="less">
+  .crm-form-create {
+    @apply relative flex h-full flex-col;
+    .crm-form-create-item {
+      @apply relative self-start;
+
+      padding: 0 16px;
+      border-radius: var(--border-radius-small);
+      .n-form-item-label {
+        @apply w-full items-center;
+
+        margin-bottom: 4px;
+        padding-bottom: 0;
+        .n-form-item-label__text {
+          @apply overflow-hidden;
+        }
+      }
+    }
+    .crm-form-create-footer {
+      @apply relative flex w-full;
+
+      padding: 12px 16px;
+      border-top: 1px solid var(--text-n8);
+      gap: 8px;
+    }
+  }
+</style>

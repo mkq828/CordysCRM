@@ -1,0 +1,24 @@
+package cn.cordys.crm.order.dto.request;
+
+import cn.cordys.common.domain.BaseModuleFieldValue;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+import java.util.List;
+
+@Data
+public class OrderStageRequest {
+
+    @NotBlank
+    @Schema(description = "id", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Size(max = 32)
+    private String id;
+
+    @NotBlank
+    private String stage;
+
+    @Schema(description = "更新字段")
+    private List<BaseModuleFieldValue> fields;
+}

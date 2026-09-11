@@ -1,0 +1,235 @@
+<template>
+  <n-select
+    v-model:value="innerValue"
+    v-bind="{
+      valueField: props.valueField,
+      labelField: props.labelField,
+      ...$attrs,
+    }"
+    filterable
+    clearable
+    max-tag-count="responsive"
+    :options="sortedOptions"
+    :placeholder="props.placeholder || t('common.pleaseSelect')"
+    :render-option="renderOption"
+    @search="handleSearch"
+    @update:value="change"
+  >
+    <template v-if="props.showIncludeDisabled" #header>
+      <n-checkbox v-model:checked="includeDisabled" @update:checked="handleIncludeDisabledChange">
+        <span class="text-[var(--text-n2)]">{{ t('common.showDisabledUsers') }}</span>
+      </n-checkbox>
+    </template>
+  </n-select>
+</template>
+
+<script setup lang="ts">
+  import { ref, type VNode } from 'vue';
+  import { NCheckbox, NSelect, SelectOption } from 'naive-ui';
+  import { debounce } from 'lodash-es';
+
+  import { useI18n } from '@lib/shared/hooks/useI18n';
+
+  import CrmTag from '@/components/pure/crm-tag/index.vue';
+
+  import useLocalForage from '@/hooks/useLocalForage';
+
+  import { SelectBaseOption, SelectMixedOption } from 'naive-ui/es/select/src/interface';
+
+  const { t } = useI18n();
+  const { setItem, getItem } = useLocalForage();
+
+  export interface CrmUserSelectProps {
+    mode?: 'remote' | 'static';
+    labelField?: string;
+    valueField?: string;
+    placeholder?: string;
+    options?: SelectMixedOption[];
+    fetchApi?: (params: Record<string, any>) => Promise<Record<string, any>[]>;
+    params?: Record<string, any>;
+    disabledIds?: string[];
+    showIncludeDisabled?: boolean;
+  }
+
+  const props = withDefaults(defineProps<CrmUserSelectProps>(), {
+    mode: 'static',
+    labelField: 'label',
+    valueField: 'value',
+  });
+
+  const emit = defineEmits<{
+    (
+      e: 'change',
+      value: Array<string | number> | string | number | null,
+      option: SelectBaseOption | null | SelectBaseOption[]
+    ): void;
+  }>();
+
+  const innerValue = defineModel<string | number | Array<string | number> | null>('value', {
+    required: true,
+    default: null,
+  });
+
+  const recentlyUserIds = ref<string[]>([]);
+  const optionsList = ref<SelectMixedOption[]>([]);
+  const includeDisabled = ref(false);
+
+  const loadUsers = async (keyword = '') => {
+    if (props.mode !== 'remote' || !props.fetchApi) return;
+
+    try {
+      const res = await props.fetchApi({
+        keyword,
+        ...props.params,
+        ...(props.showIncludeDisabled ? { includeDisabled: true } : {}),
+      });
+      optionsList.value = res.map((user) => ({
+        ...user,
+        [props.labelField]: user[props.labelField],
+        [props.valueField]: user[props.valueField],
+        disabled: props.disabledIds?.includes(user[props.valueField]),
+      }));
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.log(error);
+    }
+  };
+
+  function clearSelectedValue() {
+    const emptyValue = Array.isArray(innerValue.value) ? [] : null;
+    const emptyOption = Array.isArray(emptyValue) ? [] : null;
+    innerValue.value = emptyValue;
+    emit('change', emptyValue, emptyOption);
+  }
+
+  function handleIncludeDisabledChange(value: boolean) {
+    includeDisabled.value = value;
+    if (!value) {
+      clearSelectedValue();
+    }
+  }
+
+  const handleSearch = debounce(async (query: string) => {
+    if (props.mode === 'remote' && props.fetchApi) {
+      await loadUsers(query);
+    }
+  }, 100);
+
+  function updateRecentlyUserIds(value: string | number) {
+    if (!value) return;
+    const newIds = [String(value), ...recentlyUserIds.value.filter((id) => id !== String(value))];
+    recentlyUserIds.value = newIds.slice(0, 5); // 保持最近5个用户
+    setItem('recentlyUserIds', recentlyUserIds.value);
+  }
+
+  function change(
+    value: Array<string | number> | string | number | null,
+    option: SelectBaseOption | null | SelectBaseOption[]
+  ) {
+    innerValue.value = value;
+    updateRecentlyUserIds(value as string | number);
+    emit('change', value, option);
+  }
+
+  const rawOptions = computed<SelectMixedOption[]>(() =>
+    props.mode === 'static'
+      ? (props.options || []).map((item) => ({
+          ...item,
+          [props.labelField]: item[props.labelField],
+          [props.valueField]: item[props.valueField],
+          disabled: props.disabledIds?.includes(item[props.valueField] as string),
+        }))
+      : optionsList.value
+  );
+
+  const computedOptions = computed<SelectMixedOption[]>(() => {
+    if (!props.showIncludeDisabled || includeDisabled.value) {
+      return rawOptions.value;
+    }
+
+    return rawOptions.value.filter((item) => item.enable !== false);
+  });
+
+  function renderDisabledTag(option: SelectOption) {
+    if (option.enable !== false) return null;
+
+    return h(
+      CrmTag,
+      {
+        theme: 'light',
+        size: 'small',
+        tooltipDisabled: true,
+        class: 'ml-[8px] shrink-0',
+      },
+      { default: () => t('common.disabled') }
+    );
+  }
+
+  function renderOption({ node, option }: { node: VNode; option: SelectOption }) {
+    node.children = [
+      h('div', { class: 'flex w-full items-center justify-between' }, [
+        h('span', { class: 'one-line-text min-w-0' }, { default: () => option[props.labelField] as string }),
+        renderDisabledTag(option),
+      ]),
+    ];
+    return node;
+  }
+
+  const sortedOptions = computed<SelectMixedOption[]>(() => {
+    const sorted = [...computedOptions.value];
+    const recentlyIds: SelectMixedOption[] = [];
+    recentlyUserIds.value.forEach((id) => {
+      const index = sorted.findIndex((item) => item[props.valueField] === id);
+      if (index !== -1) {
+        const [item] = sorted.splice(index, 1);
+        recentlyIds.push(item);
+      }
+    });
+    return [...recentlyIds, ...sorted];
+  });
+
+  onMounted(async () => {
+    loadUsers();
+    const ids = await getItem<string[]>('recentlyUserIds');
+    if (ids) {
+      recentlyUserIds.value = ids;
+    }
+  });
+
+  function getValueList(value = innerValue.value): Array<string | number> {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    return value || value === 0 ? [value] : [];
+  }
+
+  function isSameValue(left: unknown, right: unknown) {
+    return String(left) === String(right);
+  }
+
+  // 如果当前值里包含禁用人员，会自动勾选【显示已禁用人员】
+  function syncIncludeDisabledByValue(list: SelectMixedOption[]) {
+    const selectedValues = getValueList();
+    const hasSelectedDisabledUser = list.some(
+      (item) =>
+        item.enable === false && selectedValues.some((value) => isSameValue(value, item[props.valueField] as string))
+    );
+    if (props.showIncludeDisabled && hasSelectedDisabledUser) {
+      includeDisabled.value = true;
+    }
+  }
+
+  watch(
+    [rawOptions, () => innerValue.value],
+    ([list]) => {
+      syncIncludeDisabledByValue(list);
+    },
+    { deep: true, immediate: true }
+  );
+
+  defineExpose({
+    loadUsers,
+  });
+</script>
+
+<style scoped></style>

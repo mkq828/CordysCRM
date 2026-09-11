@@ -1,0 +1,43 @@
+export const AddOrderUrl = '/order/add';
+export const UpdateOrderUrl = '/order/update';
+export const BatchUpdateOrderUrl = '/order/batch/update';
+export const UpdateOrderStageUrl = '/order/update/stage';
+export const DeleteOrderUrl = '/order/delete';
+export const BatchDeleteOrderUrl = '/order/batch/delete';
+export const GetOrderDetailUrl = '/order/get';
+export const OrderPageUrl = '/order/page';
+export const OrderDetailSnapshotUrl = '/order/get/snapshot';
+export const OrderFormConfigUrl = '/order/module/form';
+export const OrderFormConfigSnapshotUrl = '/order/module/form/snapshot';
+export const GetOrderTabUrl = '/order/tab';
+export const OrderInContractPageUrl = '/contract/order/page';
+export const DownloadOrderUrl = '/order/download';
+export const OrderStatisticUrl = '/order/statistic';
+export const SortOrderUrl = '/order/sort';
+export const ExportOrderAllUrl = '/order/export-all';
+export const ExportOrderSelectedUrl = '/order/export-select';
+
+// 订单导入
+export const PreCheckOrderImportUrl = '/order/import/pre-check';
+export const DownloadOrderTemplateUrl = '/order/template/download';
+export const ImportOrderUrl = '/order/import';
+
+// 订单视图
+export const AddOrderViewUrl = '/order/view/add';
+export const UpdateOrderViewUrl = '/order/view/update';
+export const DeleteOrderViewUrl = '/order/view/delete';
+export const GetOrderViewListUrl = '/order/view/list';
+export const GetOrderViewDetailUrl = '/order/view/detail';
+export const FixedOrderViewUrl = '/order/view/fixed';
+export const EnableOrderViewUrl = '/order/view/enable';
+export const DragOrderViewUrl = '/order/view/edit/pos';
+
+// 订单状态
+export const UpdateOrderStatusUrl = '/order/stage/update'; // 更新订单状态配置
+export const UpdateOrderStatusRollbackUrl = '/order/stage/update-rollback'; // 订单状态回退配置
+export const SortOrderStatusUrl = '/order/stage/sort'; // 订单状态排序
+export const AddOrderStatusUrl = '/order/stage/add'; // 订单状态添加
+export const GetOrderStatusConfigUrl = '/order/stage/get'; // 获取订单状态配置
+export const DeleteOrderStatusUrl = '/order/stage/delete'; // 删除订单状态
+export const SwitchOrderCirculationTypeUrl = '/order/stage/circulation-type'; // 切换流转配置
+export const SaveAdvanceConfigUrl = '/order/stage/advanced/config'; // 保存高级流转配置

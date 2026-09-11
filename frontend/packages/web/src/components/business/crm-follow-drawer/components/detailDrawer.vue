@@ -1,0 +1,138 @@
+<template>
+  <CrmDrawer
+    v-model:show="showDrawer"
+    :title="`${props.sourceName} ${
+      props.formKey === FormDesignKeyEnum.FOLLOW_RECORD ? t('module.customer.followRecord') : t('common.plan')
+    }`"
+    :width="800"
+    no-padding
+    :footer="false"
+  >
+    <template v-if="!props.readonly" #titleRight>
+      <div v-if="!props.readonly" class="flex items-center gap-[12px]">
+        <n-button type="primary" ghost class="n-btn-outline-primary" @click="handleEdit">
+          {{ t('common.edit') }}
+        </n-button>
+        <n-button
+          v-if="
+            props.detail?.status &&
+            [CustomerFollowPlanStatusEnum.COMPLETED].includes(props.detail?.status) &&
+            !props.detail?.converted
+          "
+          type="primary"
+          ghost
+          class="n-btn-outline-primary"
+          @click="handleConvert"
+        >
+          {{ t('common.convertPlanToRecord') }}
+        </n-button>
+        <n-button type="error" ghost class="n-btn-outline-error" @click="handleDelete">
+          {{ t('common.delete') }}
+        </n-button>
+      </div>
+    </template>
+    <div class="h-full bg-[var(--text-n9)] p-[16px]">
+      <CrmCard hide-footer>
+        <div class="flex-1">
+          <CrmFormDescription
+            :form-key="props.formKey"
+            :source-id="props.sourceId"
+            :refresh-key="detailRefreshKey"
+            :column="3"
+            label-width="auto"
+            value-align="start"
+            readonly
+            @init="handleDescriptionInit"
+          />
+        </div>
+        <n-divider class="!mb-[12px] !mt-[16px] bg-[var(--text-n8)]" />
+        <CrmComment
+          v-model:expanded="commentExpanded"
+          v-model:count="commentInitialCount"
+          :type="commentResourceType"
+          :source-id="props.sourceId"
+        />
+      </CrmCard>
+    </div>
+  </CrmDrawer>
+</template>
+
+<script setup lang="ts">
+  import { NButton, NDivider } from 'naive-ui';
+
+  import { CustomerFollowPlanStatusEnum } from '@lib/shared/enums/customerEnum';
+  import { FormDesignKeyEnum } from '@lib/shared/enums/formDesignEnum';
+  import { useI18n } from '@lib/shared/hooks/useI18n';
+
+  import CrmCard from '@/components/pure/crm-card/index.vue';
+  import CrmDrawer from '@/components/pure/crm-drawer/index.vue';
+  import CrmComment from '@/components/business/crm-comment/index.vue';
+  import CrmFormDescription from '@/components/business/crm-form-description/index.vue';
+
+  const props = defineProps<{
+    sourceId: string;
+    detail?: any;
+    formKey: FormDesignKeyEnum;
+    sourceName: string;
+    refreshKey: number;
+    readonly?: boolean;
+  }>();
+
+  const showDrawer = defineModel<boolean>('show', {
+    required: true,
+  });
+
+  const emit = defineEmits<{
+    (e: 'delete'): void;
+    (e: 'edit'): void;
+    (e: 'convert', detail?: any): void;
+    (e: 'detailInit', detail?: Record<string, any>): void;
+    (e: 'countChange', count: number): void;
+  }>();
+
+  const { t } = useI18n();
+
+  const commentExpanded = ref(false);
+  const commentResourceType = computed(() =>
+    props.formKey === FormDesignKeyEnum.FOLLOW_RECORD ? 'followRecord' : 'followPlan'
+  );
+  const commentInitialCount = ref<number>();
+  const detailRefreshKey = ref(0);
+
+  watch(
+    () => [showDrawer.value, props.sourceId, props.formKey, props.refreshKey],
+    ([visible]) => {
+      if (visible) {
+        commentExpanded.value = false;
+        commentInitialCount.value = props.detail?.commentCount;
+        detailRefreshKey.value += 1;
+      }
+    },
+    {
+      immediate: true,
+    }
+  );
+
+  function handleDescriptionInit(_collaborationType?: unknown, _sourceName?: string, detail?: Record<string, any>) {
+    if (typeof detail?.commentCount === 'number') {
+      commentInitialCount.value = detail.commentCount;
+    }
+    emit('detailInit', detail);
+  }
+
+  watch(commentInitialCount, (count) => {
+    emit('countChange', count || 0);
+  });
+
+  function handleDelete() {
+    emit('delete');
+  }
+
+  function handleEdit() {
+    emit('edit');
+  }
+
+  function handleConvert() {
+    emit('convert', props.detail);
+  }
+</script>

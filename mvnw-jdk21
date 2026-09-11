@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# 项目本地 Maven 构建入口：强制使用 JDK 21，不修改系统/用户全局环境。
+# 用法与 ./mvnw 完全一致，例如：./mvnw-jdk21 -f backend/pom.xml compile
+set -euo pipefail
+
+JDK21_HOME="/usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+if [[ ! -x "$JDK21_HOME/bin/java" ]]; then
+    echo "找不到 JDK 21：$JDK21_HOME" >&2
+    echo "请通过 brew install openjdk@21 安装。" >&2
+    exit 1
+fi
+
+export JAVA_HOME="$JDK21_HOME"
+export PATH="$JAVA_HOME/bin:$PATH"
+exec "$(cd "$(dirname "$0")" && pwd)/mvnw" "$@"

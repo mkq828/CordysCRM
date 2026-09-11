@@ -1,0 +1,179 @@
+package cn.cordys.crm.contract.controller;
+
+import cn.cordys.aspectj.constants.LogModule;
+import cn.cordys.common.constants.FormKey;
+import cn.cordys.common.constants.FormKeyConstants;
+import cn.cordys.common.constants.PermissionConstants;
+import cn.cordys.common.dto.DeptDataPermissionDTO;
+import cn.cordys.common.dto.ExportDTO;
+import cn.cordys.common.dto.ExportSelectRequest;
+import cn.cordys.common.dto.ResourceTabEnableDTO;
+import cn.cordys.common.pager.PagerWithOption;
+import cn.cordys.common.permission.CsBatchPermission;
+import cn.cordys.common.permission.CsPermission;
+import cn.cordys.common.service.DataScopeService;
+import cn.cordys.common.utils.ConditionFilterUtils;
+import cn.cordys.context.OrganizationContext;
+import cn.cordys.crm.contract.domain.ContractPaymentPlan;
+import cn.cordys.crm.contract.dto.request.ContractPaymentPlanAddRequest;
+import cn.cordys.crm.contract.dto.request.ContractPaymentPlanExportRequest;
+import cn.cordys.crm.contract.dto.request.ContractPaymentPlanPageRequest;
+import cn.cordys.crm.contract.dto.request.ContractPaymentPlanUpdateRequest;
+import cn.cordys.crm.contract.dto.response.ContractPaymentPlanGetResponse;
+import cn.cordys.crm.contract.dto.response.ContractPaymentPlanListResponse;
+import cn.cordys.crm.contract.service.ContractPaymentPlanExportService;
+import cn.cordys.crm.contract.service.ContractPaymentPlanService;
+import cn.cordys.crm.system.constants.ExportConstants;
+import cn.cordys.crm.system.dto.request.ImportRequest;
+import cn.cordys.crm.system.dto.response.ImportResponse;
+import cn.cordys.crm.system.dto.response.ModuleFormConfigDTO;
+import cn.cordys.crm.system.service.ModuleFormCacheService;
+import cn.cordys.security.SessionUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+
+/**
+ * @author jianxing
+ * @date 2025-11-21 15:11:29
+ */
+@Tag(name = "合同回款计划")
+@RestController
+@RequestMapping("/contract/payment-plan")
+public class ContractPaymentPlanController {
+    @Resource
+    private ContractPaymentPlanService contractPaymentPlanService;
+    @Resource
+    private ContractPaymentPlanExportService contractPaymentPlanExportService;
+    @Resource
+    private DataScopeService dataScopeService;
+    @Resource
+    private ModuleFormCacheService moduleFormCacheService;
+
+    @GetMapping("/module/form")
+    @CsPermission(PermissionConstants.CONTRACT_PAYMENT_PLAN_READ)
+    @Operation(summary = "获取表单配置")
+    public ModuleFormConfigDTO getModuleFormConfig() {
+        return moduleFormCacheService.getBusinessFormConfig(FormKey.CONTRACT_PAYMENT_PLAN.getKey(), OrganizationContext.getOrganizationId());
+    }
+
+    @PostMapping("/page")
+    @CsPermission(PermissionConstants.CONTRACT_PAYMENT_PLAN_READ)
+    @Operation(summary = "合同回款计划列表")
+    public PagerWithOption<List<ContractPaymentPlanListResponse>> list(@Validated @RequestBody ContractPaymentPlanPageRequest request) {
+        ConditionFilterUtils.parseCondition(request, FormKey.CONTRACT_PAYMENT_PLAN.getKey());
+        DeptDataPermissionDTO deptDataPermission = dataScopeService.getDeptDataPermission(SessionUtils.getUserId(),
+                OrganizationContext.getOrganizationId(), request.getViewId(), PermissionConstants.CONTRACT_PAYMENT_PLAN_READ);
+        return contractPaymentPlanService.list(request, SessionUtils.getUserId(), OrganizationContext.getOrganizationId(), deptDataPermission);
+    }
+
+    @GetMapping("/get/{id}")
+    @CsPermission(value = PermissionConstants.CONTRACT_PAYMENT_PLAN_READ, resourceId = "{#id}", formType = FormKeyConstants.CONTRACT_PAYMENT_PLAN)
+    @Operation(summary = "合同回款计划详情")
+    public ContractPaymentPlanGetResponse get(@PathVariable String id) {
+        return contractPaymentPlanService.get(id);
+    }
+
+    @PostMapping("/add")
+    @CsPermission(PermissionConstants.CONTRACT_PAYMENT_PLAN_ADD)
+    @Operation(summary = "添加合同回款计划")
+    public ContractPaymentPlan add(@Validated @RequestBody ContractPaymentPlanAddRequest request) {
+        return contractPaymentPlanService.add(request, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
+    }
+
+    @PostMapping("/update")
+    @CsPermission(value = PermissionConstants.CONTRACT_PAYMENT_PLAN_UPDATE, resourceId = "{#request.id}", formType = FormKeyConstants.CONTRACT_PAYMENT_PLAN)
+    @Operation(summary = "更新合同回款计划")
+    public ContractPaymentPlan update(@Validated @RequestBody ContractPaymentPlanUpdateRequest request) {
+        return contractPaymentPlanService.update(request, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
+    }
+
+    @GetMapping("/delete/{id}")
+    @CsPermission(value = PermissionConstants.CONTRACT_PAYMENT_PLAN_DELETE, resourceId = "{#id}", formType = FormKeyConstants.CONTRACT_PAYMENT_PLAN)
+    @Operation(summary = "删除合同回款计划")
+    public void delete(@PathVariable String id) {
+        contractPaymentPlanService.delete(id, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
+    }
+
+    @GetMapping("/tab")
+    @CsPermission(PermissionConstants.CONTRACT_PAYMENT_PLAN_READ)
+    @Operation(summary = "tab是否显示")
+    public ResourceTabEnableDTO getTabEnableConfig() {
+        return contractPaymentPlanService.getTabEnableConfig(SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
+    }
+
+    @PostMapping("/export-select")
+    @Operation(summary = "导出选中回款计划")
+    @CsBatchPermission(value = PermissionConstants.CONTRACT_PAYMENT_PLAN_EXPORT, resourceId = "{#request.ids}", formType = FormKeyConstants.CONTRACT_PAYMENT_PLAN)
+    public String exportSelect(@Validated @RequestBody ExportSelectRequest request) {
+        DeptDataPermissionDTO deptDataPermission = dataScopeService.getDeptDataPermission(SessionUtils.getUserId(),
+                OrganizationContext.getOrganizationId(), PermissionConstants.CONTRACT_PAYMENT_PLAN_READ);
+        ExportDTO exportDTO = ExportDTO.builder()
+                .exportType(ExportConstants.ExportType.CONTRACT_PAYMENT_PLAN.name())
+                .fileName(request.getFileName())
+                .headList(request.getHeadList())
+                .logModule(LogModule.CONTRACT_PAYMENT)
+                .locale(LocaleContextHolder.getLocale())
+                .orgId(OrganizationContext.getOrganizationId())
+                .userId(SessionUtils.getUserId())
+                .deptDataPermission(deptDataPermission)
+                .selectIds(request.getIds())
+                .selectRequest(request)
+                .formKey(FormKey.CONTRACT_PAYMENT_PLAN.getKey())
+                .build();
+        return contractPaymentPlanExportService.exportSelectWithMergeStrategy(exportDTO);
+    }
+
+    @PostMapping("/export-all")
+    @Operation(summary = "导出全部回款计划")
+    @CsPermission(PermissionConstants.CONTRACT_PAYMENT_PLAN_EXPORT)
+    public String exportAll(@Validated @RequestBody ContractPaymentPlanExportRequest request) {
+        ConditionFilterUtils.parseCondition(request, FormKey.CONTRACT_PAYMENT_PLAN.getKey());
+        DeptDataPermissionDTO deptDataPermission = dataScopeService.getDeptDataPermission(SessionUtils.getUserId(),
+                OrganizationContext.getOrganizationId(), request.getViewId(), PermissionConstants.CONTRACT_PAYMENT_PLAN_READ);
+        ExportDTO exportDTO = ExportDTO.builder()
+                .exportType(ExportConstants.ExportType.CONTRACT_PAYMENT_PLAN.name())
+                .fileName(request.getFileName())
+                .headList(request.getHeadList())
+                .logModule(LogModule.CONTRACT_PAYMENT)
+                .locale(LocaleContextHolder.getLocale())
+                .orgId(OrganizationContext.getOrganizationId())
+                .userId(SessionUtils.getUserId())
+                .deptDataPermission(deptDataPermission)
+                .pageRequest(request)
+                .formKey(FormKey.CONTRACT_PAYMENT_PLAN.getKey())
+                .build();
+        return contractPaymentPlanExportService.exportAllWithMergeStrategy(exportDTO);
+    }
+
+
+    @GetMapping("/template/download")
+    @CsPermission(PermissionConstants.CONTRACT_PAYMENT_PLAN_IMPORT)
+    @Operation(summary = "下载导入模板")
+    public void downloadImportTpl(HttpServletResponse response) {
+        contractPaymentPlanService.downloadImportTpl(response, OrganizationContext.getOrganizationId());
+    }
+
+
+    @PostMapping("/import/pre-check")
+    @Operation(summary = "导入检查")
+    @CsPermission(PermissionConstants.CONTRACT_PAYMENT_PLAN_IMPORT)
+    public ImportResponse preCheck(@Validated @RequestPart("request") ImportRequest request, @RequestPart(value = "file") MultipartFile file) {
+        return contractPaymentPlanService.importPreCheck(file, request.getImportType(), OrganizationContext.getOrganizationId());
+    }
+
+
+    @PostMapping("/import")
+    @Operation(summary = "导入")
+    @CsPermission(PermissionConstants.CONTRACT_PAYMENT_PLAN_IMPORT)
+    public ImportResponse realImport(@Validated @RequestPart("request") ImportRequest request, @RequestPart(value = "file") MultipartFile file) {
+        return contractPaymentPlanService.realImport(file, request, OrganizationContext.getOrganizationId(), SessionUtils.getUserId());
+    }
+}
