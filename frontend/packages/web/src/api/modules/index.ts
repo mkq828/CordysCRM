@@ -19,6 +19,7 @@ import useMessageApi from '@lib/shared/api/modules/system/message';
 import useModuleApi from '@lib/shared/api/modules/system/module';
 import useOrgApi from '@lib/shared/api/modules/system/org';
 import useProcessApi from '@lib/shared/api/modules/system/process';
+import useRegisterApi from '@lib/shared/api/modules/system/register';
 import useRoleApi from '@lib/shared/api/modules/system/role';
 
 import useDiscreteApi from '@/hooks/useDiscreteApi';
@@ -53,6 +54,7 @@ const contractApi = useContractApi(CDR);
 const orderApi = useOrderApi(CDR);
 const customFormApi = useCustomFormApi(CDR);
 const processApi = useProcessApi(CDR);
+const registerApi = useRegisterApi(CDR);
 
 export const {
   addCustomForm,
@@ -936,3 +938,12 @@ export const {
   testApprovalWebHook,
   getCCStatistic,
 } = processApi;
+
+export const {
+  apply: registerApply,
+  status: registerStatus,
+  pageList: registerPageList,
+  detail: registerDetail,
+  approve: registerApprove,
+  reject: registerReject,
+} = registerApi;

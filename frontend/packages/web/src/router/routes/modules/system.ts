@@ -18,6 +18,7 @@ const system: AppRouteRecordRaw = {
       'SYSTEM_SETTING:READ',
       'OPERATION_LOG:READ',
       'PROCESS_SETTING:READ',
+      'SYS_REGISTER_AUDIT:READ',
     ],
     icon: 'iconicon_set_up',
     collapsedLocale: 'menu.collapsedSettings',
@@ -108,6 +109,15 @@ const system: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.settings.log',
         permissions: ['OPERATION_LOG:READ'],
+      },
+    },
+    {
+      path: 'register-audit',
+      name: SystemRouteEnum.SYSTEM_REGISTER_AUDIT,
+      component: () => import('@/views/system/register-audit/index.vue'),
+      meta: {
+        locale: 'menu.settings.registerAudit',
+        permissions: ['SYS_REGISTER_AUDIT:READ'],
       },
     },
   ],

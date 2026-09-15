@@ -46,6 +46,7 @@ export default {
     'menu.settings.approvalFlow': 'Approval Flow',
     'menu.settings.workflowSetting': 'Workflow',
     'menu.settings.log': 'Logs',
+    'menu.settings.registerAudit': 'Register Audit',
     'navbar.action.locale': 'Switch to English',
     ...sys,
     ...localeSettings,

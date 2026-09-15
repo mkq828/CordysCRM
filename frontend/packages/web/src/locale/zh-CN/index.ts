@@ -45,6 +45,7 @@ export default {
     'menu.settings.workflowSetting': '工作流',
     'menu.customForm': '自定义表单',
     'menu.settings.log': '系统日志',
+    'menu.settings.registerAudit': '注册审核',
     'navbar.action.locale': '切换为中文',
     ...sys,
     ...localeSettings,

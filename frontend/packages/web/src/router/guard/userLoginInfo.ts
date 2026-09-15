@@ -19,7 +19,7 @@ export default function setupUserLoginInfoGuard(router: Router) {
     const tokenExists = hasToken();
 
     // 未登录访问受限页面重定向登录页
-    if (!tokenExists && to.name !== 'login' && !isWhiteListPage()) {
+    if (!tokenExists && to.name !== 'login' && to.name !== 'register' && !isWhiteListPage()) {
       next({
         name: 'login',
         query: {

@@ -59,6 +59,21 @@
         ]
       },
       {
+        "id": "SYS_REGISTER_AUDIT",
+        "name": "permission.register.audit.name",
+        "permissions": [
+          {
+            "id": "SYS_REGISTER_AUDIT:READ"
+          },
+          {
+            "id": "SYS_REGISTER_AUDIT:APPROVE"
+          },
+          {
+            "id": "SYS_REGISTER_AUDIT:REJECT"
+          }
+        ]
+      },
+      {
         "id": "SYSTEM_SETTING",
         "name": "permission.system.module_setting.name",
         "permissions": [

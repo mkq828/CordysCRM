@@ -180,7 +180,7 @@
             sys_user_role
                 INNER JOIN sys_role ON sys_user_role.role_id = sys_role.id
         where sys_user_role.user_id = #{userId}
-          and sys_role.organization_id = #{orgId}
+          and (sys_role.organization_id = #{orgId} or sys_role.internal = 1)
     </select>
 
     <select id="selectPermissionsByUserId" resultType="java.lang.String">

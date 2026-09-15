@@ -29,4 +29,10 @@ public class User extends BaseModel {
 
     @Schema(description = "当前组织ID")
     private String lastOrganizationId;
+
+    @Schema(description = "身份证号(AES加密)")
+    private String idCard;
+
+    @Schema(description = "身份证号md5")
+    private String idCardHash;
 }

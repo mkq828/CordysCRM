@@ -263,5 +263,11 @@ public class PermissionConstants {
     public static final String CUSTOM_FORM_READ = "CUSTOM_FORM:READ";
     public static final String CUSTOM_FORM_ADD = "CUSTOM_FORM:ADD";
     /*------ end: CUSTOM_FORM ------*/
+
+    /*------ start: SYS_REGISTER_AUDIT ------*/
+    public static final String SYS_REGISTER_AUDIT_READ = "SYS_REGISTER_AUDIT:READ";
+    public static final String SYS_REGISTER_AUDIT_APPROVE = "SYS_REGISTER_AUDIT:APPROVE";
+    public static final String SYS_REGISTER_AUDIT_REJECT = "SYS_REGISTER_AUDIT:REJECT";
+    /*------ end: SYS_REGISTER_AUDIT ------*/
 }
 

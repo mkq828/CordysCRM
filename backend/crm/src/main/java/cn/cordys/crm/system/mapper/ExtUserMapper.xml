@@ -43,7 +43,7 @@
                  open="(" close=")" separator=",">
             #{userId}
         </foreach>
-        and sr.organization_id = #{orgId}
+        and (sr.organization_id = #{orgId} or sr.internal = 1)
     </select>
 
     <select id="getUserDetail" resultType="cn.cordys.crm.system.dto.response.UserResponse">

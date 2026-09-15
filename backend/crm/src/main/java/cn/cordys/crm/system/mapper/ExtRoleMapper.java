@@ -19,4 +19,6 @@ public interface ExtRoleMapper {
     List<String> getInternalRoleIds();
 
     List<OptionDTO> getIdNameByIds(@Param("ids") List<String> ids);
+
+    List<Role> listByOrgOrInternal(@Param("orgId") String orgId);
 }

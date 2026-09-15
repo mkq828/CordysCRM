@@ -82,7 +82,7 @@ public abstract class AbstractSqlProviderSupport {
      *
      * @return 构建的 SQL 脚本
      */
-    String invoke(Object criteria, ProviderContext context) {
+    public String invoke(Object criteria, ProviderContext context) {
         return buildSql(criteria, tableInfo(context));
     }
 

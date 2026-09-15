@@ -99,7 +99,14 @@
         path="onboardingDate"
         :label="t('common.batchUpdate')"
       >
-        <n-date-picker v-model:value="form.onboardingDate" type="date" class="w-full"> </n-date-picker>
+        <n-date-picker
+          v-model:value="form.onboardingDate"
+          type="date"
+          fast-year-select
+          fast-month-select
+          class="w-full"
+        >
+        </n-date-picker>
       </n-form-item>
     </n-form>
     <template #footer>

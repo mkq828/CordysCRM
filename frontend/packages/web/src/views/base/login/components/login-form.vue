@@ -67,6 +67,9 @@
           <n-button type="primary" size="large" block :loading="loading" @click="handleSubmit">
             {{ t('login.form.login') }}
           </n-button>
+          <div class="mt-[12px] flex justify-center">
+            <n-button text type="primary" @click="goRegister">{{ t('login.form.register') }}</n-button>
+          </div>
           <div v-if="showDemo" class="mb-[-16px] mt-[16px] flex items-center gap-[16px]">
             <div class="flex items-center">
               <div>{{ t('login.form.username') }}：</div>
@@ -118,6 +121,7 @@
 
 <script lang="ts" setup>
   import { computed, ref } from 'vue';
+  import { useRouter } from 'vue-router';
   import { FormInst, NButton, NDivider, NForm, NFormItem, NInput, NSpin, useMessage } from 'naive-ui';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -140,6 +144,7 @@
 
   const { goUserHasPermissionPage } = useUser();
   const { t } = useI18n();
+  const router = useRouter();
   const appStore = useAppStore();
   const userStore = useUserStore();
   const licenseStore = useLicenseStore();
@@ -180,6 +185,10 @@
 
   const showQrCodeTab = ref(false);
   const activeName = ref('');
+
+  function goRegister() {
+    router.push({ name: 'register' });
+  }
 
   function switchLoginType(type: string) {
     userInfo.value.authenticate = type;

@@ -78,6 +78,10 @@ public final class ShiroFilter {
         FILTER_CHAIN_DEFINITION_MAP.put("/403", "anon");
         FILTER_CHAIN_DEFINITION_MAP.put("/sso/callback/**", "anon");
         FILTER_CHAIN_DEFINITION_MAP.put("/module/form/formula/decimal/recalculate", "anon");
+        FILTER_CHAIN_DEFINITION_MAP.put("/register/apply", "anon");
+        FILTER_CHAIN_DEFINITION_MAP.put("/register/status", "anon");
+        // 注册时（未登录）上传营业执照等临时附件
+        FILTER_CHAIN_DEFINITION_MAP.put("/attachment/upload/temp", "anon");
     }
 
     /**

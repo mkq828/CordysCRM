@@ -79,9 +79,7 @@ public class RoleService {
     }
 
     public List<RoleListResponse> getRoleListResponses(String orgId) {
-        Role role = new Role();
-        role.setOrganizationId(orgId);
-        List<Role> roles = roleMapper.select(role);
+        List<Role> roles = extRoleMapper.listByOrgOrInternal(orgId);
         List<RoleListResponse> roleListResponseList = JSON.parseArray(JSON.toJSONString(roles), RoleListResponse.class);
         // 翻译内置角色名称
         roleListResponseList.stream()
@@ -561,7 +559,7 @@ public class RoleService {
         }
         List<Role> roles = getByIds(roleIds);
         return roles.stream()
-                .filter(role -> Strings.CS.equals(role.getOrganizationId(), orgId))
+                .filter(role -> Strings.CS.equals(role.getOrganizationId(), orgId) || BooleanUtils.isTrue(role.getInternal()))
                 .map(role -> {
                     role = translateInternalRole(role);
                     return BeanUtils.copyBean(new RoleDataScopeDTO(), role);

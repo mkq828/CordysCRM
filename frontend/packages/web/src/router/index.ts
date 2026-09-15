@@ -23,6 +23,14 @@ const router = createRouter({
         requiresAuth: false,
       },
     },
+    {
+      path: '/register',
+      name: 'register',
+      component: () => import('@/views/base/register/index.vue'),
+      meta: {
+        requiresAuth: false,
+      },
+    },
     ...appRoutes,
     NOT_FOUND_ROUTE,
     NO_RESOURCE_ROUTE,
