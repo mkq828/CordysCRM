@@ -15,7 +15,7 @@ import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.permission.PermissionCache;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.BeanUtils;
-import cn.cordys.common.util.CodingUtils;
+import cn.cordys.common.util.PasswordUtils;
 import cn.cordys.common.util.SubListUtils;
 import cn.cordys.common.util.Translator;
 import cn.cordys.crm.approval.service.ApprovalActionService;
@@ -318,7 +318,7 @@ public class OrganizationUserService {
         User user = new User();
         BeanUtils.copyBean(user, request);
         user.setId(id);
-        user.setPassword(CodingUtils.md5(request.getPhone().substring(request.getPhone().length() - 6)));
+        user.setPassword(PasswordUtils.encode(request.getPhone().substring(request.getPhone().length() - 6)));
         user.setCreateTime(System.currentTimeMillis());
         user.setCreateUser(operatorId);
         user.setUpdateTime(System.currentTimeMillis());
@@ -437,7 +437,7 @@ public class OrganizationUserService {
             if (StringUtils.isBlank(user.getPhone())) {
                 throw new GenericException(Translator.get("user_phone_not_exist"));
             }
-            user.setPassword(CodingUtils.md5(user.getPhone().substring(user.getPhone().length() - 6)));
+            user.setPassword(PasswordUtils.encode(user.getPhone().substring(user.getPhone().length() - 6)));
             user.setUpdateTime(System.currentTimeMillis());
             user.setUpdateUser(operatorId);
             userMapper.updateById(user);
@@ -513,7 +513,7 @@ public class OrganizationUserService {
         newMap.put("userPassword", "************");
         userList.forEach(user -> {
             if (!Strings.CI.equals(user.getId(), InternalUser.ADMIN.getValue())) {
-                user.setPassword(CodingUtils.md5(user.getPhone().substring(user.getPhone().length() - 6)));
+                user.setPassword(PasswordUtils.encode(user.getPhone().substring(user.getPhone().length() - 6)));
             }
             user.setUpdateTime(System.currentTimeMillis());
             user.setUpdateUser(operatorId);
@@ -766,7 +766,7 @@ public class OrganizationUserService {
         user.setName(userData.getName());
         user.setPhone(userData.getPhone());
         user.setEmail(userData.getEmail());
-        user.setPassword(CodingUtils.md5(userData.getPhone().substring(userData.getPhone().length() - 6)));
+        user.setPassword(PasswordUtils.encode(userData.getPhone().substring(userData.getPhone().length() - 6)));
         user.setLanguage(Locale.SIMPLIFIED_CHINESE.toString());
         user.setGender(Boolean.valueOf(userData.getGender()));
         user.setCreateUser(operatorId);

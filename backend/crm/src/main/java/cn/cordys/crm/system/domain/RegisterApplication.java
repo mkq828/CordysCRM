@@ -23,13 +23,13 @@ public class RegisterApplication extends BaseModel {
     @Schema(description = "手机号")
     private String phone;
 
-    @Schema(description = "密码(md5)")
+    @Schema(description = "密码(bcrypt)")
     private String password;
 
     @Schema(description = "身份证号(AES加密)")
     private String idCard;
 
-    @Schema(description = "身份证号md5")
+    @Schema(description = "身份证号sha256")
     private String idCardHash;
 
     @Schema(description = "统一社会信用代码")

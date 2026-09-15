@@ -13,7 +13,7 @@ import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.pager.PageUtils;
 import cn.cordys.common.pager.PagerWithOption;
 import cn.cordys.common.util.BeanUtils;
-import cn.cordys.common.util.CodingUtils;
+import cn.cordys.common.util.PasswordUtils;
 import cn.cordys.common.util.Translator;
 import cn.cordys.crm.follow.dto.request.FollowUpPlanPageRequest;
 import cn.cordys.crm.follow.dto.response.FollowUpPlanListResponse;
@@ -134,7 +134,7 @@ public class PersonalCenterService {
         //检查原密码
         if (checkPwd(personalPasswordRequest.getOriginPassword(), operatorId)) {
             // 更新用户密码
-            extUserMapper.updateUserPassword(CodingUtils.md5(password), operatorId);
+            extUserMapper.updateUserPassword(PasswordUtils.encode(password), operatorId);
             // 登出当前用户
             kickOutUser(operatorId, operatorId);
         } else {
@@ -151,10 +151,7 @@ public class PersonalCenterService {
      * @return
      */
     private boolean checkPwd(String originPassword, String userId) {
-        User example = new User();
-        example.setId(userId);
-        example.setPassword(CodingUtils.md5(originPassword));
-        return userBaseMapper.exist(example);
+        return PasswordUtils.matches(originPassword, extUserMapper.selectPasswordById(userId));
     }
 
     @OperationLog(module = LogModule.SYSTEM_ORGANIZATION, type = LogType.UPDATE, operator = "{#userId}")

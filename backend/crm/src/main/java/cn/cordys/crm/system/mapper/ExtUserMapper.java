@@ -42,6 +42,8 @@ public interface ExtUserMapper {
 
     void updateUserPassword(@Param("password") String password, @Param("id") String id);
 
+    String selectPasswordById(@Param("id") String id);
+
     List<User> getAllUserIds(@Param("orgId") String orgId);
 
     void deleteByIds(@Param("ids") List<String> ids);

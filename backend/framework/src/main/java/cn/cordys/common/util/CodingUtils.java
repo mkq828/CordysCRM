@@ -214,6 +214,34 @@ public class CodingUtils {
         }
     }
 
+    /**
+     * 计算字符串的 SHA-256 摘要（64位十六进制）。
+     * 用于身份证号等敏感信息的确定性指纹，作为唯一索引查重。
+     *
+     * @param src 需要计算摘要的字符串
+     *
+     * @return 64位十六进制摘要
+     */
+    public static String sha256Hex(String src) {
+        if (StringUtils.isBlank(src)) {
+            throw new IllegalArgumentException("Input for SHA-256 cannot be null or empty");
+        }
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(src.getBytes(StandardCharsets.UTF_8));
+
+            char[] str = new char[digest.length * 2];
+            int k = 0;
+            for (byte b : digest) {
+                str[k++] = HEX_DIGITS[(b >>> 4) & 0xf];
+                str[k++] = HEX_DIGITS[b & 0xf];
+            }
+            return new String(str);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 digest error:", e);
+        }
+    }
+
     public static String aesCBCEncrypt(String src, String secretKey, String iv) {
         if (StringUtils.isBlank(src)) {
             return src;

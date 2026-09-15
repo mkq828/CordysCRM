@@ -2,7 +2,7 @@ package cn.cordys.crm.system.controller;
 
 import cn.cordys.common.pager.Pager;
 import cn.cordys.common.uid.IDGenerator;
-import cn.cordys.common.util.CodingUtils;
+import cn.cordys.common.util.PasswordUtils;
 import cn.cordys.crm.base.BaseTest;
 import cn.cordys.crm.customer.domain.Customer;
 import cn.cordys.crm.customer.domain.CustomerContact;
@@ -277,7 +277,7 @@ public class PersonalCenterControllerTests extends BaseTest {
         personalPasswordRequest.setPassword("Gyq124");
         personalPasswordRequest.setOriginPassword("678911");
         this.requestPost("/personal/center/info/reset", personalPasswordRequest);
-        extUserMapper.updateUserPassword(CodingUtils.md5(DEFAULT_USER_PASSWORD), "admin");
+        extUserMapper.updateUserPassword(PasswordUtils.encode(DEFAULT_USER_PASSWORD), "admin");
         // personalPasswordRequest.setPassword(DEFAULT_USER_PASSWORD);
         adminAuthInfo = null;
         permissionAuthInfo = null;

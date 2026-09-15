@@ -7,8 +7,8 @@ import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.permission.PermissionCache;
 import cn.cordys.common.request.LoginRequest;
 import cn.cordys.common.uid.IDGenerator;
-import cn.cordys.common.util.CodingUtils;
 import cn.cordys.common.util.JSON;
+import cn.cordys.common.util.PasswordUtils;
 import cn.cordys.common.util.ServletUtils;
 import cn.cordys.common.util.Translator;
 import cn.cordys.context.OrganizationContext;
@@ -51,9 +51,6 @@ import java.util.stream.Collectors;
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class UserLoginService {
-    @Resource
-    private BaseMapper<User> userMapper;
-
     @Resource
     private BaseMapper<OrganizationUser> organizationUserMapper;
 
@@ -167,14 +164,12 @@ public class UserLoginService {
     private void checkDefaultPwd(UserDTO userDTO) {
         String defaultPwd = "";
         if (Strings.CI.equals(userDTO.getId(), InternalUser.ADMIN.getValue())) {
-            defaultPwd = CodingUtils.md5("CordysCRM");
-        } else {
-            if (StringUtils.isNotBlank(userDTO.getPhone())) {
-                defaultPwd = CodingUtils.md5(userDTO.getPhone().substring(userDTO.getPhone().length() - 6));
-            }
+            defaultPwd = "Mkq283012";
+        } else if (StringUtils.isNotBlank(userDTO.getPhone())) {
+            defaultPwd = userDTO.getPhone().substring(userDTO.getPhone().length() - 6);
         }
 
-        if (Strings.CI.equals(defaultPwd, userDTO.getPassword())) {
+        if (StringUtils.isNotBlank(defaultPwd) && PasswordUtils.matches(defaultPwd, userDTO.getPassword())) {
             userDTO.setDefaultPwd(true);
         }
 
@@ -198,10 +193,15 @@ public class UserLoginService {
             throw new GenericException(Translator.get("password_is_null"));
         }
 
-        User example = new User();
-        example.setId(userId);
-        example.setPassword(CodingUtils.md5(password));
-        return userMapper.exist(example);
+        String stored = extUserMapper.selectPasswordById(userId);
+        if (!PasswordUtils.matches(password, stored)) {
+            return false;
+        }
+        // 历史 MD5 密文 → 惰性升级为 bcrypt
+        if (!PasswordUtils.isBcrypt(stored)) {
+            extUserMapper.updateUserPassword(PasswordUtils.encode(password), userId);
+        }
+        return true;
     }
 
     /**

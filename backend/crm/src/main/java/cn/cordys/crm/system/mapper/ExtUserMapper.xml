@@ -134,6 +134,11 @@
         WHERE id = #{id}
     </update>
 
+    <select id="selectPasswordById" resultType="java.lang.String">
+        SELECT password
+        FROM sys_user
+        WHERE id = #{id}
+    </select>
 
     <select id="getAllUserIds" resultType="cn.cordys.crm.system.domain.User">
         select sys_user.id

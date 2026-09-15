@@ -3,8 +3,8 @@ package cn.cordys.crm.integration.common.utils;
 import cn.cordys.common.constants.InternalUser;
 import cn.cordys.common.constants.ThirdConfigTypeConstants;
 import cn.cordys.common.uid.IDGenerator;
-import cn.cordys.common.util.CodingUtils;
 import cn.cordys.common.util.CommonBeanFactory;
+import cn.cordys.common.util.PasswordUtils;
 import cn.cordys.common.util.NodeSortUtils;
 import cn.cordys.crm.approval.mapper.ExtApprovalTaskMapper;
 import cn.cordys.crm.approval.service.ApprovalActionService;
@@ -366,7 +366,7 @@ public class DataHandleUtils {
         user.setName(thirdUser.getName());
         user.setPhone(thirdUser.getMobile());
         user.setEmail(thirdUser.getEmail());
-        user.setPassword(CodingUtils.md5(orgId + id));
+        user.setPassword(PasswordUtils.encode(orgId + id));
         user.setGender(thirdUser.getGender() != null && thirdUser.getGender() != 1);
         user.setLanguage("zh_CN");
         user.setCreateTime(timestamp);

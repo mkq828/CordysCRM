@@ -7,6 +7,7 @@ import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.BeanUtils;
 import cn.cordys.common.util.CodingUtils;
 import cn.cordys.common.util.EncryptUtils;
+import cn.cordys.common.util.PasswordUtils;
 import cn.cordys.crm.system.constants.RegisterResultCode;
 import cn.cordys.crm.system.constants.RegisterType;
 import cn.cordys.crm.system.constants.RegisterVerifyStatus;
@@ -92,7 +93,7 @@ public class RegisterService {
             throw new GenericException(RegisterResultCode.PHONE_EXIST);
         }
 
-        String idCardHash = CodingUtils.md5(idCard);
+        String idCardHash = CodingUtils.sha256Hex(idCard);
 
         String creditCode = null;
         String legalPersonName = null;
@@ -123,7 +124,7 @@ public class RegisterService {
         application.setType(type);
         application.setName(StringUtils.trim(request.getName()));
         application.setPhone(phone);
-        application.setPassword(CodingUtils.md5(request.getPassword()));
+        application.setPassword(PasswordUtils.encode(request.getPassword()));
         application.setIdCard(EncryptUtils.aesEncrypt(idCard));
         application.setIdCardHash(idCardHash);
         application.setUnifiedSocialCreditCode(creditCode);

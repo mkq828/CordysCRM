@@ -33,6 +33,6 @@ public class User extends BaseModel {
     @Schema(description = "身份证号(AES加密)")
     private String idCard;
 
-    @Schema(description = "身份证号md5")
+    @Schema(description = "身份证号sha256")
     private String idCardHash;
 }

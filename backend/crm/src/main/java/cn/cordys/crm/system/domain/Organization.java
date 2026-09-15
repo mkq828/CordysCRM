@@ -29,7 +29,7 @@ public class Organization extends BaseModel {
     @Schema(description = "法人身份证号(AES加密)")
     private String legalPersonIdCard;
 
-    @Schema(description = "法人身份证号md5")
+    @Schema(description = "法人身份证号sha256")
     private String legalPersonIdCardHash;
 
     @Schema(description = "营业执照附件ID")
