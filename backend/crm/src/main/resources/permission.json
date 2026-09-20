@@ -665,6 +665,28 @@
         ]
       },
       {
+        "id": "BANK_ACCOUNT",
+        "name": "permission.bank_account.name",
+        "permissions": [
+          {
+            "id": "BANK_ACCOUNT:READ",
+            "license": false
+          },
+          {
+            "id": "BANK_ACCOUNT:ADD",
+            "license": false
+          },
+          {
+            "id": "BANK_ACCOUNT:UPDATE",
+            "license": false
+          },
+          {
+            "id": "BANK_ACCOUNT:DELETE",
+            "license": false
+          }
+        ]
+      },
+      {
         "id": "CONTRACT_INVOICE",
         "name": "permission.contract.invoice.name",
         "permissions": [

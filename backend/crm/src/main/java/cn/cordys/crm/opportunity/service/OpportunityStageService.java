@@ -6,6 +6,7 @@ import cn.cordys.aspectj.constants.LogType;
 import cn.cordys.aspectj.context.OperationLogContext;
 import cn.cordys.aspectj.dto.LogContextInfo;
 import cn.cordys.common.dto.stage.StageRollBackRequest;
+import cn.cordys.context.OrganizationContext;
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.Translator;
@@ -77,7 +78,7 @@ public class OpportunityStageService {
         Boolean afootRollBack = true;
         Boolean endRollBack = false;
         //源节点
-        OpportunityStageConfig target = opportunityStageConfigMapper.selectByPrimaryKey(request.getTargetId());
+        OpportunityStageConfig target = extOpportunityStageConfigMapper.getByIdAndOrg(request.getTargetId(), orgId);
         if (target != null) {
             pos = target.getPos();
             //target正常不会为空
@@ -136,13 +137,13 @@ public class OpportunityStageService {
     @OperationLog(module = LogModule.SYSTEM_MODULE, type = LogType.DELETE, resourceId = "{#id}")
     public void delete(String id, String orgId) {
         OpportunityStageConfig stageConfig = deletePreCheck(id, orgId);
-        opportunityStageConfigMapper.deleteByPrimaryKey(id);
+        extOpportunityStageConfigMapper.deleteByIdAndOrg(id, orgId);
         // 设置操作对象
         OperationLogContext.setResourceName(Translator.get("opportunity_stage_setting").concat(":").concat(stageConfig.getName()));
     }
 
     private OpportunityStageConfig deletePreCheck(String id, String orgId) {
-        OpportunityStageConfig stageConfig = opportunityStageConfigMapper.selectByPrimaryKey(id);
+        OpportunityStageConfig stageConfig = extOpportunityStageConfigMapper.getByIdAndOrg(id, orgId);
         if (stageConfig == null) {
             throw new GenericException(Translator.get("opportunity_stage_delete"));
         }
@@ -190,11 +191,12 @@ public class OpportunityStageService {
      */
     @OperationLog(module = LogModule.SYSTEM_MODULE, type = LogType.UPDATE)
     public void update(StageUpdateRequest request, String userId) {
-        OpportunityStageConfig oldStageConfig = opportunityStageConfigMapper.selectByPrimaryKey(request.getId());
+        String orgId = OrganizationContext.getOrganizationId();
+        OpportunityStageConfig oldStageConfig = extOpportunityStageConfigMapper.getByIdAndOrg(request.getId(), orgId);
         if (oldStageConfig == null) {
             throw new GenericException(Translator.get("opportunity_stage_not_exist"));
         }
-        extOpportunityStageConfigMapper.updateStageConfig(request, userId);
+        extOpportunityStageConfigMapper.updateStageConfig(request, userId, orgId);
 
         Map<String, String> originalVal = new HashMap<>(1);
         originalVal.put("stage", oldStageConfig.getName());
@@ -225,7 +227,7 @@ public class OpportunityStageService {
         List<String> oldNames = oldStageConfigList.stream().map(StageConfigResponse::getName).toList();
 
         for (int i = 0; i < ids.size(); i++) {
-            extOpportunityStageConfigMapper.updatePos(ids.get(i), (long) (i + 1));
+            extOpportunityStageConfigMapper.updatePos(ids.get(i), (long) (i + 1), orgId);
         }
 
         List<StageConfigResponse> newStageConfigList = extOpportunityStageConfigMapper.getStageConfigList(orgId);

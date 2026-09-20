@@ -13,6 +13,7 @@ import cn.cordys.crm.system.service.ModuleFieldExtService;
 import cn.cordys.crm.system.service.ModuleFieldService;
 import cn.cordys.crm.system.service.ModuleFormMigrationService;
 import cn.cordys.crm.system.service.ModuleService;
+import cn.cordys.crm.system.service.TenantConfigService;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
@@ -53,6 +54,8 @@ public class DataInitService {
 	private OpportunityQuotationService opportunityQuotationService;
 	@Resource
 	private OrderService orderService;
+	@Resource
+	private TenantConfigService tenantConfigService;
 
     public void initOneTime() {
         RLock lock = redisson.getLock("init_data_lock");
@@ -90,6 +93,26 @@ public class DataInitService {
 			initOneTime(contractInvoiceService::handleOldApprovalData, "handler.contract.invoice.approval.status");
 			initOneTime(opportunityQuotationService::handleOldApprovalData, "handler.quotation.approval.status");
 			initOneTime(orderService::handleOldApprovalData, "handler.order.approval.status");
+			// 回填存量租户缺失的表单配置（须在默认组织表单升级迁移之后执行，才能复制到完整配置）
+			initOneTime(moduleFormMigrationService::backfillTenantForms, "backfill.tenant.forms");
+			// 回填存量租户缺失的阶段配置（商机/合同/订单），否则新建商机等报 NoSuchElementException
+			initOneTime(tenantConfigService::backfillTenantStageConfigs, "backfill.tenant.stage.configs");
+			// 回填跟进记录表单的联系人联动（按客户过滤）与跟进时间默认当前日期
+			initOneTime(moduleFormMigrationService::backfillRecordFollowConfig, "backfill.record.follow.config");
+			// 回填跟进计划表单的联系人联动（按客户过滤）
+			initOneTime(moduleFormMigrationService::backfillPlanFollowConfig, "backfill.plan.follow.config");
+			// 回填客户表单字段配置（行业/来源改输入框、等级 A~E 级、删客户类型·线上来源）
+			initOneTime(moduleFormMigrationService::backfillCustomerFieldConfig, "backfill.customer.field.config");
+			// 回填商机表单联系人联动（按客户过滤）
+			initOneTime(moduleFormMigrationService::backfillOpportunityContactConfig, "backfill.opportunity.contact.config");
+			// 回填线索转客户/转商机的字段联动映射（线索来源等信息带过去）
+			initOneTime(moduleFormMigrationService::backfillClueLinkRules, "backfill.clue.link.rules");
+			// 回填「来源」类字段全局统一为输入框（线索来源/商机来源），并删除线索线上来源详情
+			initOneTime(moduleFormMigrationService::backfillSourceFieldConfig, "backfill.source.field.config");
+			// 回填合同回款记录：删除写死的收款银行/账号，新增收款账户数据源与付款凭证附件
+			initOneTime(moduleFormMigrationService::backfillContractPaymentRecordFields, "backfill.contract.payment.record.fields");
+			// 回填合同表单的金额/累计金额公式（金额=产品单价×数量，累计金额=SUM(合同报价信息.金额)）
+			initOneTime(moduleFieldService::initContractFields, "init.contract.fields");
 		} finally {
             lock.unlock();
         }

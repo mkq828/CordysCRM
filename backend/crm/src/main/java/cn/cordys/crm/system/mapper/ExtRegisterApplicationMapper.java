@@ -1,7 +1,7 @@
 package cn.cordys.crm.system.mapper;
 
-import cn.cordys.crm.system.domain.RegisterApplication;
 import cn.cordys.crm.system.dto.request.RegisterApplicationPageRequest;
+import cn.cordys.crm.system.dto.response.RegisterApplicationResponse;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -37,7 +37,12 @@ public interface ExtRegisterApplicationMapper {
     int countByPhoneInApplication(@Param("phone") String phone);
 
     /**
-     * 分页查询申请单列表
+     * 统计企业注册待审核申请单数量
      */
-    List<RegisterApplication> pageList(@Param("request") RegisterApplicationPageRequest request);
+    long countPendingEnterprise();
+
+    /**
+     * 分页查询申请单列表（含开通账号的使用天数、最后登录时间、启用状态）
+     */
+    List<RegisterApplicationResponse> pageList(@Param("request") RegisterApplicationPageRequest request);
 }

@@ -318,7 +318,7 @@ public class OrganizationUserService {
         User user = new User();
         BeanUtils.copyBean(user, request);
         user.setId(id);
-        user.setPassword(PasswordUtils.encode(request.getPhone().substring(request.getPhone().length() - 6)));
+        user.setPassword(PasswordUtils.encode(PasswordUtils.DEFAULT_PASSWORD));
         user.setCreateTime(System.currentTimeMillis());
         user.setCreateUser(operatorId);
         user.setUpdateTime(System.currentTimeMillis());
@@ -434,10 +434,7 @@ public class OrganizationUserService {
     public void resetPassword(String userId, String operatorId, String orgId) {
         if (!Strings.CI.equals(userId, InternalUser.ADMIN.getValue())) {
             User user = userMapper.selectByPrimaryKey(userId);
-            if (StringUtils.isBlank(user.getPhone())) {
-                throw new GenericException(Translator.get("user_phone_not_exist"));
-            }
-            user.setPassword(PasswordUtils.encode(user.getPhone().substring(user.getPhone().length() - 6)));
+            user.setPassword(PasswordUtils.encode(PasswordUtils.DEFAULT_PASSWORD));
             user.setUpdateTime(System.currentTimeMillis());
             user.setUpdateUser(operatorId);
             userMapper.updateById(user);
@@ -513,7 +510,7 @@ public class OrganizationUserService {
         newMap.put("userPassword", "************");
         userList.forEach(user -> {
             if (!Strings.CI.equals(user.getId(), InternalUser.ADMIN.getValue())) {
-                user.setPassword(PasswordUtils.encode(user.getPhone().substring(user.getPhone().length() - 6)));
+                user.setPassword(PasswordUtils.encode(PasswordUtils.DEFAULT_PASSWORD));
             }
             user.setUpdateTime(System.currentTimeMillis());
             user.setUpdateUser(operatorId);
@@ -766,7 +763,7 @@ public class OrganizationUserService {
         user.setName(userData.getName());
         user.setPhone(userData.getPhone());
         user.setEmail(userData.getEmail());
-        user.setPassword(PasswordUtils.encode(userData.getPhone().substring(userData.getPhone().length() - 6)));
+        user.setPassword(PasswordUtils.encode(PasswordUtils.DEFAULT_PASSWORD));
         user.setLanguage(Locale.SIMPLIFIED_CHINESE.toString());
         user.setGender(Boolean.valueOf(userData.getGender()));
         user.setCreateUser(operatorId);

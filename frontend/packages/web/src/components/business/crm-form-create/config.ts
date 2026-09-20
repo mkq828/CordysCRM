@@ -38,6 +38,7 @@ import {
   getAdvancedCustomerContactList,
   getAdvancedOpenSeaCustomerList,
   getAdvancedSearchClueList,
+  getBankAccountModuleForm,
   getBusinessTitleModuleForm,
   getClue,
   getClueFollowPlan,
@@ -251,6 +252,13 @@ export const fullFormSettingList = [
     dataSource: FieldDataSourceTypeEnum.BUSINESS_TITLE,
     permission: {
       CREATE: 'CONTRACT_BUSINESS_TITLE:ADD',
+    },
+  },
+  {
+    label: t('module.bankAccount'),
+    dataSource: FieldDataSourceTypeEnum.BANK_ACCOUNT,
+    permission: {
+      CREATE: 'BANK_ACCOUNT:ADD',
     },
   },
 ];
@@ -854,6 +862,7 @@ export const getFormConfigApiMap: Record<
   [FormDesignKeyEnum.INVOICE_SNAPSHOT]: getInvoicedFormSnapshotConfig,
   [FormDesignKeyEnum.CONTRACT_INVOICE]: getInvoicedFormConfig,
   [FormDesignKeyEnum.BUSINESS_TITLE]: getBusinessTitleModuleForm,
+  [FormDesignKeyEnum.BANK_ACCOUNT]: getBankAccountModuleForm,
   [FormDesignKeyEnum.ORDER]: getOrderFormConfig,
   [FormDesignKeyEnum.CONTRACT_ORDER]: getOrderFormConfig,
   [FormDesignKeyEnum.CUSTOMER_ORDER]: getOrderFormConfig,
@@ -899,6 +908,7 @@ export const createFormApi: Record<FormDesignKeyEnum, (data: any) => Promise<any
   [FormDesignKeyEnum.INVOICE_SNAPSHOT]: addInvoiced,
   [FormDesignKeyEnum.CONTRACT_INVOICE]: async () => ({}),
   [FormDesignKeyEnum.BUSINESS_TITLE]: async () => ({}),
+  [FormDesignKeyEnum.BANK_ACCOUNT]: async () => ({}),
   [FormDesignKeyEnum.ORDER]: addOrder,
   [FormDesignKeyEnum.ORDER_SNAPSHOT]: addOrder,
   [FormDesignKeyEnum.CONTRACT_ORDER]: async () => ({}),
@@ -944,6 +954,7 @@ export const updateFormApi: Record<FormDesignKeyEnum, (data: any) => Promise<any
   [FormDesignKeyEnum.INVOICE_SNAPSHOT]: (data) => updateInvoiced(data, data.approvalTaskId),
   [FormDesignKeyEnum.CONTRACT_INVOICE]: async () => ({}),
   [FormDesignKeyEnum.BUSINESS_TITLE]: async () => ({}),
+  [FormDesignKeyEnum.BANK_ACCOUNT]: async () => ({}),
   [FormDesignKeyEnum.ORDER]: (data) => updateOrder(data, data.approvalTaskId),
   [FormDesignKeyEnum.ORDER_SNAPSHOT]: (data) => updateOrder(data, data.approvalTaskId),
   [FormDesignKeyEnum.CONTRACT_ORDER]: async () => ({}),

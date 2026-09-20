@@ -13,7 +13,8 @@ public enum RegisterResultCode implements IResultCode {
     APPLICATION_NOT_FOUND(101103, "register.application.not.found"),
     ALREADY_PROCESSED(101104, "register.application.already.processed"),
     REGISTER_TYPE_INVALID(101105, "register.type.invalid"),
-    LICENSE_REQUIRED(101106, "register.license.required");
+    LICENSE_REQUIRED(101106, "register.license.required"),
+    ACCOUNT_NOT_OPENED(101107, "register.account.not.opened");
 
     private final int code;
     private final String message;

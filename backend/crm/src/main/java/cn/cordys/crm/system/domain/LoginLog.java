@@ -27,6 +27,9 @@ public class LoginLog {
     @Schema(description = "登录地")
     private String loginAddress;
 
+    @Schema(description = "登录城市")
+    private String loginCity;
+
     @Schema(description = "平台")
     private String platform;
 }

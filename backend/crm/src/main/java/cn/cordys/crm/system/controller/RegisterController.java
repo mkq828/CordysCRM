@@ -8,6 +8,7 @@ import cn.cordys.crm.system.dto.request.RegisterApplyRequest;
 import cn.cordys.crm.system.dto.request.RegisterApproveRequest;
 import cn.cordys.crm.system.dto.request.RegisterRejectRequest;
 import cn.cordys.crm.system.dto.request.RegisterStatusRequest;
+import cn.cordys.crm.system.dto.request.RegisterToggleRequest;
 import cn.cordys.crm.system.dto.response.RegisterApplicationResponse;
 import cn.cordys.crm.system.dto.response.RegisterStatusResponse;
 import cn.cordys.crm.system.service.RegisterService;
@@ -22,6 +23,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 注册控制器，负责自助注册申请与后台审核。
@@ -39,8 +41,18 @@ public class RegisterController {
      */
     @PostMapping("/apply")
     @Operation(summary = "提交注册申请")
-    public void apply(@Validated @RequestBody RegisterApplyRequest request) {
-        registerService.apply(request);
+    public RegisterStatusResponse apply(@Validated @RequestBody RegisterApplyRequest request) {
+        return registerService.apply(request);
+    }
+
+    /**
+     * 企业注册待审核数量（管理端首页待办，仅 admin 可见）
+     */
+    @GetMapping("/application/pending-count")
+    @Operation(summary = "注册申请-企业待审数量")
+    @RequiresPermissions(PermissionConstants.SYS_REGISTER_AUDIT_READ)
+    public Map<String, Long> pendingCount() {
+        return Map.of("total", registerService.countPendingEnterprise());
     }
 
     /**
@@ -91,5 +103,15 @@ public class RegisterController {
     @RequiresPermissions(PermissionConstants.SYS_REGISTER_AUDIT_REJECT)
     public void reject(@Validated @RequestBody RegisterRejectRequest request) {
         registerService.reject(request, SessionUtils.getUserId());
+    }
+
+    /**
+     * 注册申请-启用/禁用账号（管理端）
+     */
+    @PostMapping("/application/toggle")
+    @Operation(summary = "注册申请-启用/禁用账号")
+    @RequiresPermissions(PermissionConstants.SYS_REGISTER_AUDIT_TOGGLE)
+    public void toggle(@Validated @RequestBody RegisterToggleRequest request) {
+        registerService.toggle(request, SessionUtils.getUserId());
     }
 }

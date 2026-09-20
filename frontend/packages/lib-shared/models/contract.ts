@@ -201,6 +201,35 @@ export interface BusinessTitleValidateConfig {
   organizationId: string;
   rule?: Record<string, any>[];
 }
+
+export interface BankAccountItem {
+  id: string;
+  name: string; // 账户名称
+  type: string; // 收款方式
+  openingBank: string; // 开户行
+  bankAccount: string; // 银行账号
+  accountHolder: string; // 户名
+  qrcode: string; // 收款二维码
+  remark: string;
+  organizationId: string;
+  createUserName: string;
+  updateUserName: string;
+  createUser: string;
+  updateUser: string;
+  createTime: number;
+  updateTime: number;
+}
+
+export interface SaveBankAccountParams {
+  id?: string;
+  name: string; // 账户名称
+  type: string; // 收款方式
+  openingBank: string; // 开户行
+  bankAccount: string; // 银行账号
+  accountHolder: string; // 户名
+  qrcode: string; // 收款二维码
+  remark: string;
+}
 export interface ContractInvoiceTableQueryParam extends TableQueryParams {
   contractId?: string;
   customerId?: string;

@@ -18,9 +18,11 @@ import useLoginApi from '@lib/shared/api/modules/system/login';
 import useMessageApi from '@lib/shared/api/modules/system/message';
 import useModuleApi from '@lib/shared/api/modules/system/module';
 import useOrgApi from '@lib/shared/api/modules/system/org';
+import usePlatformDashboardApi from '@lib/shared/api/modules/system/platformDashboard';
 import useProcessApi from '@lib/shared/api/modules/system/process';
 import useRegisterApi from '@lib/shared/api/modules/system/register';
 import useRoleApi from '@lib/shared/api/modules/system/role';
+import useSuggestionApi from '@lib/shared/api/modules/system/suggestion';
 
 import useDiscreteApi from '@/hooks/useDiscreteApi';
 
@@ -55,6 +57,8 @@ const orderApi = useOrderApi(CDR);
 const customFormApi = useCustomFormApi(CDR);
 const processApi = useProcessApi(CDR);
 const registerApi = useRegisterApi(CDR);
+const suggestionApi = useSuggestionApi(CDR);
+const platformDashboardApi = usePlatformDashboardApi(CDR);
 
 export const {
   addCustomForm,
@@ -563,6 +567,12 @@ export const {
   getBusinessTitleConfig,
   switchBusinessTitleFormConfig,
   getBusinessTitleModuleForm,
+  getBankAccountList,
+  addBankAccount,
+  updateBankAccount,
+  deleteBankAccount,
+  getBankAccountDetail,
+  getBankAccountModuleForm,
   addInvoiced,
   updateInvoiced,
   deleteInvoiced,
@@ -773,6 +783,7 @@ export const {
   getFieldOrderList,
   getFieldDisplayList,
   getFieldBusinessTitleList,
+  getFieldBankAccountList,
   getDatasourceRefDetailList,
   getFieldCustomFormList,
   getDatasourceFieldConfig,
@@ -825,7 +836,8 @@ export const {
   batchRemoveRoleMember,
 } = roleApi;
 
-export const { login, signout, isLogin, getKey, getThirdCallback, getThirdOauthCallback, getOauthState } = loginApi;
+export const { login, signout, isLogin, getKey, getCaptcha, getThirdCallback, getThirdOauthCallback, getOauthState } =
+  loginApi;
 
 export const {
   streamAgentChat,
@@ -857,6 +869,19 @@ export const {
 export const { getSystemVersion, changeLocaleBackEnd } = sysApi;
 
 export const { getLicense, addLicense } = licenseApi;
+
+export const {
+  getSuggestionPage,
+  getSuggestionDetail,
+  addSuggestion,
+  voteSuggestion,
+  getSuggestionCommentList,
+  addSuggestionComment,
+  updateSuggestionStatus,
+  deleteSuggestion,
+} = suggestionApi;
+
+export const { getPlatformDashboard } = platformDashboardApi;
 
 export const {
   dashboardAdd,
@@ -946,4 +971,6 @@ export const {
   detail: registerDetail,
   approve: registerApprove,
   reject: registerReject,
+  toggle: registerToggle,
+  pendingCount: registerPendingCount,
 } = registerApi;

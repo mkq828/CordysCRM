@@ -49,6 +49,7 @@ public class DatasourceMultipleResolver extends AbstractModuleFieldResolver<Data
 	private static final ContractService contractService;
 	private static final CustomFormDataService customFormDataService;
     private static final ContractInvoiceService invoiceService;
+    private static final BankAccountService bankAccountService;
 
 	public static final String EMPTY_ARRAY_STRING = "[]";
 
@@ -67,6 +68,7 @@ public class DatasourceMultipleResolver extends AbstractModuleFieldResolver<Data
 		contractService = CommonBeanFactory.getBean(ContractService.class);
         customFormDataService = CommonBeanFactory.getBean(CustomFormDataService.class);
         invoiceService =  CommonBeanFactory.getBean(ContractInvoiceService.class);
+        bankAccountService = CommonBeanFactory.getBean(BankAccountService.class);
     }
 
     @Override
@@ -139,6 +141,9 @@ public class DatasourceMultipleResolver extends AbstractModuleFieldResolver<Data
 		}
         if (Strings.CI.equals(datasourceMultipleField.getDataSourceType(), FieldSourceType.INVOICE.name())) {
             return Objects.requireNonNull(invoiceService).getInvoiceNameByIds(list);
+        }
+        if (Strings.CI.equals(datasourceMultipleField.getDataSourceType(), FieldSourceType.BANK_ACCOUNT.name())) {
+            return Objects.requireNonNull(bankAccountService).getBankAccountNameByIds(list);
         }
 
         return Objects.requireNonNull(customFormDataService).getNameStrByIds(list);
@@ -313,6 +318,19 @@ public class DatasourceMultipleResolver extends AbstractModuleFieldResolver<Data
                 return StringUtils.EMPTY;
             }
             Map<String, String> nameMaps = invoices.stream().collect(Collectors.toMap(ContractInvoice::getName, ContractInvoice::getId));
+            return names.stream()
+                    .filter(name -> name != null && nameMaps.containsKey(name))
+                    .map(nameMaps::get)
+                    .distinct()
+                    .toList();
+        }
+
+        if (Strings.CI.equals(field.getDataSourceType(), FieldSourceType.BANK_ACCOUNT.name())) {
+            List<BankAccount> accounts = Objects.requireNonNull(bankAccountService).getBankAccountListByNames(names);
+            if(CollectionUtils.isEmpty(accounts)) {
+                return StringUtils.EMPTY;
+            }
+            Map<String, String> nameMaps = accounts.stream().collect(Collectors.toMap(BankAccount::getName, BankAccount::getId));
             return names.stream()
                     .filter(name -> name != null && nameMaps.containsKey(name))
                     .map(nameMaps::get)

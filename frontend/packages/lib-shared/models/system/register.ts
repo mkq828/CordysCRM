@@ -16,6 +16,8 @@ export interface RegisterApplyParams {
   unifiedSocialCreditCode?: string;
   legalPersonName?: string;
   businessLicenseAttachmentId?: string;
+  captchaId?: string;
+  captchaCode?: string;
 }
 
 // 注册审核状态查询结果
@@ -46,6 +48,10 @@ export interface RegisterAuditItem {
   verifyRemark?: string;
   verifyUser?: string;
   verifyTime?: number;
+  userId?: string;
+  usageDays?: number;
+  lastLoginTime?: number;
+  enabled?: boolean;
   createTime: number;
 }
 
@@ -58,4 +64,10 @@ export interface RegisterApproveParams {
 export interface RegisterRejectParams {
   id: string;
   remark: string;
+}
+
+// 注册申请账号启用/禁用参数
+export interface RegisterToggleParams {
+  id: string;
+  enabled: boolean;
 }

@@ -243,7 +243,36 @@ public class ModuleService {
      * 初始化系统(组织或公司)模块数据
      */
     public void initModule(String organizationId) {
-        // init module data
+        // 默认组织自身用内置 ModuleKey 初始化（首次启动），后加模块由迁移脚本补齐
+        if (DEFAULT_ORGANIZATION_ID.equals(organizationId)) {
+            initModuleByKey(organizationId);
+            return;
+        }
+        // 新组织：复制默认组织的完整模块配置，保证拥有 order/contract/dashboard 等后加模块
+        // （ModuleKey 只含 6 个基础模块，order/contract 等后加模块不在其中，仅靠枚举会导致新租户缺菜单）
+        Module example = new Module();
+        example.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        List<Module> defaults = moduleMapper.select(example);
+        List<Module> modules = defaults.stream().map(source -> {
+            Module module = new Module();
+            module.setId(IDGenerator.nextStr());
+            module.setOrganizationId(organizationId);
+            module.setModuleKey(source.getModuleKey());
+            module.setEnable(source.getEnable());
+            module.setPos(source.getPos());
+            module.setCreateUser(InternalUser.ADMIN.getValue());
+            module.setCreateTime(System.currentTimeMillis());
+            module.setUpdateUser(InternalUser.ADMIN.getValue());
+            module.setUpdateTime(System.currentTimeMillis());
+            return module;
+        }).collect(Collectors.toList());
+        moduleMapper.batchInsert(modules);
+    }
+
+    /**
+     * 用内置 ModuleKey 初始化基础模块（仅用于默认组织首次启动）
+     */
+    private void initModuleByKey(String organizationId) {
         List<Module> modules = new ArrayList<>();
         AtomicLong pos = new AtomicLong(1L);
         Arrays.stream(ModuleKey.values()).forEach(moduleConstant -> {

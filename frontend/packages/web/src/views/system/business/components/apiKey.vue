@@ -164,7 +164,14 @@
           :label="t('system.personal.timeSetting')"
           :rule="[{ required: true, message: t('common.notNull', { value: `${t('system.personal.expiredTime')}` }) }]"
         >
-          <n-date-picker v-model:value="timeForm.time" class="w-[240px]" type="datetime" clearable />
+          <n-date-picker
+            v-model:value="timeForm.time"
+            class="w-[240px]"
+            type="datetime"
+            fast-year-select
+            fast-month-select
+            clearable
+          />
         </n-form-item>
         <n-form-item path="desc" :label="t('system.personal.accessKeyDesc')">
           <n-input

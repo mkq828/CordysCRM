@@ -52,4 +52,7 @@ public class RegisterApplication extends BaseModel {
 
     @Schema(description = "审核时间")
     private Long verifyTime;
+
+    @Schema(description = "审核通过后开通的用户ID")
+    private String userId;
 }

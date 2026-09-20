@@ -19,6 +19,11 @@ public final class DefaultRepositoryDir {
     private static final String DEFAULT_DIR = "/opt/cordys/data/files";
 
     /**
+     * 文件存储根目录覆盖属性（便于本地开发，通过 -Dcordys.file.dir 指定）
+     */
+    private static final String FILE_DIR_PROPERTY = "cordys.file.dir";
+
+    /**
      * 导出目录
      */
     private static final String EXPORT_DIR = "/export";
@@ -70,7 +75,7 @@ public final class DefaultRepositoryDir {
      * @return 默认目录路径
      */
     public static String getDefaultDir() {
-        return DEFAULT_DIR;
+        return System.getProperty(FILE_DIR_PROPERTY, DEFAULT_DIR);
     }
 
     /**

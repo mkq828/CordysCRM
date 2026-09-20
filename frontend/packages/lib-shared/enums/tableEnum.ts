@@ -48,6 +48,7 @@ export enum TableKeyEnum {
   SEARCH_ADVANCED_CLUE_POOL = 'searchAdvancedCluePool', // 线索池
   SEARCH_ADVANCED_OPPORTUNITY = 'searchAdvancedOpportunity', // 商机
   CONTRACT_BUSINESS_NAME = 'contractBusinessName', // 工商抬头
+  CONTRACT_BANK_ACCOUNT = 'contractBankAccount', // 收款账户
   // 审批流
   PROCESS = 'process',
   // 自定义表单表格

@@ -139,8 +139,13 @@ export default function useProductApi(CDR: CordysAxios) {
   }
 
   // 获取同步组织设置
+  // 该接口在「消息设置」「组织架构」页面也被用于探测三方同步配置；这些页面用户可能仅有各自列表权限而无企业设置权限，
+  // 因此以 noErrorTip 软性调用，403 时静默降级（隐藏同步入口）而非整页跳转「暂无资源权限」
   function getConfigSynchronization() {
-    return CDR.get<ThirdPartyResourceConfig[]>({ url: GetConfigSynchronizationUrl }, { ignoreCancelToken: true });
+    return CDR.get<ThirdPartyResourceConfig[]>(
+      { url: GetConfigSynchronizationUrl },
+      { ignoreCancelToken: true, noErrorTip: true }
+    );
   }
 
   // 更新同步组织设置

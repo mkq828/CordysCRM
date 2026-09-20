@@ -46,6 +46,16 @@ public class LoginRequest {
     private String platform;
 
     /**
+     * 图形验证码唯一标识
+     */
+    private String captchaId;
+
+    /**
+     * 图形验证码
+     */
+    private String captchaCode;
+
+    /**
      * 获取解密后的用户名。
      * <p>如果解密失败，将返回原始的用户名。</p>
      *

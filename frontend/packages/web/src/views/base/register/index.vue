@@ -53,6 +53,16 @@
               :placeholder="t('register.confirmPassword.placeholder')"
             />
           </n-form-item>
+          <n-form-item path="captchaCode" :label="t('register.captcha')">
+            <div class="flex w-full items-center gap-[12px]">
+              <n-input
+                v-model:value="formModel.captchaCode"
+                :maxlength="4"
+                :placeholder="t('register.captcha.placeholder')"
+              />
+              <img :src="captchaImage" class="captcha-img" alt="captcha" title="点击刷新" @click="refreshCaptcha" />
+            </div>
+          </n-form-item>
           <n-form-item
             v-if="activeTab === 'ENTERPRISE'"
             path="businessLicenseAttachmentId"
@@ -77,11 +87,14 @@
       </div>
 
       <div v-else class="register-result-wrapper">
-        <n-result status="success" :title="t('register.submit.success')">
+        <n-result
+          status="success"
+          :title="submittedType === 'PERSONAL' ? t('register.submit.success.personal') : t('register.submit.success')"
+        >
           <template #footer>
             <div class="flex flex-col items-center gap-[16px]">
               <n-button type="primary" @click="goLogin">{{ t('register.backToLogin') }}</n-button>
-              <div class="register-status-query">
+              <div v-if="submittedType === 'ENTERPRISE'" class="register-status-query">
                 <div class="mb-[8px] text-[var(--text-n2)]">{{ t('register.status.query') }}</div>
                 <div class="flex items-center gap-[8px]">
                   <n-input
@@ -107,7 +120,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, ref } from 'vue';
+  import { computed, onMounted, ref } from 'vue';
   import { useRouter } from 'vue-router';
   import {
     type FormInst,
@@ -129,7 +142,7 @@
   import { encrypted } from '@lib/shared/method';
   import type { RegisterStatusResult } from '@lib/shared/models/system/register';
 
-  import { registerApply, registerStatus, uploadTempAttachment } from '@/api/modules';
+  import { getCaptcha, registerApply, registerStatus, uploadTempAttachment } from '@/api/modules';
   import useAppStore from '@/store/modules/app';
 
   const router = useRouter();
@@ -141,6 +154,7 @@
   const activeTab = ref<'PERSONAL' | 'ENTERPRISE'>('PERSONAL');
   const loading = ref(false);
   const submitted = ref(false);
+  const submittedType = ref<'PERSONAL' | 'ENTERPRISE'>('PERSONAL');
 
   const licenseFileName = ref('');
   const statusPhone = ref('');
@@ -156,7 +170,22 @@
     unifiedSocialCreditCode: '',
     legalPersonName: '',
     businessLicenseAttachmentId: '',
+    captchaId: '',
+    captchaCode: '',
   });
+
+  const captchaImage = ref('');
+  async function refreshCaptcha() {
+    formModel.value.captchaCode = '';
+    try {
+      const res = await getCaptcha();
+      formModel.value.captchaId = res.captchaId;
+      captchaImage.value = res.captchaImage;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
+  }
 
   const rules = computed<FormRules>(() => ({
     name: {
@@ -187,6 +216,11 @@
         }
         return true;
       },
+      trigger: ['input', 'blur'],
+    },
+    captchaCode: {
+      required: true,
+      message: t('register.captcha.errMsg'),
       trigger: ['input', 'blur'],
     },
     idCard: {
@@ -242,13 +276,19 @@
           unifiedSocialCreditCode: formModel.value.unifiedSocialCreditCode || undefined,
           legalPersonName: formModel.value.legalPersonName || undefined,
           businessLicenseAttachmentId: formModel.value.businessLicenseAttachmentId || undefined,
+          captchaId: formModel.value.captchaId,
+          captchaCode: formModel.value.captchaCode,
         });
-        Message.success(t('register.submit.success'));
+        submittedType.value = activeTab.value;
+        Message.success(
+          activeTab.value === 'PERSONAL' ? t('register.submit.success.personal') : t('register.submit.success')
+        );
         statusPhone.value = formModel.value.phone;
         submitted.value = true;
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error(error);
+        refreshCaptcha();
       } finally {
         loading.value = false;
       }
@@ -292,6 +332,10 @@
   function goLogin() {
     router.push({ name: 'login' });
   }
+
+  onMounted(() => {
+    refreshCaptcha();
+  });
 </script>
 
 <style lang="less" scoped>
@@ -309,10 +353,10 @@
     box-shadow: 0 8px 10px 0 #3232330d, 0 16px 24px 0 #3232330d, 0 6px 30px 0 #3232330d;
   }
   .register-title {
-    @apply mb-[24px] text-center;
-
+    margin-bottom: 24px;
     font-size: 22px;
     font-weight: 600;
+    text-align: center;
     color: var(--primary-8);
   }
   .register-tabs {
@@ -320,5 +364,12 @@
   }
   .register-status-query {
     width: 100%;
+  }
+  .captcha-img {
+    width: 110px;
+    height: 34px;
+    border-radius: var(--border-radius-small);
+    cursor: pointer;
+    flex-shrink: 0;
   }
 </style>

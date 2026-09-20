@@ -22,7 +22,7 @@ public interface ExtOpportunityStageConfigMapper {
 
     void updateRollBack(@Param("request") StageRollBackRequest request, @Param("orgId") String orgId);
 
-    void updateStageConfig(@Param("request") StageUpdateRequest request, @Param("userId") String userId);
+    void updateStageConfig(@Param("request") StageUpdateRequest request, @Param("userId") String userId, @Param("orgId") String orgId);
 
     List<OpportunityStageConfig> getAllStageConfigList();
 
@@ -30,7 +30,11 @@ public interface ExtOpportunityStageConfigMapper {
 
     void moveDown(@Param("start") Long start, @Param("end") Long end, @Param("orgId") String orgId, @Param("defaultPos") Long defaultPos);
 
-    void updatePos(@Param("id") String id, @Param("pos") Long pos);
+    void updatePos(@Param("id") String id, @Param("pos") Long pos, @Param("orgId") String orgId);
 
     int countByType(@Param("type") String type,@Param("orgId") String orgId);
+
+    OpportunityStageConfig getByIdAndOrg(@Param("id") String id, @Param("orgId") String orgId);
+
+    int deleteByIdAndOrg(@Param("id") String id, @Param("orgId") String orgId);
 }

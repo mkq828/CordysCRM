@@ -48,7 +48,19 @@ public interface ExtModuleFieldMapper {
 	/**
 	 * 获取表单子表格字段集合
 	 * @param formKey 表单Key
+	 * @param orgId   组织ID
 	 * @return 子表格字段集合
 	 */
-	List<ModuleFieldBlob> getFormSubFields(@Param("formKey") String formKey);
+	List<ModuleFieldBlob> getFormSubFields(@Param("formKey") String formKey, @Param("orgId") String orgId);
+
+	/**
+	 * 字段选项码转文本（一次性数据迁移：SELECT 改 INPUT 后回填旧值）
+	 *
+	 * @param tableName 字段值表名（如 clue_field / opportunity_field）
+	 * @param fieldId   字段ID
+	 * @param oldValue  旧选项码
+	 * @param newValue  新文本
+	 */
+	void updateFieldValueCodeToText(@Param("tableName") String tableName, @Param("fieldId") String fieldId,
+									@Param("oldValue") String oldValue, @Param("newValue") String newValue);
 }

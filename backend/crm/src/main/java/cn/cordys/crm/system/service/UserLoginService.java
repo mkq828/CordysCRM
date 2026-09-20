@@ -11,6 +11,7 @@ import cn.cordys.common.util.JSON;
 import cn.cordys.common.util.PasswordUtils;
 import cn.cordys.common.util.ServletUtils;
 import cn.cordys.common.util.Translator;
+import cn.cordys.common.utils.IpRegionService;
 import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.system.constants.LoginType;
 import cn.cordys.crm.system.constants.OrganizationConfigConstants;
@@ -67,6 +68,9 @@ public class UserLoginService {
     private BaseMapper<LoginLog> loginLogMapper;
 
     @Resource
+    private IpRegionService ipRegionService;
+
+    @Resource
     private BaseMapper<Department> departmentMapper;
 
     @Resource
@@ -77,6 +81,9 @@ public class UserLoginService {
 
     @Resource
     private ExtOrganizationConfigDetailMapper extOrganizationConfigDetailMapper;
+
+    @Resource
+    private CaptchaService captchaService;
 
     /**
      * 用户登录
@@ -90,6 +97,9 @@ public class UserLoginService {
     public SessionUser login(LoginRequest request) {
         String username = StringUtils.trim(request.getUsername());
         String password = StringUtils.trim(request.getPassword());
+
+        // 校验图形验证码
+        captchaService.validate(request.getCaptchaId(), request.getCaptchaCode());
 
         Subject subject = SecurityUtils.getSubject();
         UsernamePasswordToken token = new UsernamePasswordToken(username, password);
@@ -165,8 +175,8 @@ public class UserLoginService {
         String defaultPwd = "";
         if (Strings.CI.equals(userDTO.getId(), InternalUser.ADMIN.getValue())) {
             defaultPwd = "Mkq283012";
-        } else if (StringUtils.isNotBlank(userDTO.getPhone())) {
-            defaultPwd = userDTO.getPhone().substring(userDTO.getPhone().length() - 6);
+        } else {
+            defaultPwd = PasswordUtils.DEFAULT_PASSWORD;
         }
 
         if (StringUtils.isNotBlank(defaultPwd) && PasswordUtils.matches(defaultPwd, userDTO.getPassword())) {
@@ -330,6 +340,7 @@ public class UserLoginService {
         LoginLog log = new LoginLog();
         log.setId(IDGenerator.nextStr());
         log.setLoginAddress(request.getLoginAddress());
+        log.setLoginCity(ipRegionService.searchCity(request.getLoginAddress()));
         log.setOperator(SessionUtils.getUserId());
         log.setCreateTime(System.currentTimeMillis());
         log.setPlatform(determinePlatform());

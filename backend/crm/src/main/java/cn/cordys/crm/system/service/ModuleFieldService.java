@@ -318,6 +318,80 @@ public class ModuleFieldService {
         moduleFieldBlobMapper.updateById(orderAmountFieldBlob);
     }
 
+    /**
+     * 合同模块字段初始化：金额 = 产品单价 × 数量；累计金额 = SUM(合同报价信息.金额)。
+     * <p>订单模块由 {@link #initOrderProducts()} 生成公式，合同模块此前漏配，导致
+     * 新建合同时金额/累计金额无法自动计算。此处遍历所有租户的合同表单补齐公式。</p>
+     */
+    @SuppressWarnings("unchecked")
+    @Transactional(rollbackFor = Exception.class)
+    public void initContractFields() {
+        LambdaQueryWrapper<ModuleField> productsWrapper = new LambdaQueryWrapper<>();
+        productsWrapper.eq(ModuleField::getInternalKey, "contractProducts");
+        List<ModuleField> productsFields = moduleFieldMapper.selectListByLambda(productsWrapper);
+        for (ModuleField productsField : productsFields) {
+            ModuleFieldBlob productsBlob = moduleFieldBlobMapper.selectByPrimaryKey(productsField.getId());
+            if (productsBlob == null) {
+                continue;
+            }
+            Map<String, Object> productsFieldMap = JSON.parseMap(productsBlob.getProp());
+            List<Map<String, Object>> subFields = (List<Map<String, Object>>) productsFieldMap.get("subFields");
+            if (CollectionUtils.isEmpty(subFields)) {
+                continue;
+            }
+            String amountId = null;
+            String numberId = null;
+            String sumAmountId = null;
+            Map<String, Object> sumAmountSubField = null;
+            for (Map<String, Object> subField : subFields) {
+                String key = (String) subField.get("internalKey");
+                if (Strings.CI.equals(key, "contractProductAmount")) {
+                    amountId = (String) subField.get("id");
+                } else if (Strings.CI.equals(key, "contractProductNumber")) {
+                    numberId = (String) subField.get("id");
+                } else if (Strings.CI.equals(key, "contractProductSumAmount")) {
+                    sumAmountId = (String) subField.get("id");
+                    sumAmountSubField = subField;
+                }
+            }
+            // 金额 = 产品单价 × 数量
+            if (sumAmountSubField != null && amountId != null && numberId != null
+                    && StringUtils.isEmpty((String) sumAmountSubField.get("formula"))) {
+                sumAmountSubField.put("formula", getOrderProductAmountFormula(amountId, numberId));
+                productsBlob.setProp(JSON.toJSONString(productsFieldMap));
+                moduleFieldBlobMapper.updateById(productsBlob);
+            }
+            // 累计金额 = SUM(合同报价信息.金额)
+            if (sumAmountId == null) {
+                continue;
+            }
+            ModuleField totalField = selectFieldByFormIdAndInternalKey(productsField.getFormId(), "contractTotalAmount");
+            if (totalField == null) {
+                continue;
+            }
+            ModuleFieldBlob totalBlob = moduleFieldBlobMapper.selectByPrimaryKey(totalField.getId());
+            if (totalBlob == null) {
+                continue;
+            }
+            Map<String, Object> totalFieldMap = JSON.parseMap(totalBlob.getProp());
+            if (StringUtils.isEmpty((String) totalFieldMap.get("formula"))) {
+                totalFieldMap.put("formula", getContractTotalAmountFormula(productsField.getId() + "." + sumAmountId));
+                totalBlob.setProp(JSON.toJSONString(totalFieldMap));
+                moduleFieldBlobMapper.updateById(totalBlob);
+            }
+        }
+    }
+
+    /**
+     * 按表单与字段内部标识查询字段。
+     */
+    private ModuleField selectFieldByFormIdAndInternalKey(String formId, String internalKey) {
+        ModuleField field = new ModuleField();
+        field.setFormId(formId);
+        field.setInternalKey(internalKey);
+        return moduleFieldMapper.selectOne(field);
+    }
+
     private String getOrderAmountFormula(String orderAmountFormulaId) {
         return String.format("""
                 {
@@ -391,6 +465,39 @@ public class ModuleFieldService {
     }
 
     /**
+     * 生成合同累计金额公式：SUM(合同报价信息.金额)。格式与订单累计金额一致。
+     */
+    private String getContractTotalAmountFormula(String contractTotalAmountFormulaId) {
+        return String.format("""
+                {
+                    "source": "SUM(${%s})",
+                    "display": "SUM(合同报价信息.金额)",
+                    "fields": [
+                        {
+                            "fieldId": "%s",
+                            "fieldType": "FORMULA",
+                            "numberType": "number"
+                        }
+                    ],
+                    "ir": {
+                        "type": "function",
+                        "name": "SUM",
+                        "args": [
+                            {
+                                "type": "field",
+                                "fieldId": "%s",
+                                "name": "合同报价信息.金额",
+                                "fieldType": "FORMULA",
+                                "numberType": "number",
+                                "startTokenIndex": 2,
+                                "endTokenIndex": 2
+                            }
+                        ]
+                    }
+                }""", contractTotalAmountFormulaId, contractTotalAmountFormulaId, contractTotalAmountFormulaId);
+    }
+
+    /**
      * 订单合同字段增加订单客户过滤条件
      */
     private void initOrderContractFilter() {
@@ -424,11 +531,11 @@ public class ModuleFieldService {
 	 * @param sourceType 数据源类型
 	 * @return 子表字段集合
 	 */
-	@Cacheable(value = "sub_fields_cache", key = "#sourceType", unless = "#result == null")
-	public List<BaseField> getSubFieldsBySourceType(String sourceType) {
+	@Cacheable(value = "sub_fields_cache", key = "#sourceType + ':' + #orgId", unless = "#result == null")
+	public List<BaseField> getSubFieldsBySourceType(String sourceType, String orgId) {
 		List<ModuleFieldBlob> subFields = new ArrayList<>();
 		if (Strings.CS.equals(sourceType, FieldSourceType.PRICE.name())) {
-			subFields = extModuleFieldMapper.getFormSubFields(FormKey.PRICE.getKey());
+			subFields = extModuleFieldMapper.getFormSubFields(FormKey.PRICE.getKey(), orgId);
 		}
 		if (CollectionUtils.isEmpty(subFields)) {
 			return new ArrayList<>();

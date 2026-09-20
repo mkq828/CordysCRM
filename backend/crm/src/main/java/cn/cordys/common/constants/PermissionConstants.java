@@ -232,6 +232,13 @@ public class PermissionConstants {
 
     /*------ end: BUSINESS_TITLE ------*/
 
+    /*------ start: BANK_ACCOUNT ------*/
+    public static final String BANK_ACCOUNT_READ = "BANK_ACCOUNT:READ";
+    public static final String BANK_ACCOUNT_ADD = "BANK_ACCOUNT:ADD";
+    public static final String BANK_ACCOUNT_UPDATE = "BANK_ACCOUNT:UPDATE";
+    public static final String BANK_ACCOUNT_DELETE = "BANK_ACCOUNT:DELETE";
+    /*------ end: BANK_ACCOUNT ------*/
+
 	/**
 	 * Contract payment record permission
 	 */
@@ -268,6 +275,11 @@ public class PermissionConstants {
     public static final String SYS_REGISTER_AUDIT_READ = "SYS_REGISTER_AUDIT:READ";
     public static final String SYS_REGISTER_AUDIT_APPROVE = "SYS_REGISTER_AUDIT:APPROVE";
     public static final String SYS_REGISTER_AUDIT_REJECT = "SYS_REGISTER_AUDIT:REJECT";
+    public static final String SYS_REGISTER_AUDIT_TOGGLE = "SYS_REGISTER_AUDIT:TOGGLE";
     /*------ end: SYS_REGISTER_AUDIT ------*/
+
+    /*------ start: PLATFORM_DASHBOARD ------*/
+    public static final String ADMIN_DASHBOARD_READ = "ADMIN_DASHBOARD:READ";
+    /*------ end: PLATFORM_DASHBOARD ------*/
 }
 

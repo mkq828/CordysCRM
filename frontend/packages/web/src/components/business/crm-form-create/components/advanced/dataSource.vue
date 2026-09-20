@@ -187,6 +187,45 @@
       immediate: true,
     }
   );
+
+  // 跟进记录等场景：当前客户仅有一个联系人时自动选中
+  const autoSelectCustomerFieldId = computed<string | undefined>(() =>
+    props.fieldConfig.autoSelectSingleOption
+      ? props.fieldConfig.combineSearch?.conditions?.[0]?.rightFieldId
+      : undefined
+  );
+
+  watch(
+    () => {
+      const fieldId = autoSelectCustomerFieldId.value;
+      return fieldId ? props.formDetail?.[fieldId] : undefined;
+    },
+    async (customerVal) => {
+      if (!autoSelectCustomerFieldId.value || props.needInitDetail || props.isSubTableField || props.isSubTableRender) {
+        return;
+      }
+      const hasCustomer = Array.isArray(customerVal) ? customerVal.length > 0 : !!customerVal;
+      if (!hasCustomer || value.value.length > 0) {
+        return;
+      }
+      if (fieldList.value.length === 0) {
+        await initFormConfig();
+      }
+      setAdvanceFilter(getParams());
+      setLoadListParams({
+        customFormId: isCustomForm.value ? (dataSourceType.value as string | undefined) : undefined,
+      });
+      await loadList();
+      const rows = propsRes.value.data ?? [];
+      if (rows.length === 1) {
+        value.value = [rows[0].id];
+        emit('change', value.value, rows, fieldList.value);
+      }
+    },
+    {
+      immediate: true,
+    }
+  );
 </script>
 
 <style lang="less" scoped></style>

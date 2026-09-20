@@ -22,6 +22,8 @@ import cn.cordys.common.uid.SerialNumGenerator;
 import cn.cordys.common.util.BeanUtils;
 import cn.cordys.common.util.JSON;
 import cn.cordys.common.util.Translator;
+import cn.cordys.crm.contract.constants.BankAccountConstants;
+import cn.cordys.crm.contract.constants.BankAccountTypeEnum;
 import cn.cordys.crm.contract.constants.BusinessTitleConstants;
 import cn.cordys.crm.contract.constants.SystemFieldConstants;
 import cn.cordys.crm.form.service.CustomFormDataFieldService;
@@ -94,6 +96,7 @@ public class ModuleFormService {
                 Map.entry(FieldSourceType.CONTRACT.name(), "contract"),
                 Map.entry(FieldSourceType.PAYMENT_PLAN.name(), "contract_payment_plan"),
                 Map.entry(FieldSourceType.BUSINESS_TITLE.name(), "business_title"),
+                Map.entry(FieldSourceType.BANK_ACCOUNT.name(), "bank_account"),
                 Map.entry(FieldSourceType.CONTRACT_PAYMENT_RECORD.name(), "contract_payment_record"),
                 Map.entry(FieldSourceType.ORDER.name(), "sales_order"),
                 Map.entry(FieldSourceType.INVOICE.name(), "contract_invoice")
@@ -157,7 +160,7 @@ public class ModuleFormService {
         businessModuleFormConfig.setFormProp(config.getFormProp());
 
         // 提前加载价格表子表格字段作为引用集合
-        List<BaseField> subFields = moduleFieldService.getSubFieldsBySourceType(FieldSourceType.PRICE.name());
+        List<BaseField> subFields = moduleFieldService.getSubFieldsBySourceType(FieldSourceType.PRICE.name(), organizationId);
         Map<String, BaseField> refPriceSubFieldMap = subFields.stream().collect(Collectors.toMap(BaseField::getId, Function.identity(), (p, n) -> p));
 
         // 设置业务字段参数
@@ -422,7 +425,7 @@ public class ModuleFormService {
         List<BaseField> allFields = getAllFields(moduleForm.getId());
 
         // 提前加载价格表子表格字段作为引用集合
-        List<BaseField> subFields = moduleFieldService.getSubFieldsBySourceType(FieldSourceType.PRICE.name());
+        List<BaseField> subFields = moduleFieldService.getSubFieldsBySourceType(FieldSourceType.PRICE.name(), orgId);
         Map<String, BaseField> refPriceSubFieldMap = subFields.stream().collect(Collectors.toMap(BaseField::getId, Function.identity(), (p, n) -> p));
         // 处理字段信息
         List<BaseField> flattenFields = flattenSourceRefFields(allFields, refPriceSubFieldMap);
@@ -1025,6 +1028,9 @@ public class ModuleFormService {
         if (Strings.CI.equals(dataSourceType, FieldSourceType.BUSINESS_TITLE.name())) {
             return initBusinessTitleFields();
         }
+        if (Strings.CI.equals(dataSourceType, FieldSourceType.BANK_ACCOUNT.name())) {
+            return initBankAccountFields();
+        }
         if (Strings.CI.equalsAny(dataSourceType, FieldSourceType.CONTRACT.name(), FieldSourceType.INVOICE.name(), FieldSourceType.ORDER.name(), FieldSourceType.QUOTATION.name())) {
             // 目前只有这几种数据源支持系统字段
             return initSourceSystemFields(FieldSourceType.valueOf(dataSourceType));
@@ -1053,6 +1059,46 @@ public class ModuleFormService {
             fields.add(field);
         }
         return fields;
+    }
+
+    public List<BaseField> initBankAccountFields() {
+        List<BaseField> fields = new ArrayList<>();
+        Locale locale = LocaleContextHolder.getLocale();
+        boolean isUs = Locale.US.toString().equalsIgnoreCase(locale.toString());
+        for (BankAccountConstants constant : BankAccountConstants.values()) {
+            BaseField field;
+            if (constant == BankAccountConstants.TYPE) {
+                SelectField selectField = new SelectField();
+                selectField.setOptions(buildBankAccountTypeOptions(isUs));
+                field = selectField;
+                field.setType(FieldType.SELECT.name());
+            } else if (constant == BankAccountConstants.QRCODE) {
+                field = new PictureField();
+                field.setType(FieldType.PICTURE.name());
+            } else {
+                field = new InputField();
+                field.setType(FieldType.INPUT.name());
+            }
+            field.setId(constant.getId());
+            field.setBusinessKey(constant.getKey());
+            field.setName(isUs ? constant.getUs() : constant.getCh());
+            field.setInternalKey(constant.getKey());
+            field.setShowLabel(true);
+            field.setReadable(true);
+            fields.add(field);
+        }
+        return fields;
+    }
+
+    private List<OptionProp> buildBankAccountTypeOptions(boolean isUs) {
+        List<OptionProp> options = new ArrayList<>();
+        for (BankAccountTypeEnum type : BankAccountTypeEnum.values()) {
+            OptionProp option = new OptionProp();
+            option.setValue(type.getValue());
+            option.setLabel(isUs ? type.getUs() : type.getCh());
+            options.add(option);
+        }
+        return options;
     }
 
     public List<BaseField> initSourceSystemFields(FieldSourceType sourceType) {

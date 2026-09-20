@@ -209,6 +209,8 @@
                   v-if="[FieldTypeEnum.TIME_RANGE_PICKER, FieldTypeEnum.DATE_TIME].includes(item.fieldProps.type)"
                   v-model:value="item.fieldValue"
                   type="datetime"
+                  fast-year-select
+                  fast-month-select
                   clearable
                   :disabled="item.valueType === CirculationValueTypeEnum.FIELD_VALUE"
                   class="w-full"

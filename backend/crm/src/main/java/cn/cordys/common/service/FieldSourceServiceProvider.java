@@ -68,6 +68,8 @@ public class FieldSourceServiceProvider {
 	private ContractPaymentPlanService paymentPlanService;
 	@Resource
 	private ContractInvoiceService invoiceService;
+	@Resource
+	private BankAccountService bankAccountService;
 
     @PostConstruct
     public void init() {
@@ -84,6 +86,7 @@ public class FieldSourceServiceProvider {
 		SERVICE_MAP.put(FieldSourceType.CONTRACT_PAYMENT_RECORD, paymentRecordService);
 		SERVICE_MAP.put(FieldSourceType.PAYMENT_PLAN, paymentPlanService);
 		SERVICE_MAP.put(FieldSourceType.INVOICE, invoiceService);
+		SERVICE_MAP.put(FieldSourceType.BANK_ACCOUNT, bankAccountService);
 
 		APPROVAL_FORM_SERVICE_MAP.put(FormKey.QUOTATION.getKey(), opportunityQuotationService);
 		APPROVAL_FORM_SERVICE_MAP.put(FormKey.CONTRACT.getKey(), contractService);

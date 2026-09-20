@@ -32,36 +32,51 @@
         where phone = #{phone}
     </select>
 
-    <select id="pageList" resultType="cn.cordys.crm.system.domain.RegisterApplication">
-        select id,
-               type,
-               name,
-               phone,
-               unified_social_credit_code,
-               legal_person_name,
-               business_license_attachment_id,
-               verify_status,
-               verify_remark,
-               verify_user,
-               verify_time,
-               create_time,
-               update_time,
-               create_user,
-               update_user
+    <select id="countPendingEnterprise" resultType="java.lang.Long">
+        select count(id)
         from sys_register_application
+        where type = 'ENTERPRISE'
+          and verify_status = 'PENDING'
+    </select>
+
+    <select id="pageList" resultType="cn.cordys.crm.system.dto.response.RegisterApplicationResponse">
+        select ra.id,
+               ra.type,
+               ra.name,
+               ra.phone,
+               ra.unified_social_credit_code,
+               ra.legal_person_name,
+               ra.business_license_attachment_id,
+               ra.verify_status,
+               ra.verify_remark,
+               ra.verify_user,
+               ra.verify_time,
+               ra.create_time,
+               ra.user_id,
+               (select max(ll.create_time)
+                from sys_login_log ll
+                where ll.operator = ra.user_id) as last_login_time,
+               (case
+                    when ra.user_id is null then null
+                    else (select exists(select 1
+                                        from sys_organization_user ou
+                                        where ou.user_id = ra.user_id
+                                          and ou.enable = 1))
+                end) as enabled
+        from sys_register_application ra
         <where>
             <if test="request.type != null and request.type != ''">
-                and type = #{request.type}
+                and ra.type = #{request.type}
             </if>
             <if test="request.verifyStatus != null and request.verifyStatus != ''">
-                and verify_status = #{request.verifyStatus}
+                and ra.verify_status = #{request.verifyStatus}
             </if>
             <if test="request.keyword != null and request.keyword != ''">
-                and (name like concat('%', #{request.keyword}, '%')
-                    or phone like concat('%', #{request.keyword}, '%'))
+                and (ra.name like concat('%', #{request.keyword}, '%')
+                    or ra.phone like concat('%', #{request.keyword}, '%'))
             </if>
         </where>
-        order by create_time desc
+        order by ra.create_time desc
     </select>
 
 </mapper>

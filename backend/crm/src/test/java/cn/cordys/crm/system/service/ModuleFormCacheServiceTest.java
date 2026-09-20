@@ -99,7 +99,7 @@ class ModuleFormCacheServiceTest {
         ReflectionTestUtils.setField(service, "moduleFieldService", fieldService);
         ReflectionTestUtils.setField(CommonBeanFactory.class, "context", context);
         when(context.getBean(ModuleFormCacheService.class)).thenReturn(service);
-        when(fieldService.getSubFieldsBySourceType(FieldSourceType.PRICE.name())).thenReturn(List.of());
+        when(fieldService.getSubFieldsBySourceType(FieldSourceType.PRICE.name(), "org-1")).thenReturn(List.of());
         when(formService.flattenSourceRefFields(anyList(), anyMap()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 

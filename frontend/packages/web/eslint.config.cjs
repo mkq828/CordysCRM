@@ -104,6 +104,9 @@ module.exports = defineConfig([
       'no-param-reassign': 0,
       'prefer-regex-literals': 0,
       'import/no-extraneous-dependencies': 0,
+      // .vue + @ 别名在 eslint-import-resolver-typescript v4 下无法可靠解析，
+      // 且真实未解析的 import 会由 vue-tsc / Vite 兜底，这里关闭以消除 vite-plugin-eslint 的误报
+      'import/no-unresolved': 'off',
       'import/no-cycle': 'off',
       'import/order': 'off',
       'class-methods-use-this': 'off',

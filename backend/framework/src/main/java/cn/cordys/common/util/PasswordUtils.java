@@ -17,6 +17,9 @@ public final class PasswordUtils {
     /** bcrypt 密文前缀（历史 MD5 为 32 位十六进制，不会以 $2 开头） */
     private static final String BCRYPT_PREFIX = "$2";
 
+    /** 新增员工 / 重置密码时使用的默认初始密码 */
+    public static final String DEFAULT_PASSWORD = "123456";
+
     private PasswordUtils() {
     }
 

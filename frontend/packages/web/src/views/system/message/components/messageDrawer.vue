@@ -65,6 +65,8 @@
               v-model:value="range"
               class="w-[240px]"
               type="datetimerange"
+              fast-year-select
+              fast-month-select
               @confirm="confirmTimePicker"
             >
               <template #date-icon>

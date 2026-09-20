@@ -67,6 +67,18 @@ export default {
   'contract.businessTitle.deleteContent': 'Deleted data cannot be recovered. Proceed with caution.',
   'contract.businessTitle.deleteInvoiceContent':
     'The company name has an invoice record and is prohibited from being deleted!',
+  'contract.bankAccount.add': 'Create bank account',
+  'contract.bankAccount.update': 'Update bank account',
+  'contract.bankAccount.name': 'Account name',
+  'contract.bankAccount.type': 'Payment type',
+  'contract.bankAccount.typeBankCard': 'Bank card',
+  'contract.bankAccount.typeWechat': 'WeChat',
+  'contract.bankAccount.typeAlipay': 'Alipay',
+  'contract.bankAccount.openingBank': 'Opening bank',
+  'contract.bankAccount.bankAccount': 'Account number',
+  'contract.bankAccount.accountHolder': 'Account holder',
+  'contract.bankAccount.qrcode': 'QR code',
+  'contract.bankAccount.deleteContent': 'Deleted data cannot be recovered. Proceed with caution.',
   'contract.approved': 'Approved',
   'contract.deleteInvoiceUnderReviewContent':
     'Invoice under review, deleting does not affect the invoiced amount of the contract, please proceed with caution!',

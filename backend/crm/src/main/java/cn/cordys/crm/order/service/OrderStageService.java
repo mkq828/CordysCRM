@@ -9,6 +9,7 @@ import cn.cordys.aspectj.dto.LogContextInfo;
 import cn.cordys.common.constants.FormKey;
 import cn.cordys.common.dto.condition.FilterCondition;
 import cn.cordys.common.dto.stage.*;
+import cn.cordys.context.OrganizationContext;
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.JSON;
@@ -139,7 +140,7 @@ public class OrderStageService {
         Boolean afootRollBack = true;
         Boolean endRollBack = false;
         //源节点
-        OrderStageConfig target = orderStageConfigMapper.selectByPrimaryKey(request.getTargetId());
+        OrderStageConfig target = extOrderStageConfigMapper.getByIdAndOrg(request.getTargetId(), orgId);
         if (target != null) {
             pos = target.getPos();
             //target正常不会为空
@@ -199,14 +200,14 @@ public class OrderStageService {
     @OperationLog(module = LogModule.SYSTEM_MODULE, type = LogType.DELETE, resourceId = "{#id}")
     public void delete(String id, String orgId) {
         OrderStageConfig stageConfig = deletePreCheck(id, orgId);
-        orderStageConfigMapper.deleteByPrimaryKey(id);
+        extOrderStageConfigMapper.deleteByIdAndOrg(id, orgId);
         // 设置操作对象
         OperationLogContext.setResourceName(Translator.get("order_stage_setting").concat(":").concat(stageConfig.getName()));
     }
 
 
     private OrderStageConfig deletePreCheck(String id, String orgId) {
-        OrderStageConfig stageConfig = orderStageConfigMapper.selectByPrimaryKey(id);
+        OrderStageConfig stageConfig = extOrderStageConfigMapper.getByIdAndOrg(id, orgId);
         if (stageConfig == null) {
             throw new GenericException(Translator.get("order_stage_delete"));
         }
@@ -250,11 +251,12 @@ public class OrderStageService {
      */
     @OperationLog(module = LogModule.SYSTEM_MODULE, type = LogType.UPDATE)
     public void update(StageUpdateRequest request, String userId) {
-        OrderStageConfig oldStageConfig = orderStageConfigMapper.selectByPrimaryKey(request.getId());
+        String orgId = OrganizationContext.getOrganizationId();
+        OrderStageConfig oldStageConfig = extOrderStageConfigMapper.getByIdAndOrg(request.getId(), orgId);
         if (oldStageConfig == null) {
             throw new GenericException(Translator.get("order_stage_not_exist"));
         }
-        extOrderStageConfigMapper.updateStageConfig(request, userId);
+        extOrderStageConfigMapper.updateStageConfig(request, userId, orgId);
 
         Map<String, String> originalVal = new HashMap<>(1);
         originalVal.put("orderStage", oldStageConfig.getName());
@@ -283,7 +285,7 @@ public class OrderStageService {
         List<String> oldNames = oldStageConfigList.stream().map(StageConfigResponse::getName).toList();
 
         for (int i = 0; i < ids.size(); i++) {
-            extOrderStageConfigMapper.updatePos(ids.get(i), (long) (i + 1));
+            extOrderStageConfigMapper.updatePos(ids.get(i), (long) (i + 1), orgId);
         }
 
         List<StageConfigResponse> newStageConfigList = extOrderStageConfigMapper.getStageConfigList(orgId);

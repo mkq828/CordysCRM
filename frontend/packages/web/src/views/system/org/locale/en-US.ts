@@ -48,7 +48,10 @@ export default {
   'org.addDepartment': 'Add department',
   'org.resetPassWordTip': 'Confirm reset password for {name}?',
   'org.resetPassWordContent':
-    'After reset, employees log in to the system with the initial password (last 6 digits of phone number)',
+    'After reset, employees log in with the initial password 123456. Please remind them to change it promptly',
+  'org.addMemberPasswordTip':
+    'Added successfully. The initial password is 123456. Please remind the employee to change it promptly',
+  'org.defaultPasswordTip': 'The initial password is 123456. Please remind the employee to change it promptly',
   'org.resetPassWordSuccess': 'Reset successful',
   'org.confirmReset': 'Confirm Reset',
   'org.resetPassWord': 'Reset Password',

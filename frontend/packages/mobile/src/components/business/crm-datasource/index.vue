@@ -96,6 +96,7 @@
   import CrmSelectList from '@/components/business/crm-select-list/index.vue';
 
   import {
+    getBankAccountList,
     getBusinessTitleList,
     getCustomerOptions,
     getFieldClueList,
@@ -162,6 +163,7 @@
     [FieldDataSourceTypeEnum.BUSINESS_TITLE]: 'contract.businessTitle',
     [FieldDataSourceTypeEnum.ORDER]: 'formCreate.order',
     [FieldDataSourceTypeEnum.INVOICE]: 'formCreate.invoice',
+    [FieldDataSourceTypeEnum.BANK_ACCOUNT]: 'contract.bankAccount',
   };
 
   const sourceApi: Record<FieldDataSourceTypeEnum, (data: any) => Promise<CommonList<any>>> = {
@@ -180,6 +182,7 @@
     [FieldDataSourceTypeEnum.BUSINESS_TITLE]: getBusinessTitleList,
     [FieldDataSourceTypeEnum.ORDER]: getFieldOrderList,
     [FieldDataSourceTypeEnum.INVOICE]: getFieldInvoiceList,
+    [FieldDataSourceTypeEnum.BANK_ACCOUNT]: getBankAccountList,
   };
 
   function onConfirm() {

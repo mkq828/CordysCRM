@@ -1,5 +1,6 @@
 import type { CordysAxios } from '@lib/shared/api/http/Axios';
 import {
+  captchaUrl,
   getKeyUrl,
   isLoginUrl,
   loginUrl,
@@ -8,7 +9,7 @@ import {
   thirdCallbackUrl,
   thirdOauthCallbackUrl,
 } from '@lib/shared/api/requrls/system/login';
-import type { LoginParams } from '@lib/shared/models/system/login';
+import type { CaptchaResult, LoginParams } from '@lib/shared/models/system/login';
 import type { UserInfo } from '@lib/shared/models/user';
 import type { Result } from '@lib/shared/types/axios';
 import type { AxiosResponse } from 'axios';
@@ -34,6 +35,11 @@ export default function useProductApi(CDR: CordysAxios) {
     return CDR.get<string>({ url: getKeyUrl });
   }
 
+  // 获取图形验证码
+  function getCaptcha() {
+    return CDR.get<CaptchaResult>({ url: captchaUrl });
+  }
+
   // 三方二维码登录
   function getThirdCallback(code: string, type: string, state: string) {
     return CDR.get<UserInfo>({ url: `${thirdCallbackUrl}/${type}`, params: { code, state } });
@@ -56,6 +62,7 @@ export default function useProductApi(CDR: CordysAxios) {
     signout,
     isLogin,
     getKey,
+    getCaptcha,
     getThirdCallback,
     getThirdOauthCallback,
     getOauthState,

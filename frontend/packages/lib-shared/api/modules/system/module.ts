@@ -71,6 +71,7 @@ import {
   GetFieldPriceListUrl,
   GetFieldQuotationListUrl,
   GetFieldBusinessTitleListUrl,
+  GetFieldBankAccountListUrl,
   SetDisplayAdvancedUrl,
   GetAdvancedSwitchUrl,
   GetFieldRefDetailListUrl,
@@ -111,7 +112,7 @@ import type {
 import type { DeptUserTreeNode } from '@lib/shared/models/system/role';
 import type { Result } from '@lib/shared/types/axios';
 import { FormDesignKeyEnum } from '@lib/shared/enums/formDesignEnum';
-import type { BusinessTitleItem, ContractItem, PaymentPlanItem, PaymentRecordItem } from '@lib/shared/models/contract';
+import type { BankAccountItem, BusinessTitleItem, ContractItem, PaymentPlanItem, PaymentRecordItem } from '@lib/shared/models/contract';
 import type { OrderItem } from '@lib/shared/models/order';
 import { CustomFormPageItem, type CustomFormDetail } from '@lib/shared/models/customForm';
 
@@ -413,6 +414,10 @@ export default function useProductApi(CDR: CordysAxios) {
     return CDR.post<CommonList<BusinessTitleItem>>({ url: GetFieldBusinessTitleListUrl, data });
   }
 
+  function getFieldBankAccountList(data: FormDesignDataSourceTableQueryParams) {
+    return CDR.post<CommonList<BankAccountItem>>({ url: GetFieldBankAccountListUrl, data });
+  }
+
   function getDatasourceRefDetailList(data: GetRefDataSourceFieldParams) {
     return CDR.post<RefDataSourceFieldItem[]>({ url: GetFieldRefDetailListUrl, data }, { ignoreCancelToken: true });
   }
@@ -500,6 +505,7 @@ export default function useProductApi(CDR: CordysAxios) {
     getFieldQuotationList,
     getFieldOrderList,
     getFieldBusinessTitleList,
+    getFieldBankAccountList,
     getDatasourceRefDetailList,
     getFieldCustomFormList,
     getDatasourceFieldConfig,

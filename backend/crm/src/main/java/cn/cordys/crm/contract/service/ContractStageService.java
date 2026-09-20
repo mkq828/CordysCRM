@@ -8,6 +8,7 @@ import cn.cordys.aspectj.dto.LogContextInfo;
 import cn.cordys.common.constants.FormKey;
 import cn.cordys.common.dto.condition.FilterCondition;
 import cn.cordys.common.dto.stage.*;
+import cn.cordys.context.OrganizationContext;
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.JSON;
@@ -133,7 +134,7 @@ public class ContractStageService {
         Boolean afootRollBack = true;
         Boolean endRollBack = false;
         //源节点
-        ContractStageConfig target = contractStageConfigMapper.selectByPrimaryKey(request.getTargetId());
+        ContractStageConfig target = extContractStageConfigMapper.getByIdAndOrg(request.getTargetId(), orgId);
         if (target != null) {
             pos = target.getPos();
             //target正常不会为空
@@ -190,15 +191,16 @@ public class ContractStageService {
      */
     @OperationLog(module = LogModule.SYSTEM_MODULE, type = LogType.DELETE, resourceId = "{#id}")
     public void delete(String id) {
-        ContractStageConfig stageConfig = deletePreCheck(id);
-        contractStageConfigMapper.deleteByPrimaryKey(id);
+        String orgId = OrganizationContext.getOrganizationId();
+        ContractStageConfig stageConfig = deletePreCheck(id, orgId);
+        extContractStageConfigMapper.deleteByIdAndOrg(id, orgId);
         // 设置操作对象
         OperationLogContext.setResourceName(Translator.get("contract_stage_setting").concat(":").concat(stageConfig.getName()));
     }
 
 
-    private ContractStageConfig deletePreCheck(String id) {
-        ContractStageConfig stageConfig = contractStageConfigMapper.selectByPrimaryKey(id);
+    private ContractStageConfig deletePreCheck(String id, String orgId) {
+        ContractStageConfig stageConfig = extContractStageConfigMapper.getByIdAndOrg(id, orgId);
         if (stageConfig == null) {
             throw new GenericException(Translator.get("contract_stage_delete"));
         }
@@ -242,11 +244,12 @@ public class ContractStageService {
      */
     @OperationLog(module = LogModule.SYSTEM_MODULE, type = LogType.UPDATE)
     public void update(StageUpdateRequest request, String userId) {
-        ContractStageConfig oldStageConfig = contractStageConfigMapper.selectByPrimaryKey(request.getId());
+        String orgId = OrganizationContext.getOrganizationId();
+        ContractStageConfig oldStageConfig = extContractStageConfigMapper.getByIdAndOrg(request.getId(), orgId);
         if (oldStageConfig == null) {
             throw new GenericException(Translator.get("order_stage_not_exist"));
         }
-        extContractStageConfigMapper.updateStageConfig(request, userId);
+        extContractStageConfigMapper.updateStageConfig(request, userId, orgId);
 
         Map<String, String> originalVal = new HashMap<>(1);
         originalVal.put("contractStage", oldStageConfig.getName());
@@ -275,7 +278,7 @@ public class ContractStageService {
         List<String> oldNames = oldStageConfigList.stream().map(StageConfigResponse::getName).toList();
 
         for (int i = 0; i < ids.size(); i++) {
-            extContractStageConfigMapper.updatePos(ids.get(i), (long) (i + 1));
+            extContractStageConfigMapper.updatePos(ids.get(i), (long) (i + 1), orgId);
         }
 
         List<StageConfigResponse> newStageConfigList = extContractStageConfigMapper.getStageConfigList(orgId);

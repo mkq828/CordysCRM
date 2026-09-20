@@ -1,5 +1,5 @@
 <template>
-  <div class="register-audit-page">
+  <div class="register-audit-page flex h-full flex-col overflow-hidden">
     <CrmCard hide-footer auto-height class="mb-[16px]">
       <div class="flex items-center gap-[12px]">
         <n-input
@@ -28,7 +28,12 @@
       </div>
     </CrmCard>
 
-    <CrmCard no-content-padding hide-footer :special-height="licenseStore.expiredDuring ? 272 : 0">
+    <CrmCard
+      no-content-padding
+      hide-footer
+      :special-height="licenseStore.expiredDuring ? 272 : 0"
+      class="min-h-0 flex-1"
+    >
       <CrmTable
         ref="crmTableRef"
         v-bind="propsRes"
@@ -141,7 +146,7 @@
   import useTable from '@/components/pure/crm-table/useTable';
   import CrmOperationButton from '@/components/business/crm-operation-button/index.vue';
 
-  import { registerApprove, registerDetail, registerPageList, registerReject } from '@/api/modules';
+  import { registerApprove, registerDetail, registerPageList, registerReject, registerToggle } from '@/api/modules';
   import useModal from '@/hooks/useModal';
   import useLicenseStore from '@/store/modules/setting/license';
   import useUserStore from '@/store/modules/user';
@@ -158,11 +163,13 @@
   const tableRefreshId = ref(0);
 
   const typeOptions = computed(() => [
+    { label: t('common.all'), value: '' },
     { label: t('registerAudit.type.personal'), value: 'PERSONAL' },
     { label: t('registerAudit.type.enterprise'), value: 'ENTERPRISE' },
   ]);
 
   const statusOptions = computed(() => [
+    { label: t('common.all'), value: '' },
     { label: t('registerAudit.status.pending'), value: 'PENDING' },
     { label: t('registerAudit.status.approved'), value: 'APPROVED' },
     { label: t('registerAudit.status.rejected'), value: 'REJECTED' },
@@ -262,12 +269,40 @@
     }
   }
 
+  function handleToggle(row: RegisterAuditItem) {
+    const willEnable = !row.enabled;
+    openModal({
+      type: willEnable ? 'default' : 'warning',
+      title: willEnable ? t('registerAudit.enableTip') : t('registerAudit.disableTip'),
+      content: willEnable ? t('registerAudit.enableTipContent') : t('registerAudit.disableTipContent'),
+      positiveText: t('common.confirm'),
+      negativeText: t('common.cancel'),
+      onPositiveClick: async () => {
+        try {
+          await registerToggle({ id: row.id, enabled: willEnable });
+          Message.success(t('registerAudit.toggleSuccess'));
+          tableRefreshId.value += 1;
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error(error);
+        }
+      },
+    });
+  }
+
   function buildActions(row: RegisterAuditItem): ActionsItem[] {
     const list: ActionsItem[] = [{ label: t('registerAudit.detail'), key: 'detail' }];
     if (row.verifyStatus === 'PENDING') {
       list.push(
         { label: t('registerAudit.approve'), key: 'approve' },
         { label: t('registerAudit.reject'), key: 'reject', danger: true }
+      );
+    }
+    if (row.enabled !== null && row.enabled !== undefined) {
+      list.push(
+        row.enabled
+          ? { label: t('registerAudit.disable'), key: 'disable', danger: true }
+          : { label: t('registerAudit.enable'), key: 'enable' }
       );
     }
     return list;
@@ -283,6 +318,10 @@
         break;
       case 'reject':
         openReject(row);
+        break;
+      case 'enable':
+      case 'disable':
+        handleToggle(row);
         break;
       default:
         break;
@@ -341,6 +380,33 @@
         ),
     },
     {
+      title: t('registerAudit.usageDays'),
+      key: 'usageDays',
+      width: 120,
+      render: (row: RegisterAuditItem) => (row.usageDays == null ? '-' : row.usageDays),
+    },
+    {
+      title: t('registerAudit.lastLoginTime'),
+      key: 'lastLoginTime',
+      width: 160,
+      render: (row: RegisterAuditItem) => formatTime(row.lastLoginTime),
+    },
+    {
+      title: t('registerAudit.accountStatus'),
+      key: 'enabled',
+      width: 100,
+      render: (row: RegisterAuditItem) =>
+        row.enabled == null
+          ? '-'
+          : h(
+              NTag,
+              { type: row.enabled ? 'success' : 'error', size: 'small' },
+              {
+                default: () => (row.enabled ? t('registerAudit.accountEnabled') : t('registerAudit.accountDisabled')),
+              }
+            ),
+    },
+    {
       title: t('registerAudit.createTime'),
       key: 'createTime',
       width: 160,
@@ -397,6 +463,6 @@
 
 <style lang="less" scoped>
   .register-audit-page {
-    padding: 16px;
+    @apply flex h-full flex-col overflow-hidden;
   }
 </style>

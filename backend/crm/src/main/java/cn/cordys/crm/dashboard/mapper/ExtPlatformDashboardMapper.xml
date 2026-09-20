@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.cordys.crm.dashboard.mapper.ExtPlatformDashboardMapper">
+
+    <select id="selectAllOrganizations" resultType="cn.cordys.crm.system.domain.Organization">
+        SELECT * FROM sys_organization ORDER BY create_time ASC
+    </select>
+
+    <select id="countUsersGroupByOrg" resultType="map">
+        SELECT organization_id AS organizationId, COUNT(*) AS value
+        FROM sys_organization_user
+        GROUP BY organization_id
+    </select>
+
+    <select id="countCustomersGroupByOrg" resultType="map">
+        SELECT organization_id AS organizationId, COUNT(*) AS value
+        FROM customer
+        GROUP BY organization_id
+    </select>
+
+    <select id="countOpportunitiesGroupByOrg" resultType="map">
+        SELECT organization_id AS organizationId, COUNT(*) AS value
+        FROM opportunity
+        GROUP BY organization_id
+    </select>
+
+    <select id="countOrdersGroupByOrg" resultType="map">
+        SELECT organization_id AS organizationId, COUNT(*) AS value
+        FROM sales_order
+        GROUP BY organization_id
+    </select>
+
+    <select id="sumContractAmountGroupByOrg" resultType="map">
+        SELECT organization_id AS organizationId, COALESCE(SUM(amount), 0) AS value
+        FROM contract
+        WHERE void_reason IS NULL OR void_reason = ''
+        GROUP BY organization_id
+    </select>
+
+    <select id="sumReceivedAmountGroupByOrg" resultType="map">
+        SELECT organization_id AS organizationId, COALESCE(SUM(record_amount), 0) AS value
+        FROM contract_payment_record
+        GROUP BY organization_id
+    </select>
+
+    <select id="maxLoginTimeGroupByOrg" resultType="map">
+        SELECT ou.organization_id AS organizationId, MAX(l.create_time) AS value
+        FROM sys_login_log l
+        JOIN sys_organization_user ou ON l.operator = ou.user_id
+        GROUP BY ou.organization_id
+    </select>
+
+    <select id="selectLoginDaysGroupByOrg" resultType="map">
+        SELECT ou.organization_id AS organizationId, l.create_time AS createTime
+        FROM sys_login_log l
+        JOIN sys_organization_user ou ON l.operator = ou.user_id
+        WHERE l.create_time &gt;= #{sinceMillis}
+        GROUP BY ou.organization_id, l.create_time
+    </select>
+
+    <select id="selectLatestLoginCityGroupByOrg" resultType="map">
+        SELECT organizationId, login_city AS value
+        FROM (
+            SELECT ou.organization_id AS organizationId, l.login_city,
+                   ROW_NUMBER() OVER (PARTITION BY ou.organization_id ORDER BY l.create_time DESC, l.id DESC) AS rn
+            FROM sys_login_log l
+            JOIN sys_organization_user ou ON l.operator = ou.user_id
+            WHERE l.login_city IS NOT NULL AND l.login_city != ''
+        ) x
+        WHERE rn = 1
+    </select>
+
+    <select id="selectTopLoginCityGroupByOrg" resultType="map">
+        SELECT organizationId, login_city AS value
+        FROM (
+            SELECT ou.organization_id AS organizationId, l.login_city,
+                   ROW_NUMBER() OVER (PARTITION BY ou.organization_id ORDER BY COUNT(*) DESC) AS rn
+            FROM sys_login_log l
+            JOIN sys_organization_user ou ON l.operator = ou.user_id
+            WHERE l.create_time &gt;= #{sinceMillis}
+              AND l.login_city IS NOT NULL AND l.login_city != ''
+            GROUP BY ou.organization_id, l.login_city
+        ) x
+        WHERE rn = 1
+    </select>
+
+</mapper>

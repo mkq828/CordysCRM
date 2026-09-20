@@ -124,6 +124,7 @@ export interface FormCreateField {
   // dataSource属性
   dataSourceType?: DataSourceType;
   combineSearch?: DataSourceFilterCombine; // 数据源过滤条件
+  autoSelectSingleOption?: boolean; // 过滤后仅一个选项时自动选中
   showFields?: string[]; // 数据源显示字段
   linkFields?: DataSourceLinkField[]; // 数据源联动字段
   childLinkFields?: DataSourceSubFieldLinkField[]; // 数据源子表格联动配置

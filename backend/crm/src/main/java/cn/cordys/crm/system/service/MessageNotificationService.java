@@ -163,24 +163,27 @@ public class MessageNotificationService {
         List<MessageTaskDTO> result =
                 JSON.parseArray(JSON.toJSONString(templateMessageTasks), MessageTaskDTO.class);
 
+        Map<String, String> moduleMap = MessageTemplateUtils.getModuleMap();
+        Map<String, String> eventMap = MessageTemplateUtils.getEventMap();
+
+        // 无论组织是否有自定义消息任务配置，都先填充模块/事件的中文名称，
+        // 避免新组织（如自助注册租户）因 sys_message_task 为空而回退为英文代码
+        for (MessageTaskDTO dto : result) {
+            dto.setModuleName(moduleMap.get(dto.getModule()));
+            for (MessageTaskDetailDTO detail : dto.getMessageTaskDetailDTOList()) {
+                detail.setEventName(eventMap.get(detail.getEvent()));
+            }
+        }
+
         List<MessageTask> messageTasks = extMessageTaskMapper.getMessageTaskList(organizationId);
 
         if (CollectionUtils.isEmpty(messageTasks)) return result;
-
-        Map<String, String> moduleMap = MessageTemplateUtils.getModuleMap();
-        Map<String, String> eventMap = MessageTemplateUtils.getEventMap();
 
         Map<String, MessageTask> messageMap =
                 messageTasks.stream().collect(Collectors.toMap(MessageTask::getEvent, Function.identity(), (a, b) -> b));
 
         for (MessageTaskDTO dto : result) {
-
-            dto.setModuleName(moduleMap.get(dto.getModule()));
-
             for (MessageTaskDetailDTO detail : dto.getMessageTaskDetailDTOList()) {
-
-                detail.setEventName(eventMap.get(detail.getEvent()));
-
                 MessageTask task = messageMap.get(detail.getEvent());
                 if (task == null) continue;
 

@@ -34,6 +34,7 @@
         :rules="{
           username: [{ required: true, message: t('login.form.userName.errMsg'), trigger: ['input', 'blur'] }],
           password: [{ required: true, message: t('login.form.password.errMsg'), trigger: ['input', 'blur'] }],
+          captchaCode: [{ required: true, message: t('login.form.captcha.errMsg'), trigger: ['input', 'blur'] }],
         }"
       >
         <!-- TOTO 第一版本暂时只考虑普通登录&LDAP -->
@@ -62,6 +63,19 @@
             show-password-on="click"
             @keydown.enter="handleSubmit"
           />
+        </n-form-item>
+        <n-form-item class="login-form-item" path="captchaCode" :show-label="false">
+          <div class="captcha-row">
+            <n-input
+              v-model:value="userInfo.captchaCode"
+              class="captcha-input"
+              :maxlength="4"
+              size="large"
+              :placeholder="t('login.form.captcha.placeholder')"
+              @keydown.enter="handleSubmit"
+            />
+            <img :src="captchaImage" class="captcha-img" alt="captcha" title="点击刷新" @click="refreshCaptcha" />
+          </div>
         </n-form-item>
         <div class="mt-[12px]" :class="hasMoreLoginWay ? 'mb-[60px]' : 'mb-7'">
           <n-button type="primary" size="large" block :loading="loading" @click="handleSubmit">
@@ -133,7 +147,7 @@
 
   // import { getAuthDetailByType } from '@/api/modules/setting/config';
   // import { getPlatformParamUrl } from '@/api/modules/user';
-  import { getThirdConfigByType } from '@/api/modules';
+  import { getCaptcha, getThirdConfigByType } from '@/api/modules';
   import { defaultLoginLogo } from '@/config/business';
   import useLoading from '@/hooks/useLoading';
   import useUser from '@/hooks/useUser';
@@ -177,11 +191,28 @@
     authenticate: string;
     username: string;
     password: string;
+    captchaId: string;
+    captchaCode: string;
   }>({
     authenticate: getLoginType() || 'LOCAL',
     username: '',
     password: '',
+    captchaId: '',
+    captchaCode: '',
   });
+
+  const captchaImage = ref('');
+  async function refreshCaptcha() {
+    userInfo.value.captchaCode = '';
+    try {
+      const res = await getCaptcha();
+      userInfo.value.captchaId = res.captchaId;
+      captchaImage.value = res.captchaImage;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
+  }
 
   const showQrCodeTab = ref(false);
   const activeName = ref('');
@@ -205,17 +236,13 @@
       if (!errors) {
         setLoading(true);
         try {
-          try {
-            await userStore.logout(true); // 登录之前先注销，防止未登出就继续登录导致报错
-          } catch (error) {
-            // eslint-disable-next-line no-console
-            console.log('logout error', error);
-          }
           await userStore.login({
             username: encrypted(userInfo.value.username) || '',
             password: encrypted(userInfo.value.password) || '',
             authenticate: userInfo.value.authenticate,
             platform: 'WEB',
+            captchaId: userInfo.value.captchaId,
+            captchaCode: userInfo.value.captchaCode,
           });
           await licenseStore.getValidateLicense();
           if (licenseStore.hasLicense()) {
@@ -228,6 +255,7 @@
         } catch (err) {
           // eslint-disable-next-line no-console
           console.log(err);
+          refreshCaptcha();
         } finally {
           setLoading(false);
           userStore.getAuthentication();
@@ -338,6 +366,7 @@
       // }
       initPlatformInfo();
       appStore.initPublicKey();
+      refreshCaptcha();
       try {
         if (isLoginExpires()) {
           preheat.value = false;
@@ -427,5 +456,20 @@
     top: 10px;
     float: right;
     margin-left: 360px;
+  }
+  .captcha-row {
+    @apply flex items-center;
+
+    width: 400px;
+    gap: 12px;
+  }
+  .captcha-input {
+    flex: 1;
+  }
+  .captcha-img {
+    width: 110px;
+    height: 36px;
+    border-radius: var(--border-radius-small);
+    cursor: pointer;
   }
 </style>

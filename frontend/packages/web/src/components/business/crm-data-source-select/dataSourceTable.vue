@@ -48,6 +48,7 @@
     @saved="handleFormCreateSave"
   />
   <businessTitleDrawer v-model:visible="businessNameDrawerVisible" sourceId="" @load="() => searchData()" />
+  <bankAccountDrawer v-model:visible="bankAccountDrawerVisible" sourceId="" @load="() => searchData()" />
 </template>
 
 <script setup lang="ts">
@@ -78,6 +79,7 @@
   import StatusTagSelect from '@/components/business/crm-follow-detail/statusTagSelect.vue';
   import CrmFormCreateDrawer from '@/components/business/crm-form-create-drawer/index.vue';
   import { formatFormulaResultValue } from '@/components/business/crm-formula/utils';
+  import bankAccountDrawer from '@/views/contract/bankAccount/components/bankAccountDrawer.vue';
   import businessTitleDrawer from '@/views/contract/businessTitle/components/businessTitleDrawer.vue';
   import ContractStatus from '@/views/contract/contractPaymentPlan/components/contractPaymentStatus.vue';
 
@@ -166,7 +168,11 @@
     }
   }
 
-  const isDatasourceFormConfig = computed(() => props.sourceType !== FieldDataSourceTypeEnum.BUSINESS_TITLE);
+  const isDatasourceFormConfig = computed(
+    () =>
+      props.sourceType !== FieldDataSourceTypeEnum.BUSINESS_TITLE &&
+      props.sourceType !== FieldDataSourceTypeEnum.BANK_ACCOUNT
+  );
   const { fieldList, initFormConfig } = useFormCreateApi({
     formKey,
     customFormId: computed(() => (isCustomForm.value ? (props.sourceType as string | undefined) : undefined)),
@@ -273,6 +279,7 @@
     [FieldDataSourceTypeEnum.CUSTOMER_OPTIONS]: {},
     [FieldDataSourceTypeEnum.USER_OPTIONS]: {},
     [FieldDataSourceTypeEnum.BUSINESS_TITLE]: {},
+    [FieldDataSourceTypeEnum.BANK_ACCOUNT]: {},
     [FieldDataSourceTypeEnum.INVOICE]: {
       approvalStatus: (row: ContractItem) =>
         h(CrmApprovalPopover, {
@@ -341,6 +348,7 @@
     [FormDesignKeyEnum.CONTRACT_PAYMENT_RECORD]: 'contractPaymentRecordName',
     [FormDesignKeyEnum.PRICE]: 'priceName',
     [FormDesignKeyEnum.BUSINESS_TITLE]: 'name',
+    [FormDesignKeyEnum.BANK_ACCOUNT]: 'name',
     [FormDesignKeyEnum.CUSTOM_FORM]: 'customFormDataName',
   };
 
@@ -376,7 +384,8 @@
 
   const selectedDisplayFields = computed<string[]>(() => {
     const defaultFormColumn =
-      props.fieldConfig?.dataSourceType === FieldDataSourceTypeEnum.BUSINESS_TITLE
+      props.fieldConfig?.dataSourceType === FieldDataSourceTypeEnum.BUSINESS_TITLE ||
+      props.fieldConfig?.dataSourceType === FieldDataSourceTypeEnum.BANK_ACCOUNT
         ? []
         : internalColumnMap[formKey.value] || [];
     const fixedFieldIds = [...defaultFormColumn, ...staticColumns].map((column) => String(column.key));
@@ -668,6 +677,7 @@
 
   const formCreateVisible = ref(false);
   const businessNameDrawerVisible = ref(false);
+  const bankAccountDrawerVisible = ref(false);
   const realFormKey = computed(() =>
     isCustomForm.value
       ? FormDesignKeyEnum.CUSTOM_FORM
@@ -676,6 +686,10 @@
   function handleNewCreate() {
     if (props.sourceType === FieldDataSourceTypeEnum.BUSINESS_TITLE) {
       businessNameDrawerVisible.value = true;
+      return;
+    }
+    if (props.sourceType === FieldDataSourceTypeEnum.BANK_ACCOUNT) {
+      bankAccountDrawerVisible.value = true;
       return;
     }
     formCreateVisible.value = true;

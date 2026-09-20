@@ -23,6 +23,8 @@
     <n-date-picker
       v-model:value="value"
       :type="props.fieldConfig.dateType"
+      fast-year-select
+      fast-month-select
       :placeholder="props.fieldConfig.placeholder || t('common.pleaseInput')"
       :disabled="props.fieldConfig.editable === false || props.disabled || !!props.fieldConfig.resourceFieldId"
       class="w-full"

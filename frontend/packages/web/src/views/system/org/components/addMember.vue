@@ -168,6 +168,9 @@
           </n-form-item> -->
         </CrmExpandButton>
       </n-form>
+      <div class="mt-[8px] text-[12px] text-[var(--text-n4)]">
+        {{ t('org.defaultPasswordTip') }}
+      </div>
     </div>
     <template #footer>
       <div class="flex w-full items-center justify-between">
@@ -341,7 +344,7 @@
             Message.success(t('common.updateSuccess'));
           } else {
             await addUser(form.value);
-            Message.success(t('common.addSuccess'));
+            Message.success(t('org.addMemberPasswordTip'));
           }
 
           if (isContinue) {

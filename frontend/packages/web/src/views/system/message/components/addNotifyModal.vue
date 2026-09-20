@@ -92,6 +92,8 @@
             :default-value="getDefaultRange()"
             class="w-[340px]"
             type="datetimerange"
+            fast-year-select
+            fast-month-select
             clearable
           >
             <template #date-icon>

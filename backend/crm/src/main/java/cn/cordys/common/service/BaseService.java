@@ -575,11 +575,15 @@ public class BaseService {
     private Map<String, String> getFieldNameMap(List<BaseModuleFieldValue> fields, ModuleFormConfigDTO moduleFormConfigDTO) {
         List<String> fieldIds = new ArrayList<>(fields.stream()
                 .map(BaseModuleFieldValue::getFieldId)
+                .filter(StringUtils::isNotBlank)
                 .distinct()
                 .toList());
-        List<OptionDTO> fieldOptions = extModuleFieldMapper.getSourceOptionsByIds("sys_module_field", fieldIds);
-        Map<String, String> nameMap = fieldOptions.stream()
-                .collect(Collectors.toMap(OptionDTO::getIdAsString, OptionDTO::getName));
+        Map<String, String> nameMap = new HashMap<>();
+        if (CollectionUtils.isNotEmpty(fieldIds)) {
+            List<OptionDTO> fieldOptions = extModuleFieldMapper.getSourceOptionsByIds("sys_module_field", fieldIds);
+            nameMap.putAll(fieldOptions.stream()
+                    .collect(Collectors.toMap(OptionDTO::getIdAsString, OptionDTO::getName)));
+        }
 
         if (CollectionUtils.isNotEmpty(moduleFormConfigDTO.getFields())) {
             for (BaseField field : moduleFormConfigDTO.getFields()) {

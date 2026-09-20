@@ -15,12 +15,15 @@ import cn.cordys.crm.system.domain.Department;
 import cn.cordys.crm.system.domain.Organization;
 import cn.cordys.crm.system.domain.OrganizationUser;
 import cn.cordys.crm.system.domain.RegisterApplication;
+import cn.cordys.crm.system.domain.Role;
+import cn.cordys.crm.system.domain.RolePermission;
 import cn.cordys.crm.system.domain.User;
 import cn.cordys.crm.system.domain.UserRole;
 import cn.cordys.crm.system.dto.request.RegisterApplicationPageRequest;
 import cn.cordys.crm.system.dto.request.RegisterApplyRequest;
 import cn.cordys.crm.system.dto.request.RegisterApproveRequest;
 import cn.cordys.crm.system.dto.request.RegisterRejectRequest;
+import cn.cordys.crm.system.dto.request.RegisterToggleRequest;
 import cn.cordys.crm.system.dto.request.UploadTransferRequest;
 import cn.cordys.crm.system.dto.response.RegisterApplicationResponse;
 import cn.cordys.crm.system.dto.response.RegisterStatusResponse;
@@ -29,6 +32,7 @@ import cn.cordys.crm.system.mapper.ExtUserMapper;
 import cn.cordys.crm.system.mapper.OrganizationMapper;
 import cn.cordys.crm.system.mapper.RegisterApplicationMapper;
 import cn.cordys.mybatis.BaseMapper;
+import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -70,15 +74,42 @@ public class RegisterService {
     private BaseMapper<UserRole> userRoleMapper;
 
     @Resource
+    private BaseMapper<Role> roleMapper;
+
+    @Resource
+    private BaseMapper<RolePermission> rolePermissionMapper;
+
+    @Resource
     private BaseMapper<Department> departmentMapper;
 
     @Resource
     private AttachmentService attachmentService;
 
+    @Resource
+    private ModuleService moduleService;
+
+    @Resource
+    private NavigationService navigationService;
+
+    @Resource
+    private ModuleFormMigrationService moduleFormMigrationService;
+
+    @Resource
+    private TenantConfigService tenantConfigService;
+
+    @Resource
+    private CaptchaService captchaService;
+
     /**
      * 提交注册申请
+     * <p>
+     * 个人注册免审：提交即开通账号；企业注册仍需人工审核。
+     * </p>
      */
-    public void apply(RegisterApplyRequest request) {
+    public RegisterStatusResponse apply(RegisterApplyRequest request) {
+        // 校验图形验证码
+        captchaService.validate(request.getCaptchaId(), request.getCaptchaCode());
+
         String type = StringUtils.trim(request.getType());
         if (!RegisterType.isValid(type)) {
             throw new GenericException(RegisterResultCode.REGISTER_TYPE_INVALID);
@@ -136,6 +167,22 @@ public class RegisterService {
         application.setCreateUser(phone);
         application.setUpdateUser(phone);
         registerApplicationMapper.insert(application);
+
+        // 个人注册免审：提交即开通账号
+        if (!enterprise) {
+            openAccount(application, phone);
+            application.setVerifyStatus(RegisterVerifyStatus.APPROVED.getValue());
+            application.setVerifyUser(phone);
+            application.setVerifyTime(now);
+            application.setUpdateTime(now);
+            application.setUpdateUser(phone);
+            registerApplicationMapper.updateById(application);
+        }
+
+        RegisterStatusResponse response = new RegisterStatusResponse();
+        response.setType(type);
+        response.setVerifyStatus(application.getVerifyStatus());
+        return response;
     }
 
     /**
@@ -162,9 +209,22 @@ public class RegisterService {
      * 分页查询申请单
      */
     public List<RegisterApplicationResponse> pageList(RegisterApplicationPageRequest request) {
-        return extRegisterApplicationMapper.pageList(request).stream()
-                .map(application -> BeanUtils.copyBean(new RegisterApplicationResponse(), application))
-                .toList();
+        List<RegisterApplicationResponse> list = extRegisterApplicationMapper.pageList(request);
+        long now = System.currentTimeMillis();
+        for (RegisterApplicationResponse item : list) {
+            // 累计使用天数 = 自审核通过（开通）至今的自然天数，仅已开通账号计算
+            if (RegisterVerifyStatus.APPROVED.getValue().equals(item.getVerifyStatus()) && item.getVerifyTime() != null) {
+                item.setUsageDays(Math.max(0, (now - item.getVerifyTime()) / 86_400_000L));
+            }
+        }
+        return list;
+    }
+
+    /**
+     * 企业注册待审核数量（管理端首页待办）
+     */
+    public long countPendingEnterprise() {
+        return extRegisterApplicationMapper.countPendingEnterprise();
     }
 
     /**
@@ -181,7 +241,7 @@ public class RegisterService {
     }
 
     /**
-     * 审核通过：事务内创建租户、根部门、管理员用户、组织成员并挂内置管理员角色
+     * 审核通过：开通租户账号并将申请单置为通过
      */
     public void approve(RegisterApproveRequest request, String operatorId) {
         RegisterApplication application = registerApplicationMapper.selectByPrimaryKey(request.getId());
@@ -192,6 +252,21 @@ public class RegisterService {
             throw new GenericException(RegisterResultCode.ALREADY_PROCESSED);
         }
 
+        openAccount(application, operatorId);
+
+        long now = System.currentTimeMillis();
+        application.setVerifyStatus(RegisterVerifyStatus.APPROVED.getValue());
+        application.setVerifyUser(operatorId);
+        application.setVerifyTime(now);
+        application.setUpdateTime(now);
+        application.setUpdateUser(operatorId);
+        registerApplicationMapper.updateById(application);
+    }
+
+    /**
+     * 开通租户账号：创建组织、根部门、管理员用户、组织成员，按注册类型挂角色，并初始化菜单与顶部导航
+     */
+    private void openAccount(RegisterApplication application, String operatorId) {
         boolean enterprise = RegisterType.isEnterprise(application.getType());
         String orgId = IDGenerator.nextStr();
         String userId = IDGenerator.nextStr();
@@ -247,6 +322,8 @@ public class RegisterService {
         user.setCreateUser(operatorId);
         user.setUpdateUser(operatorId);
         userMapper.insert(user);
+        // 记录开通的用户ID，管理端用于展示使用天数/最后登录时间/账号启停
+        application.setUserId(userId);
 
         // 4. 创建组织成员
         OrganizationUser organizationUser = new OrganizationUser();
@@ -261,16 +338,15 @@ public class RegisterService {
         organizationUser.setUpdateUser(operatorId);
         organizationUserMapper.insert(organizationUser);
 
-        // 5. 挂内置管理员角色
-        UserRole userRole = new UserRole();
-        userRole.setId(IDGenerator.nextStr());
-        userRole.setUserId(userId);
-        userRole.setRoleId(InternalRole.ORG_ADMIN.getValue());
-        userRole.setCreateTime(now);
-        userRole.setUpdateTime(now);
-        userRole.setCreateUser(operatorId);
-        userRole.setUpdateUser(operatorId);
-        userRoleMapper.insert(userRole);
+        // 5. 按注册类型创建独立角色并挂载：个人 → 销售专员；企业 → 销售经理。
+        //    快照内置角色权限点而非直接引用全局内置角色，避免后续调整内置角色权限联动改变已注册账号。
+        if (enterprise) {
+            String roleId = createSnapshotRole(InternalRole.SALES_MANAGER.getValue(), "企业管理员", orgId, operatorId, now);
+            insertUserRole(userId, roleId, operatorId, now);
+        } else {
+            String roleId = createSnapshotRole(InternalRole.SALES_STAFF.getValue(), "销售专员", orgId, operatorId, now);
+            insertUserRole(userId, roleId, operatorId, now);
+        }
 
         // 6. 转正营业执照附件（绑定到新组织）
         if (enterprise && StringUtils.isNotBlank(application.getBusinessLicenseAttachmentId())) {
@@ -278,13 +354,65 @@ public class RegisterService {
                     orgId, orgId, operatorId, List.of(application.getBusinessLicenseAttachmentId())));
         }
 
-        // 7. 申请单置为通过
-        application.setVerifyStatus(RegisterVerifyStatus.APPROVED.getValue());
-        application.setVerifyUser(operatorId);
-        application.setVerifyTime(now);
-        application.setUpdateTime(now);
-        application.setUpdateUser(operatorId);
-        registerApplicationMapper.updateById(application);
+        // 7. 初始化菜单、顶部导航与表单配置（否则新租户为空菜单、无表单）
+        moduleService.initModule(orgId);
+        navigationService.initNavigation(orgId);
+        moduleFormMigrationService.initForm(orgId);
+        // 8. 播种阶段配置（否则新建商机/合同/订单会因无阶段配置报错）
+        tenantConfigService.initStageConfigs(orgId);
+    }
+
+    /**
+     * 插入用户角色关联
+     */
+    private void insertUserRole(String userId, String roleId, String operatorId, long now) {
+        UserRole userRole = new UserRole();
+        userRole.setId(IDGenerator.nextStr());
+        userRole.setUserId(userId);
+        userRole.setRoleId(roleId);
+        userRole.setCreateTime(now);
+        userRole.setUpdateTime(now);
+        userRole.setCreateUser(operatorId);
+        userRole.setUpdateUser(operatorId);
+        userRoleMapper.insert(userRole);
+    }
+
+    /**
+     * 为自助注册账号创建独立的租户角色：快照内置角色（模板）的数据范围与权限点。
+     * <p>
+     * 不直接引用全局内置角色，避免管理员后续调整内置角色权限时联动改变已注册账号的权限；
+     * 新角色归属当前租户（organizationId），可在企业内独立灵活配置。
+     * </p>
+     */
+    private String createSnapshotRole(String templateRoleId, String roleName, String orgId, String operatorId, long now) {
+        Role template = roleMapper.selectByPrimaryKey(templateRoleId);
+        String roleId = IDGenerator.nextStr();
+        Role role = new Role();
+        role.setId(roleId);
+        role.setName(roleName);
+        role.setInternal(false);
+        role.setDataScope(template != null ? template.getDataScope() : null);
+        role.setOrganizationId(orgId);
+        role.setCreateTime(now);
+        role.setUpdateTime(now);
+        role.setCreateUser(operatorId);
+        role.setUpdateUser(operatorId);
+        roleMapper.insert(role);
+
+        // 快照权限点
+        LambdaQueryWrapper<RolePermission> permissionWrapper = new LambdaQueryWrapper<>();
+        permissionWrapper.eq(RolePermission::getRoleId, templateRoleId);
+        List<RolePermission> permissions = rolePermissionMapper.selectListByLambda(permissionWrapper);
+        if (permissions != null) {
+            for (RolePermission permission : permissions) {
+                RolePermission snapshot = new RolePermission();
+                snapshot.setId(IDGenerator.nextStr());
+                snapshot.setRoleId(roleId);
+                snapshot.setPermissionId(permission.getPermissionId());
+                rolePermissionMapper.insert(snapshot);
+            }
+        }
+        return roleId;
     }
 
     /**
@@ -306,6 +434,29 @@ public class RegisterService {
         application.setUpdateTime(now);
         application.setUpdateUser(operatorId);
         registerApplicationMapper.updateById(application);
+    }
+
+    /**
+     * 启用/禁用账号：通过控制 sys_organization_user.enable 实现登录拦截（见 UserLoginService.checkUserStatus）。
+     */
+    public void toggle(RegisterToggleRequest request, String operatorId) {
+        RegisterApplication application = registerApplicationMapper.selectByPrimaryKey(request.getId());
+        if (application == null) {
+            throw new GenericException(RegisterResultCode.APPLICATION_NOT_FOUND);
+        }
+        if (StringUtils.isBlank(application.getUserId())) {
+            throw new GenericException(RegisterResultCode.ACCOUNT_NOT_OPENED);
+        }
+        long now = System.currentTimeMillis();
+        LambdaQueryWrapper<OrganizationUser> queryWrapper = new LambdaQueryWrapper<OrganizationUser>()
+                .eq(OrganizationUser::getUserId, application.getUserId());
+        List<OrganizationUser> orgUsers = organizationUserMapper.selectListByLambda(queryWrapper);
+        for (OrganizationUser orgUser : orgUsers) {
+            orgUser.setEnable(request.getEnabled());
+            orgUser.setUpdateTime(now);
+            orgUser.setUpdateUser(operatorId);
+            organizationUserMapper.updateById(orgUser);
+        }
     }
 
     /**

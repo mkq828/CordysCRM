@@ -117,6 +117,8 @@ public class ModuleFieldController {
     private CustomFormDataService customFormDataService;
 	@Resource
 	private ContractInvoiceService contractInvoiceService;
+	@Resource
+	private BankAccountService bankAccountService;
 
     @GetMapping("/dept/tree")
     @Operation(summary = "获取部门树")
@@ -265,6 +267,12 @@ public class ModuleFieldController {
 		return contractInvoiceService.list(request, SessionUtils.getUserId(), OrganizationContext.getOrganizationId(), deptDataPermission);
 	}
 
+	@PostMapping("/source/bank-account")
+	@Operation(summary = "分页获取收款账户信息")
+	public Pager<List<BankAccountListResponse>> sourceBankAccountPage(@Valid @RequestBody BankAccountPageRequest request) {
+		return bankAccountService.list(request, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
+	}
+
     @PostMapping("/check/repeat")
     @Operation(summary = "校验重复值")
     public FieldRepeatCheckResponse checkRepeat(@Valid @RequestBody FieldRepeatCheckRequest checkRequest) {
@@ -328,6 +336,7 @@ public class ModuleFieldController {
             case "ORDER" -> list(JSON.parseObject(body, OrderPageRequest.class));
             case "INVOICE" -> list(JSON.parseObject(body, ContractInvoicePageRequest.class));
             case "BUSINESS_TITLE" -> sourceBusinessTitlePage(JSON.parseObject(body, BusinessTitlePageRequest.class));
+            case "BANK_ACCOUNT" -> sourceBankAccountPage(JSON.parseObject(body, BankAccountPageRequest.class));
             default -> sourceCustomFormDataPage(JSON.parseObject(body, CustomFormDataPageRequest.class));
         };
     }

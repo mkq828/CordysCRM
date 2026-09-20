@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.cordys.crm.system.mapper.ExtTenantConfigMapper">
+
+    <insert id="copyOpportunityStageConfig">
+        insert into opportunity_stage_config
+            (id, name, type, rate, afoot_roll_back, end_roll_back, pos, organization_id,
+             create_time, update_time, create_user, update_user)
+        select id, name, type, rate, afoot_roll_back, end_roll_back, pos, #{orgId},
+               create_time, update_time, create_user, update_user
+        from opportunity_stage_config
+        where organization_id = '100001'
+    </insert>
+
+    <insert id="copyContractStageConfig">
+        insert into contract_stage_config
+            (id, name, type, afoot_roll_back, end_roll_back, pos, organization_id,
+             create_time, update_time, create_user, update_user, circulation_type)
+        select id, name, type, afoot_roll_back, end_roll_back, pos, #{orgId},
+               create_time, update_time, create_user, update_user, circulation_type
+        from contract_stage_config
+        where organization_id = '100001'
+    </insert>
+
+    <insert id="copyOrderStageConfig">
+        insert into sales_order_stage_config
+            (id, name, type, afoot_roll_back, end_roll_back, pos, organization_id,
+             create_time, update_time, create_user, update_user, circulation_type)
+        select id, name, type, afoot_roll_back, end_roll_back, pos, #{orgId},
+               create_time, update_time, create_user, update_user, circulation_type
+        from sales_order_stage_config
+        where organization_id = '100001'
+    </insert>
+
+</mapper>

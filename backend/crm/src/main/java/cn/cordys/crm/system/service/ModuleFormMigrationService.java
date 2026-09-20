@@ -14,6 +14,7 @@ import cn.cordys.crm.system.dto.form.base.LinkField;
 import cn.cordys.crm.system.dto.form.base.LinkScenario;
 import cn.cordys.crm.system.mapper.ExtModuleFieldMapper;
 import cn.cordys.mybatis.BaseMapper;
+import cn.cordys.mybatis.DataAccessLayer;
 import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -76,6 +78,657 @@ public class ModuleFormMigrationService {
      */
     public void initForm() {
         initFormAndFields(FormKey.allKeys());
+    }
+
+    /**
+     * 初始化组织表单配置。
+     * <p>默认组织走内置 JSON 初始化；其它组织复制默认组织 100001 当前的表单/字段/属性，
+     * 保证新租户开通后即拥有完整可用的表单（后续可在表单设计器里自行修改）。</p>
+     *
+     * @param organizationId 目标组织 ID
+     */
+    public void initForm(String organizationId) {
+        if (DEFAULT_ORGANIZATION_ID.equals(organizationId)) {
+            initForm();
+            return;
+        }
+        copyFormsFromDefault(organizationId);
+    }
+
+    /**
+     * 复制默认组织 100001 的表单配置到目标组织。
+     * <p>重映射表单 id、字段 id，以及字段/表单属性 JSON 内的跨字段 id 引用
+     * （resourceFieldId / subTableFieldId / showControlRules.fieldIds / 联动字段等）。</p>
+     */
+    private void copyFormsFromDefault(String organizationId) {
+        ModuleForm example = new ModuleForm();
+        example.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        List<ModuleForm> sourceForms = moduleFormMapper.select(example);
+        if (CollectionUtils.isEmpty(sourceForms)) {
+            log.warn("默认组织无表单配置，跳过表单初始化: {}", organizationId);
+            return;
+        }
+        long now = System.currentTimeMillis();
+        Map<String, String> idMap = new HashMap<>();
+
+        // 1. 复制表单
+        List<ModuleForm> newForms = new ArrayList<>(sourceForms.size());
+        for (ModuleForm source : sourceForms) {
+            String newId = IDGenerator.nextStr();
+            idMap.put(source.getId(), newId);
+            ModuleForm form = new ModuleForm();
+            form.setId(newId);
+            form.setFormKey(source.getFormKey());
+            form.setOrganizationId(organizationId);
+            form.setCreateUser(InternalUser.ADMIN.getValue());
+            form.setCreateTime(now);
+            form.setUpdateUser(InternalUser.ADMIN.getValue());
+            form.setUpdateTime(now);
+            newForms.add(form);
+        }
+
+        // 2. 复制字段（默认组织全部字段，按表单归属）
+        List<String> sourceFormIds = sourceForms.stream().map(ModuleForm::getId).toList();
+        LambdaQueryWrapper<ModuleField> fieldWrapper = new LambdaQueryWrapper<>();
+        fieldWrapper.in(ModuleField::getFormId, sourceFormIds);
+        List<ModuleField> sourceFields = moduleFieldMapper.selectListByLambda(fieldWrapper);
+        List<ModuleField> newFields = new ArrayList<>(sourceFields.size());
+        for (ModuleField source : sourceFields) {
+            String newId = IDGenerator.nextStr();
+            idMap.put(source.getId(), newId);
+            ModuleField field = new ModuleField();
+            field.setId(newId);
+            field.setFormId(idMap.get(source.getFormId()));
+            field.setName(source.getName());
+            field.setInternalKey(source.getInternalKey());
+            field.setType(source.getType());
+            field.setMobile(source.getMobile());
+            field.setPos(source.getPos());
+            field.setCreateUser(InternalUser.ADMIN.getValue());
+            field.setCreateTime(now);
+            field.setUpdateUser(InternalUser.ADMIN.getValue());
+            field.setUpdateTime(now);
+            newFields.add(field);
+        }
+
+        // 3. 复制表单属性与字段属性（重映射 id 引用）
+        List<ModuleFormBlob> newFormBlobs = new ArrayList<>(sourceForms.size());
+        for (ModuleForm source : sourceForms) {
+            ModuleFormBlob blob = moduleFormBlobMapper.selectByPrimaryKey(source.getId());
+            if (blob != null) {
+                ModuleFormBlob newBlob = new ModuleFormBlob();
+                newBlob.setId(idMap.get(source.getId()));
+                newBlob.setProp(remapIds(blob.getProp(), idMap));
+                newFormBlobs.add(newBlob);
+            }
+        }
+        List<ModuleFieldBlob> newFieldBlobs = new ArrayList<>(sourceFields.size());
+        for (ModuleField source : sourceFields) {
+            ModuleFieldBlob blob = moduleFieldBlobMapper.selectByPrimaryKey(source.getId());
+            if (blob != null) {
+                ModuleFieldBlob newBlob = new ModuleFieldBlob();
+                newBlob.setId(idMap.get(source.getId()));
+                newBlob.setProp(remapIds(blob.getProp(), idMap));
+                newFieldBlobs.add(newBlob);
+            }
+        }
+
+        moduleFormMapper.batchInsert(newForms);
+        moduleFormBlobMapper.batchInsert(newFormBlobs);
+        moduleFieldMapper.batchInsert(newFields);
+        moduleFieldBlobMapper.batchInsert(newFieldBlobs);
+    }
+
+    /**
+     * 回填存量租户缺失的表单配置（在注册开通表单播种逻辑之前已创建的组织）。
+     */
+    public void backfillTenantForms() {
+        List<Organization> organizations = DataAccessLayer.with(Organization.class).selectAll(null);
+        for (Organization organization : organizations) {
+            if (DEFAULT_ORGANIZATION_ID.equals(organization.getId())) {
+                continue;
+            }
+            LambdaQueryWrapper<ModuleForm> formWrapper = new LambdaQueryWrapper<>();
+            formWrapper.eq(ModuleForm::getOrganizationId, organization.getId());
+            if (CollectionUtils.isNotEmpty(moduleFormMapper.selectListByLambda(formWrapper))) {
+                continue;
+            }
+            initForm(organization.getId());
+        }
+    }
+
+    /**
+     * 回填跟进记录表单的联系人联动与默认日期配置（存量租户）。
+     */
+    public void backfillRecordFollowConfig() {
+        backfillFollowFormConfig(FormKey.FOLLOW_RECORD.getKey(), "recordCustomer", "recordContact", "recordTime");
+    }
+
+    /**
+     * 回填跟进计划表单的联系人联动配置（存量租户）。
+     */
+    public void backfillPlanFollowConfig() {
+        backfillFollowFormConfig(FormKey.FOLLOW_PLAN.getKey(), "planCustomer", "planContact", null);
+    }
+
+    /**
+     * 回填商机表单联系人联动（按当前客户过滤，避免混入其他客户联系人）。
+     */
+    public void backfillOpportunityContactConfig() {
+        backfillFollowFormConfig(FormKey.OPPORTUNITY.getKey(), "opportunityCustomer", "opportunityContact", null);
+    }
+
+    /**
+     * 回填客户表单字段配置（存量租户）：
+     * <p>1. 客户行业、客户来源 SELECT 改为 INPUT；</p>
+     * <p>2. 客户等级下拉选项改为 A~E 级；</p>
+     * <p>3. 删除客户类型、线上来源详情两个字段。</p>
+     */
+    public void backfillCustomerFieldConfig() {
+        LambdaQueryWrapper<ModuleForm> formWrapper = new LambdaQueryWrapper<>();
+        formWrapper.eq(ModuleForm::getFormKey, FormKey.CUSTOMER.getKey());
+        List<ModuleForm> forms = moduleFormMapper.selectListByLambda(formWrapper);
+        if (CollectionUtils.isEmpty(forms)) {
+            return;
+        }
+        List<String> formIds = forms.stream().map(ModuleForm::getId).toList();
+        List<String> internalKeys = List.of("customerIndustry", "customerLevel", "customerSource",
+                "customerType", "customerOnlineSource");
+        LambdaQueryWrapper<ModuleField> fieldWrapper = new LambdaQueryWrapper<>();
+        fieldWrapper.in(ModuleField::getFormId, formIds);
+        fieldWrapper.in(ModuleField::getInternalKey, internalKeys);
+        List<ModuleField> fields = moduleFieldMapper.selectListByLambda(fieldWrapper);
+
+        Map<String, Map<String, ModuleField>> formFieldMap = new HashMap<>();
+        for (ModuleField field : fields) {
+            formFieldMap.computeIfAbsent(field.getFormId(), k -> new HashMap<>(5))
+                    .put(field.getInternalKey(), field);
+        }
+
+        for (ModuleForm form : forms) {
+            Map<String, ModuleField> fieldMap = formFieldMap.get(form.getId());
+            if (fieldMap == null) {
+                continue;
+            }
+            convertToInput(fieldMap.get("customerIndustry"));
+            convertToInput(fieldMap.get("customerSource"));
+            updateLevelOptions(fieldMap.get("customerLevel"));
+            deleteCustomerFields(fieldMap);
+        }
+    }
+
+    /**
+     * 回填线索转客户 / 线索转商机的表单联动字段映射（存量租户）。
+     * <p>线索转客户、转商机时仅复制「表单联动规则」里配置过的字段，此前只给
+     * 线索转联系人配置了姓名/电话，客户、商机的联动为空，导致来源等字段丢失。</p>
+     */
+    public void backfillClueLinkRules() {
+        backfillLinkScenario(FormKey.CUSTOMER.getKey(), LinkScenarioKey.CLUE_TO_CUSTOMER.name(),
+                Map.of("clueName", "customerName", "clueSource", "customerSource",
+                        "clueArea", "customerArea", "clueOwner", "customerOwner"));
+        backfillLinkScenario(FormKey.OPPORTUNITY.getKey(), LinkScenarioKey.CLUE_TO_OPPORTUNITY.name(),
+                Map.of("clueProduct", "opportunityProduct", "clueSource", "opportunitySource",
+                        "clueArea", "opportunityArea", "clueOwner", "opportunityOwner"));
+    }
+
+    /**
+     * 回填「来源」类字段全局统一为输入框（线索来源、商机来源），并删除线索的「线上来源详情」。
+     * <p>客户来源已在前一步处理，此处补齐线索、商机，保证同一概念交互方式一致，
+     * 同时把已存在的下拉选项码回填成中文文本。</p>
+     */
+    public void backfillSourceFieldConfig() {
+        backfillSourceInput(FormKey.CLUE.getKey(), "clueSource", "clue_field");
+        backfillSourceInput(FormKey.OPPORTUNITY.getKey(), "opportunitySource", "opportunity_field");
+        deleteClueOnlineSourceFields();
+    }
+
+    /**
+     * 回填合同回款记录表单字段：删除写死的「收款银行」「收款银行账号」两个下拉，
+     * 新增「收款账户」数据源字段（引用 bank_account）与「付款凭证」附件字段（存量租户）。
+     * <p>数据源类型 BANK_ACCOUNT 的字段值由回款记录自行保存账户 ID，展示时由
+     * 后端数据源解析器映射为账户名称，附件则走既有的上传/预览链路。</p>
+     */
+    public void backfillContractPaymentRecordFields() {
+        LambdaQueryWrapper<ModuleForm> formWrapper = new LambdaQueryWrapper<>();
+        formWrapper.eq(ModuleForm::getFormKey, FormKey.CONTRACT_PAYMENT_RECORD.getKey());
+        List<ModuleForm> forms = moduleFormMapper.selectListByLambda(formWrapper);
+        if (CollectionUtils.isEmpty(forms)) {
+            return;
+        }
+        List<String> formIds = forms.stream().map(ModuleForm::getId).toList();
+
+        // 1. 删除旧的「收款银行」「收款银行账号」字段（行 + blob）
+        LambdaQueryWrapper<ModuleField> deleteWrapper = new LambdaQueryWrapper<>();
+        deleteWrapper.in(ModuleField::getFormId, formIds);
+        deleteWrapper.in(ModuleField::getInternalKey, List.of("contractPaymentRecordBank", "contractPaymentRecordBankNo"));
+        List<ModuleField> oldFields = moduleFieldMapper.selectListByLambda(deleteWrapper);
+        if (CollectionUtils.isNotEmpty(oldFields)) {
+            List<String> ids = oldFields.stream().map(ModuleField::getId).toList();
+            extModuleFieldMapper.deleteByIds(ids);
+            extModuleFieldMapper.deletePropByIds(ids);
+        }
+
+        // 2. 幂等保护：收集各表单已存在的 internalKey
+        LambdaQueryWrapper<ModuleField> existWrapper = new LambdaQueryWrapper<>();
+        existWrapper.in(ModuleField::getFormId, formIds);
+        List<ModuleField> existFields = moduleFieldMapper.selectListByLambda(existWrapper);
+        Map<String, Set<String>> existingKeysByForm = new HashMap<>();
+        for (ModuleField field : existFields) {
+            existingKeysByForm.computeIfAbsent(field.getFormId(), k -> new HashSet<>()).add(field.getInternalKey());
+        }
+
+        // 3. 追加「收款账户」「付款凭证」两个字段
+        List<ModuleField> newFields = new ArrayList<>();
+        List<ModuleFieldBlob> newFieldBlobs = new ArrayList<>();
+        for (ModuleForm form : forms) {
+            Set<String> existingKeys = existingKeysByForm.getOrDefault(form.getId(), Set.of());
+            Long maxPos = extModuleFieldMapper.getMaxFieldPosByFormId(form.getId());
+            AtomicLong pos = new AtomicLong(maxPos == null ? 0L : maxPos);
+            for (Map<String, Object> fieldDef : List.of(bankAccountFieldDef(), paymentVoucherFieldDef())) {
+                String internalKey = fieldDef.get("internalKey").toString();
+                if (existingKeys.contains(internalKey)) {
+                    continue;
+                }
+                ModuleField field = supplyFieldInfo(fieldDef, form.getId(), pos.incrementAndGet(), new HashMap<>(2));
+                fieldDef.put("id", field.getId());
+                newFields.add(field);
+                ModuleFieldBlob fieldBlob = new ModuleFieldBlob();
+                fieldBlob.setId(field.getId());
+                fieldBlob.setProp(JSON.toJSONString(fieldDef));
+                newFieldBlobs.add(fieldBlob);
+            }
+        }
+        if (CollectionUtils.isNotEmpty(newFields)) {
+            moduleFieldMapper.batchInsert(newFields);
+        }
+        if (CollectionUtils.isNotEmpty(newFieldBlobs)) {
+            moduleFieldBlobMapper.batchInsert(newFieldBlobs);
+        }
+    }
+
+    /**
+     * 「收款账户」数据源字段定义（与 field.json 中的新字段保持一致）。
+     */
+    private Map<String, Object> bankAccountFieldDef() {
+        Map<String, Object> fieldDef = new HashMap<>(12);
+        fieldDef.put("name", "收款账户");
+        fieldDef.put("internalKey", "contractPaymentRecordBankAccount");
+        fieldDef.put("type", "DATA_SOURCE");
+        fieldDef.put("dataSourceType", "BANK_ACCOUNT");
+        fieldDef.put("showLabel", true);
+        fieldDef.put("readable", true);
+        fieldDef.put("editable", true);
+        fieldDef.put("fieldWidth", 1);
+        fieldDef.put("rules", List.of(Map.of("key", "required")));
+        fieldDef.put("mobile", true);
+        return fieldDef;
+    }
+
+    /**
+     * 「付款凭证」附件字段定义（与 field.json 中的新字段保持一致）。
+     */
+    private Map<String, Object> paymentVoucherFieldDef() {
+        Map<String, Object> fieldDef = new HashMap<>(14);
+        fieldDef.put("name", "付款凭证");
+        fieldDef.put("internalKey", "contractPaymentRecordVoucher");
+        fieldDef.put("type", "ATTACHMENT");
+        fieldDef.put("showLabel", true);
+        fieldDef.put("description", "");
+        fieldDef.put("defaultValue", new ArrayList<>());
+        fieldDef.put("readable", true);
+        fieldDef.put("editable", true);
+        fieldDef.put("mobile", true);
+        fieldDef.put("fieldWidth", 1);
+        fieldDef.put("rules", new ArrayList<>());
+        fieldDef.put("onlyOne", false);
+        fieldDef.put("accept", "jpg,jpeg,png,pdf");
+        fieldDef.put("limitSize", "20MB");
+        return fieldDef;
+    }
+
+    /**
+     * 回填跟进类表单字段配置：
+     * <p>1. 联系人下拉按当前客户过滤，避免混入其他客户联系人；
+     * 2. 该客户仅有一个联系人时自动选中；
+     * 3. 跟进时间默认当前日期（timeKey 为空则跳过）。</p>
+     */
+    private void backfillFollowFormConfig(String formKey, String customerKey, String contactKey, String timeKey) {
+        LambdaQueryWrapper<ModuleForm> formWrapper = new LambdaQueryWrapper<>();
+        formWrapper.eq(ModuleForm::getFormKey, formKey);
+        List<ModuleForm> forms = moduleFormMapper.selectListByLambda(formWrapper);
+        if (CollectionUtils.isEmpty(forms)) {
+            return;
+        }
+        List<String> formIds = forms.stream().map(ModuleForm::getId).toList();
+        List<String> internalKeys = new ArrayList<>(3);
+        internalKeys.add(customerKey);
+        internalKeys.add(contactKey);
+        if (StringUtils.isNotBlank(timeKey)) {
+            internalKeys.add(timeKey);
+        }
+        LambdaQueryWrapper<ModuleField> fieldWrapper = new LambdaQueryWrapper<>();
+        fieldWrapper.in(ModuleField::getFormId, formIds);
+        fieldWrapper.in(ModuleField::getInternalKey, internalKeys);
+        List<ModuleField> fields = moduleFieldMapper.selectListByLambda(fieldWrapper);
+
+        Map<String, Map<String, String>> formFieldMap = new HashMap<>();
+        for (ModuleField field : fields) {
+            formFieldMap.computeIfAbsent(field.getFormId(), k -> new HashMap<>(3))
+                    .put(field.getInternalKey(), field.getId());
+        }
+
+        for (ModuleForm form : forms) {
+            Map<String, String> fieldMap = formFieldMap.get(form.getId());
+            if (fieldMap == null) {
+                continue;
+            }
+            updateContactField(fieldMap, customerKey, contactKey);
+            if (StringUtils.isNotBlank(timeKey)) {
+                updateTimeField(fieldMap, timeKey);
+            }
+        }
+    }
+
+    /**
+     * 联系人字段联动：按当前客户过滤联系人，且仅一个联系人时自动选中。
+     */
+    @SuppressWarnings("unchecked")
+    private void updateContactField(Map<String, String> fieldMap, String customerKey, String contactKey) {
+        String customerFieldId = fieldMap.get(customerKey);
+        String contactFieldId = fieldMap.get(contactKey);
+        if (StringUtils.isBlank(contactFieldId) || StringUtils.isBlank(customerFieldId)) {
+            return;
+        }
+        ModuleFieldBlob contactBlob = moduleFieldBlobMapper.selectByPrimaryKey(contactFieldId);
+        if (contactBlob == null || StringUtils.isBlank(contactBlob.getProp())) {
+            return;
+        }
+        Map<String, Object> propMap = JSON.parseMap(contactBlob.getProp());
+        boolean changed = false;
+        if (propMap.get("combineSearch") == null) {
+            Map<String, Object> condition = new HashMap<>(8);
+            condition.put("leftFieldId", "customerId");
+            condition.put("leftFieldType", "DATA_SOURCE");
+            condition.put("operator", "IN");
+            condition.put("matchType", "MATCH_FIELD");
+            condition.put("rightFieldId", customerFieldId);
+            condition.put("rightFieldCustom", false);
+            condition.put("rightFieldCustomValue", "");
+            condition.put("rightFieldType", "DATA_SOURCE");
+            Map<String, Object> combineSearch = new HashMap<>(2);
+            combineSearch.put("searchMode", "OR");
+            combineSearch.put("conditions", List.of(condition));
+            propMap.put("combineSearch", combineSearch);
+            changed = true;
+        }
+        if (!Boolean.TRUE.equals(propMap.get("autoSelectSingleOption"))) {
+            propMap.put("autoSelectSingleOption", true);
+            changed = true;
+        }
+        if (changed) {
+            contactBlob.setProp(JSON.toJSONString(propMap));
+            moduleFieldBlobMapper.updateById(contactBlob);
+        }
+    }
+
+    /**
+     * 跟进时间字段默认当前日期。
+     */
+    @SuppressWarnings("unchecked")
+    private void updateTimeField(Map<String, String> fieldMap, String timeKey) {
+        String timeFieldId = fieldMap.get(timeKey);
+        if (StringUtils.isBlank(timeFieldId)) {
+            return;
+        }
+        ModuleFieldBlob timeBlob = moduleFieldBlobMapper.selectByPrimaryKey(timeFieldId);
+        if (timeBlob == null || StringUtils.isBlank(timeBlob.getProp())) {
+            return;
+        }
+        Map<String, Object> propMap = JSON.parseMap(timeBlob.getProp());
+        if (!"current".equals(propMap.get("dateDefaultType"))) {
+            propMap.put("dateDefaultType", "current");
+            timeBlob.setProp(JSON.toJSONString(propMap));
+            moduleFieldBlobMapper.updateById(timeBlob);
+        }
+    }
+
+    /**
+     * 将字段转换为输入框：行 type 与 blob type 同时改，并清理下拉专属配置。
+     */
+    @SuppressWarnings("unchecked")
+    private void convertToInput(ModuleField field) {
+        if (field == null) {
+            return;
+        }
+        if (!"INPUT".equals(field.getType())) {
+            field.setType("INPUT");
+            moduleFieldMapper.updateById(field);
+        }
+        ModuleFieldBlob blob = moduleFieldBlobMapper.selectByPrimaryKey(field.getId());
+        if (blob == null || StringUtils.isBlank(blob.getProp())) {
+            return;
+        }
+        Map<String, Object> propMap = JSON.parseMap(blob.getProp());
+        boolean changed = false;
+        if (!"INPUT".equals(propMap.get("type"))) {
+            propMap.put("type", "INPUT");
+            changed = true;
+        }
+        String[] removeKeys = {"options", "customOptions", "optionSource", "defaultValue",
+                "refId", "refFormKey", "linkProp", "showControlRules"};
+        for (String key : removeKeys) {
+            if (propMap.containsKey(key)) {
+                propMap.remove(key);
+                changed = true;
+            }
+        }
+        if (changed) {
+            blob.setProp(JSON.toJSONString(propMap));
+            moduleFieldBlobMapper.updateById(blob);
+        }
+    }
+
+    /**
+     * 客户等级下拉选项改为 A~E 级（值 1~5 保留数据语义）。
+     */
+    @SuppressWarnings("unchecked")
+    private void updateLevelOptions(ModuleField field) {
+        if (field == null) {
+            return;
+        }
+        ModuleFieldBlob blob = moduleFieldBlobMapper.selectByPrimaryKey(field.getId());
+        if (blob == null || StringUtils.isBlank(blob.getProp())) {
+            return;
+        }
+        Map<String, Object> propMap = JSON.parseMap(blob.getProp());
+        String[] labels = {"A级", "B级", "C级", "D级", "E级"};
+        List<Map<String, Object>> options = new ArrayList<>(labels.length);
+        for (int i = 0; i < labels.length; i++) {
+            Map<String, Object> option = new HashMap<>(3);
+            option.put("label", labels[i]);
+            option.put("value", String.valueOf(i + 1));
+            option.put("disabled", null);
+            options.add(option);
+        }
+        propMap.put("options", options);
+        if (!"1".equals(propMap.get("defaultValue"))) {
+            propMap.put("defaultValue", "1");
+        }
+        blob.setProp(JSON.toJSONString(propMap));
+        moduleFieldBlobMapper.updateById(blob);
+    }
+
+    /**
+     * 删除客户类型、线上来源详情两个字段（行 + blob）。
+     */
+    private void deleteCustomerFields(Map<String, ModuleField> fieldMap) {
+        List<String> ids = new ArrayList<>(2);
+        for (String key : List.of("customerType", "customerOnlineSource")) {
+            ModuleField field = fieldMap.get(key);
+            if (field != null) {
+                ids.add(field.getId());
+            }
+        }
+        if (!ids.isEmpty()) {
+            extModuleFieldMapper.deleteByIds(ids);
+            extModuleFieldMapper.deletePropByIds(ids);
+        }
+    }
+
+    /**
+     * 为指定目标表单的「线索来源」联动场景回填字段映射（按租户解析字段 id）。
+     *
+     * @param targetFormKey 目标表单 key（customer / opportunity）
+     * @param scenarioKey   联动场景 key
+     * @param mapping       来源线索字段 internalKey -> 目标字段 internalKey
+     */
+    @SuppressWarnings("unchecked")
+    private void backfillLinkScenario(String targetFormKey, String scenarioKey, Map<String, String> mapping) {
+        LambdaQueryWrapper<ModuleForm> targetWrapper = new LambdaQueryWrapper<>();
+        targetWrapper.eq(ModuleForm::getFormKey, targetFormKey);
+        List<ModuleForm> targetForms = moduleFormMapper.selectListByLambda(targetWrapper);
+        if (CollectionUtils.isEmpty(targetForms)) {
+            return;
+        }
+        List<String> orgIds = targetForms.stream().map(ModuleForm::getOrganizationId).distinct().toList();
+
+        LambdaQueryWrapper<ModuleForm> clueWrapper = new LambdaQueryWrapper<>();
+        clueWrapper.eq(ModuleForm::getFormKey, FormKey.CLUE.getKey());
+        clueWrapper.in(ModuleForm::getOrganizationId, orgIds);
+        List<ModuleForm> clueForms = moduleFormMapper.selectListByLambda(clueWrapper);
+        Map<String, String> clueFormIdByOrg = clueForms.stream()
+                .collect(Collectors.toMap(ModuleForm::getOrganizationId, ModuleForm::getId, (a, b) -> a));
+
+        List<String> internalKeys = new ArrayList<>(mapping.size() * 2);
+        internalKeys.addAll(mapping.keySet());
+        internalKeys.addAll(mapping.values());
+        List<String> formIds = new ArrayList<>(targetForms.size() + clueForms.size());
+        targetForms.forEach(form -> formIds.add(form.getId()));
+        clueForms.forEach(form -> formIds.add(form.getId()));
+        LambdaQueryWrapper<ModuleField> fieldWrapper = new LambdaQueryWrapper<>();
+        fieldWrapper.in(ModuleField::getFormId, formIds);
+        fieldWrapper.in(ModuleField::getInternalKey, internalKeys);
+        List<ModuleField> fields = moduleFieldMapper.selectListByLambda(fieldWrapper);
+        Map<String, Map<String, String>> fieldIdMap = new HashMap<>();
+        for (ModuleField field : fields) {
+            fieldIdMap.computeIfAbsent(field.getFormId(), k -> new HashMap<>(8))
+                    .put(field.getInternalKey(), field.getId());
+        }
+
+        for (ModuleForm targetForm : targetForms) {
+            Map<String, String> targetFieldIds = fieldIdMap.get(targetForm.getId());
+            Map<String, String> clueFieldIds = fieldIdMap.get(clueFormIdByOrg.get(targetForm.getOrganizationId()));
+            if (targetFieldIds == null || clueFieldIds == null) {
+                continue;
+            }
+            List<LinkField> linkFields = new ArrayList<>(mapping.size());
+            for (Map.Entry<String, String> entry : mapping.entrySet()) {
+                String sourceId = clueFieldIds.get(entry.getKey());
+                String targetId = targetFieldIds.get(entry.getValue());
+                if (StringUtils.isBlank(sourceId) || StringUtils.isBlank(targetId)) {
+                    continue;
+                }
+                LinkField linkField = new LinkField();
+                linkField.setCurrent(targetId);
+                linkField.setLink(sourceId);
+                linkField.setEnable(true);
+                linkFields.add(linkField);
+            }
+            if (linkFields.isEmpty()) {
+                continue;
+            }
+            ModuleFormBlob formBlob = moduleFormBlobMapper.selectByPrimaryKey(targetForm.getId());
+            if (formBlob == null || StringUtils.isBlank(formBlob.getProp())) {
+                continue;
+            }
+            Map<String, Object> propMap = JSON.parseMap(formBlob.getProp());
+            Map<String, Object> linkProp = (Map<String, Object>) propMap.get("linkProp");
+            if (linkProp == null) {
+                linkProp = new HashMap<>(2);
+            }
+            // 仅覆盖「线索」来源的场景，保留其他来源（如商机表单的 customer 场景）
+            linkProp.put(FormKey.CLUE.getKey(), List.of(
+                    LinkScenario.builder().key(scenarioKey).linkFields(linkFields).build()));
+            propMap.put("linkProp", linkProp);
+            formBlob.setProp(JSON.toJSONString(propMap));
+            moduleFormBlobMapper.updateById(formBlob);
+        }
+    }
+
+    /**
+     * 将指定「来源」字段改为输入框，并先把已有下拉选项码回填为中文文本。
+     */
+    @SuppressWarnings("unchecked")
+    private void backfillSourceInput(String formKey, String sourceKey, String valueTable) {
+        LambdaQueryWrapper<ModuleForm> formWrapper = new LambdaQueryWrapper<>();
+        formWrapper.eq(ModuleForm::getFormKey, formKey);
+        List<ModuleForm> forms = moduleFormMapper.selectListByLambda(formWrapper);
+        if (CollectionUtils.isEmpty(forms)) {
+            return;
+        }
+        List<String> formIds = forms.stream().map(ModuleForm::getId).toList();
+        LambdaQueryWrapper<ModuleField> fieldWrapper = new LambdaQueryWrapper<>();
+        fieldWrapper.in(ModuleField::getFormId, formIds);
+        fieldWrapper.eq(ModuleField::getInternalKey, sourceKey);
+        List<ModuleField> fields = moduleFieldMapper.selectListByLambda(fieldWrapper);
+        for (ModuleField field : fields) {
+            // 改输入框前，先按旧选项把已存在的选项码回填成文本
+            ModuleFieldBlob blob = moduleFieldBlobMapper.selectByPrimaryKey(field.getId());
+            if (blob != null && StringUtils.isNotBlank(blob.getProp())) {
+                Map<String, Object> propMap = JSON.parseMap(blob.getProp());
+                Object optionsObj = propMap.get("options");
+                if (optionsObj instanceof List<?> options && !options.isEmpty()) {
+                    for (Object opt : options) {
+                        if (!(opt instanceof Map<?, ?> option)) {
+                            continue;
+                        }
+                        Object value = option.get("value");
+                        Object label = option.get("label");
+                        if (value == null || label == null) {
+                            continue;
+                        }
+                        extModuleFieldMapper.updateFieldValueCodeToText(valueTable, field.getId(), value.toString(), label.toString());
+                    }
+                }
+            }
+            convertToInput(field);
+        }
+    }
+
+    /**
+     * 删除线索表单的「线上来源详情」字段（其显隐由「线索来源=线上」触发，改为输入框后不再需要）。
+     */
+    private void deleteClueOnlineSourceFields() {
+        LambdaQueryWrapper<ModuleForm> formWrapper = new LambdaQueryWrapper<>();
+        formWrapper.eq(ModuleForm::getFormKey, FormKey.CLUE.getKey());
+        List<ModuleForm> forms = moduleFormMapper.selectListByLambda(formWrapper);
+        if (CollectionUtils.isEmpty(forms)) {
+            return;
+        }
+        List<String> formIds = forms.stream().map(ModuleForm::getId).toList();
+        LambdaQueryWrapper<ModuleField> fieldWrapper = new LambdaQueryWrapper<>();
+        fieldWrapper.in(ModuleField::getFormId, formIds);
+        fieldWrapper.eq(ModuleField::getInternalKey, "clueOnlineSource");
+        List<ModuleField> fields = moduleFieldMapper.selectListByLambda(fieldWrapper);
+        List<String> ids = fields.stream().map(ModuleField::getId).toList();
+        if (!ids.isEmpty()) {
+            extModuleFieldMapper.deleteByIds(ids);
+            extModuleFieldMapper.deletePropByIds(ids);
+        }
+    }
+
+    /**
+     * 重映射属性 JSON 内的 id 引用（雪花 id 全局唯一，文本替换安全）。
+     */
+    private String remapIds(String prop, Map<String, String> idMap) {
+        if (StringUtils.isEmpty(prop) || idMap.isEmpty()) {
+            return prop;
+        }
+        String result = prop;
+        for (Map.Entry<String, String> entry : idMap.entrySet()) {
+            result = result.replace(entry.getKey(), entry.getValue());
+        }
+        return result;
     }
 
     /**

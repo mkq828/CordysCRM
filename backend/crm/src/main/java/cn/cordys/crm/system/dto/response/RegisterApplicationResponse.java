@@ -45,6 +45,18 @@ public class RegisterApplicationResponse {
     @Schema(description = "审核时间")
     private Long verifyTime;
 
+    @Schema(description = "开通的用户ID")
+    private String userId;
+
+    @Schema(description = "累计使用天数(自开通起)")
+    private Long usageDays;
+
+    @Schema(description = "最后一次登录时间")
+    private Long lastLoginTime;
+
+    @Schema(description = "账号是否启用")
+    private Boolean enabled;
+
     @Schema(description = "创建时间")
     private Long createTime;
 }

@@ -49,6 +49,12 @@ public class RegisterApplyRequest {
     @Schema(description = "营业执照附件ID(企业必填)")
     private String businessLicenseAttachmentId;
 
+    @Schema(description = "图形验证码唯一标识")
+    private String captchaId;
+
+    @Schema(description = "图形验证码")
+    private String captchaCode;
+
     /**
      * 获取解密后的密码
      */

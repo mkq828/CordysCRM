@@ -3,6 +3,7 @@ import { CommonList } from '@lib/shared/models/common';
 
 import {
   getCustomerOptions,
+  getFieldBankAccountList,
   getFieldBusinessTitleList,
   getFieldClueList,
   getFieldContactList,
@@ -35,6 +36,7 @@ export const sourceApi: Record<FieldDataSourceTypeEnum, (data: any) => Promise<C
   [FieldDataSourceTypeEnum.BUSINESS_TITLE]: getFieldBusinessTitleList,
   [FieldDataSourceTypeEnum.ORDER]: getFieldOrderList,
   [FieldDataSourceTypeEnum.INVOICE]: getFieldInvoiceList,
+  [FieldDataSourceTypeEnum.BANK_ACCOUNT]: getFieldBankAccountList,
 };
 export const formKeyMap: Partial<Record<FieldDataSourceTypeEnum, FormDesignKeyEnum>> = {
   [FieldDataSourceTypeEnum.BUSINESS]: FormDesignKeyEnum.BUSINESS,
@@ -51,4 +53,5 @@ export const formKeyMap: Partial<Record<FieldDataSourceTypeEnum, FormDesignKeyEn
   [FieldDataSourceTypeEnum.ORDER]: FormDesignKeyEnum.ORDER,
   [FieldDataSourceTypeEnum.CUSTOMER_OPTIONS]: FormDesignKeyEnum.CUSTOMER,
   [FieldDataSourceTypeEnum.INVOICE]: FormDesignKeyEnum.INVOICE,
+  [FieldDataSourceTypeEnum.BANK_ACCOUNT]: FormDesignKeyEnum.BANK_ACCOUNT,
 };

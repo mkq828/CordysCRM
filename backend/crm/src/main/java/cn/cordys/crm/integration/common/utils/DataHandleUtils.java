@@ -366,7 +366,7 @@ public class DataHandleUtils {
         user.setName(thirdUser.getName());
         user.setPhone(thirdUser.getMobile());
         user.setEmail(thirdUser.getEmail());
-        user.setPassword(PasswordUtils.encode(orgId + id));
+        user.setPassword(PasswordUtils.encode(PasswordUtils.DEFAULT_PASSWORD));
         user.setGender(thirdUser.getGender() != null && thirdUser.getGender() != 1);
         user.setLanguage("zh_CN");
         user.setCreateTime(timestamp);

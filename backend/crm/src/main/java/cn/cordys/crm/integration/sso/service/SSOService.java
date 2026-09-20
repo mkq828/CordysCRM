@@ -5,9 +5,9 @@ import cn.cordys.common.constants.ThirdDetailType;
 import cn.cordys.common.constants.UserSource;
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.request.LoginRequest;
-import cn.cordys.common.util.CodingUtils;
 import cn.cordys.common.util.CommonBeanFactory;
 import cn.cordys.common.util.JSON;
+import cn.cordys.common.util.PasswordUtils;
 import cn.cordys.common.util.Translator;
 import cn.cordys.common.util.rsa.RsaKey;
 import cn.cordys.common.util.rsa.RsaUtils;
@@ -46,7 +46,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 @Transactional(rollbackFor = Exception.class)
@@ -349,7 +348,7 @@ public class SSOService {
     private LoginRequest createThirdPartyLoginRequest(UserDTO user, String platform, String authenticateType) {
         try {
             RsaKey rsaKey = RsaUtils.getRsaKey();
-            String password = RsaUtils.publicEncrypt(generateDefaultPassword(user), rsaKey.getPublicKey());
+            String password = RsaUtils.publicEncrypt(generateDefaultPassword(), rsaKey.getPublicKey());
             String username = RsaUtils.publicEncrypt(user.getId(), rsaKey.getPublicKey());
 
             LoginRequest request = new LoginRequest();
@@ -363,19 +362,8 @@ public class SSOService {
         }
     }
 
-    private String generateDefaultPassword(UserDTO user) {
-        return Optional.ofNullable(user.getPhone())
-                .filter(StringUtils::isNotBlank)
-                .map(phone -> {
-                    try {
-                        return CodingUtils.md5(phone.length() >= 6
-                                ? phone.substring(phone.length() - 6)
-                                : phone);
-                    } catch (Exception e) {
-                        return CodingUtils.md5(phone);
-                    }
-                })
-                .orElseGet(() -> CodingUtils.md5(user.getLastOrganizationId() + user.getId()));
+    private String generateDefaultPassword() {
+        return PasswordUtils.DEFAULT_PASSWORD;
     }
 
     private ThirdConfigBaseDTO<?> getThirdPartyConfig(String type) {

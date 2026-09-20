@@ -35,6 +35,19 @@
               />
             </template>
           </van-field>
+          <van-field
+            v-model="userInfo.captchaCode"
+            name="captchaCode"
+            :required="false"
+            :label="t('login.form.captcha')"
+            :placeholder="t('login.form.captcha.placeholder')"
+            :rules="[{ required: true, message: t('login.form.captcha.errMsg') }]"
+            class="!p-[16px] !text-[16px]"
+          >
+            <template #button>
+              <img :src="captchaImage" class="h-[32px] w-[100px]" alt="captcha" @click="refreshCaptcha" />
+            </template>
+          </van-field>
         </van-cell-group>
       </van-form>
       <div class="p-[16px]">
@@ -57,6 +70,7 @@
 
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
 
+  import { getCaptcha } from '@/api/modules';
   import useAppStore from '@/store/modules/app';
   import useUserStore from '@/store/modules/user';
 
@@ -74,11 +88,28 @@
     authenticate: string;
     username: string;
     password: string;
+    captchaId: string;
+    captchaCode: string;
   }>({
     authenticate: getLoginType() || 'LOCAL',
     username: '',
     password: '',
+    captchaId: '',
+    captchaCode: '',
   });
+
+  const captchaImage = ref('');
+  async function refreshCaptcha() {
+    userInfo.value.captchaCode = '';
+    try {
+      const res = await getCaptcha();
+      userInfo.value.captchaId = res.captchaId;
+      captchaImage.value = res.captchaImage;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
+  }
 
   const visible = ref(false);
   function handleToggleVisible() {
@@ -87,26 +118,18 @@
   const formRef = ref<FormInstance>();
   const loading = ref(false);
 
-  async function logout() {
-    try {
-      await userStore.logout(true);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.log('logout error', error);
-    }
-  }
-
   async function login() {
     try {
       await formRef.value?.validate();
       loading.value = true;
-      await logout();
 
       await userStore.login({
         username: encrypted(userInfo.value.username) || '',
         password: encrypted(userInfo.value.password) || '',
         authenticate: userInfo.value.authenticate,
         platform: 'MOBILE',
+        captchaId: userInfo.value.captchaId,
+        captchaCode: userInfo.value.captchaCode,
       });
       setLoginExpires();
       setLoginType(userInfo.value.authenticate);
@@ -116,6 +139,7 @@
     } catch (error) {
       // eslint-disable-next-line no-console
       console.log(error);
+      refreshCaptcha();
     } finally {
       loading.value = false;
     }
@@ -123,6 +147,7 @@
 
   onMounted(() => {
     appStore.initPublicKey();
+    refreshCaptcha();
     try {
       if (isLoginExpires()) {
         clearToken();

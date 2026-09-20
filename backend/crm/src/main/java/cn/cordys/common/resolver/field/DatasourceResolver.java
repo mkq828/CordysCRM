@@ -46,6 +46,7 @@ public class DatasourceResolver extends AbstractModuleFieldResolver<DatasourceFi
     private static final OrderService orderService;
     private static final CustomFormDataService customFormDataService;
     private static final ContractInvoiceService invoiceService;
+    private static final BankAccountService bankAccountService;
 
     static {
         customerService = CommonBeanFactory.getBean(CustomerService.class);
@@ -62,6 +63,7 @@ public class DatasourceResolver extends AbstractModuleFieldResolver<DatasourceFi
         orderService = CommonBeanFactory.getBean(OrderService.class);
         customFormDataService = CommonBeanFactory.getBean(CustomFormDataService.class);
         invoiceService = CommonBeanFactory.getBean(ContractInvoiceService.class);
+        bankAccountService = CommonBeanFactory.getBean(BankAccountService.class);
     }
 
     @Override
@@ -123,6 +125,9 @@ public class DatasourceResolver extends AbstractModuleFieldResolver<DatasourceFi
         }
         if (Strings.CI.equals(datasourceField.getDataSourceType(), FieldSourceType.INVOICE.name())) {
             return Objects.requireNonNull(invoiceService).getInvoiceName(value);
+        }
+        if (Strings.CI.equals(datasourceField.getDataSourceType(), FieldSourceType.BANK_ACCOUNT.name())) {
+            return Objects.requireNonNull(bankAccountService).getBankAccountName(value);
         }
 
         return Objects.requireNonNull(customFormDataService).getNameById(value);
@@ -286,6 +291,18 @@ public class DatasourceResolver extends AbstractModuleFieldResolver<DatasourceFi
             return invoices.stream()
                     .filter(invoice -> Strings.CS.equals(text, invoice.getName()))
                     .map(ContractInvoice::getId)
+                    .findFirst()
+                    .orElse(StringUtils.EMPTY);
+        }
+
+        if (Strings.CI.equals(field.getDataSourceType(), FieldSourceType.BANK_ACCOUNT.name())) {
+            List<BankAccount> bankAccounts = Objects.requireNonNull(bankAccountService).getBankAccountListByNames(List.of(text));
+            if (CollectionUtils.isEmpty(bankAccounts)) {
+                return StringUtils.EMPTY;
+            }
+            return bankAccounts.stream()
+                    .filter(account -> Strings.CS.equals(text, account.getName()))
+                    .map(BankAccount::getId)
                     .findFirst()
                     .orElse(StringUtils.EMPTY);
         }

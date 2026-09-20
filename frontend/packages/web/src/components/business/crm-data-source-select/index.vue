@@ -103,6 +103,7 @@
     [FieldDataSourceTypeEnum.BUSINESS_TITLE]: 'crmFormCreate.drawer.businessTitle',
     [FieldDataSourceTypeEnum.ORDER]: 'crmFormCreate.drawer.order',
     [FieldDataSourceTypeEnum.INVOICE]: 'crmFormCreate.drawer.invoice',
+    [FieldDataSourceTypeEnum.BANK_ACCOUNT]: 'crmFormCreate.drawer.bankAccount',
   };
 
   const customDataSourceForms = ref<CustomFormItem[]>([]);

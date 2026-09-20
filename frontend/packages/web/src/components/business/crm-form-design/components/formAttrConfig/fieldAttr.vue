@@ -1031,6 +1031,8 @@
             v-if="fieldConfig.dateDefaultType === 'custom'"
             v-model:value="fieldConfig.defaultValue"
             :type="fieldConfig.dateType"
+            fast-year-select
+            fast-month-select
             :disabled="fieldConfig.disabledProps?.includes('defaultValue') || !!fieldConfig.resourceFieldId"
             class="w-full"
           ></n-date-picker>

@@ -38,6 +38,8 @@
           <n-date-picker
             v-model:value="form.time"
             type="datetimerange"
+            fast-year-select
+            fast-month-select
             :is-date-disabled="dataDisabled"
             class="w-full"
           />

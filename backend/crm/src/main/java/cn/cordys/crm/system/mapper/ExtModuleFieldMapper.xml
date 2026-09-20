@@ -29,9 +29,14 @@
 
     <select id="getFormSubFields" resultType="cn.cordys.crm.system.domain.ModuleFieldBlob">
         select * from sys_module_field_blob where id in (
-            select id from sys_module_field where form_id = (select id from sys_module_form where form_key = #{formKey}) and type like '%SUB_%'
+            select id from sys_module_field where form_id = (select id from sys_module_form where form_key = #{formKey} and organization_id = #{orgId}) and type like '%SUB_%'
         )
     </select>
+
+    <update id="updateFieldValueCodeToText">
+        update ${tableName} set field_value = #{newValue}
+        where field_id = #{fieldId} and field_value = #{oldValue}
+    </update>
 
     <select id="getSourceOptionsByIds" resultType="cn.cordys.common.dto.OptionDTO">
         select id, name from ${tableName} where id in

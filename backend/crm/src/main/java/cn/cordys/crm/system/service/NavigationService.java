@@ -5,7 +5,9 @@ import cn.cordys.aspectj.constants.LogModule;
 import cn.cordys.aspectj.constants.LogType;
 import cn.cordys.aspectj.context.OperationLogContext;
 import cn.cordys.aspectj.dto.LogContextInfo;
+import cn.cordys.common.constants.InternalUser;
 import cn.cordys.common.exception.GenericException;
+import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.Translator;
 import cn.cordys.crm.system.domain.Navigation;
 import cn.cordys.crm.system.dto.request.ModuleSortRequest;
@@ -15,6 +17,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +41,32 @@ public class NavigationService {
      */
     public List<Navigation> getNavigationList(String orgId) {
         return extNavigationMapper.selectList(orgId);
+    }
+
+    /**
+     * 初始化系统（组织或公司）顶部导航数据
+     *
+     * @param organizationId 组织ID
+     */
+    public void initNavigation(String organizationId) {
+        // 与默认组织 100001 一致的顶部导航 key 与顺序
+        List<String> keys = List.of(
+                "search", "task", "event", "agent", "notify", "about", "language", "help");
+        List<Navigation> navigations = new ArrayList<>(keys.size());
+        for (int i = 0; i < keys.size(); i++) {
+            Navigation navigation = new Navigation();
+            navigation.setId(IDGenerator.nextStr());
+            navigation.setOrganizationId(organizationId);
+            navigation.setNavigationKey(keys.get(i));
+            navigation.setEnable(true);
+            navigation.setPos((long) (i + 1));
+            navigation.setCreateUser(InternalUser.ADMIN.getValue());
+            navigation.setCreateTime(System.currentTimeMillis());
+            navigation.setUpdateUser(InternalUser.ADMIN.getValue());
+            navigation.setUpdateTime(System.currentTimeMillis());
+            navigations.add(navigation);
+        }
+        navigationMapper.batchInsert(navigations);
     }
 
 

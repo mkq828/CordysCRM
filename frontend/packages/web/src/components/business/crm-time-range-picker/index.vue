@@ -34,6 +34,8 @@
     class="w-full"
     :disabled="props.disabled"
     type="datetimerange"
+    fast-year-select
+    fast-month-select
     clearable
     :default-time="[undefined, '23:59:59']"
   />

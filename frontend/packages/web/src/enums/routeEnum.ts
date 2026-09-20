@@ -38,6 +38,7 @@ export enum ContractRouteEnum {
   CONTRACT_PAYMENT = 'contractPaymentPlan',
   CONTRACT_PAYMENT_RECORD = 'contractPaymentRecord',
   CONTRACT_BUSINESS_NAME = 'contractBusinessName',
+  CONTRACT_BANK_ACCOUNT = 'contractBankAccount',
   CONTRACT_INVOICE = 'contractInvoice',
 }
 
@@ -75,6 +76,8 @@ export enum DashboardRouteEnum {
   DASHBOARD_INDEX = 'dashboardIndex',
   DASHBOARD_LINK = 'dashboardLink',
   DASHBOARD_MODULE = 'dashboardModule',
+  PLATFORM_DASHBOARD = 'platformDashboard',
+  PLATFORM_DASHBOARD_INDEX = 'platformDashboardIndex',
 }
 
 export enum TenderRouteEnum {
@@ -94,6 +97,12 @@ export enum CustomFormRouteEnum {
   CUSTOM_FORM_INDEX = 'customFormIndex',
 }
 
+export enum SuggestionRouteEnum {
+  SUGGESTION = 'suggestion',
+  SUGGESTION_INDEX = 'suggestionIndex',
+  SUGGESTION_DETAIL = 'suggestionDetail',
+}
+
 export const AppRouteEnum = {
   ...SystemRouteEnum,
   ...OpportunityRouteEnum,
@@ -108,4 +117,5 @@ export const AppRouteEnum = {
   ...OrderRouteEnum,
   ...TenderRouteEnum,
   ...CustomFormRouteEnum,
+  ...SuggestionRouteEnum,
 };

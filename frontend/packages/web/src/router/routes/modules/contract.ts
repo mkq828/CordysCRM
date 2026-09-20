@@ -66,6 +66,16 @@ const contract: AppRouteRecordRaw = {
         permissions: ['CONTRACT_BUSINESS_TITLE:READ'],
       },
     },
+    {
+      path: 'contractBankAccount',
+      name: ContractRouteEnum.CONTRACT_BANK_ACCOUNT,
+      component: () => import('@/views/contract/bankAccount/index.vue'),
+      meta: {
+        locale: 'module.bankAccount',
+        isTopMenu: true,
+        permissions: ['BANK_ACCOUNT:READ'],
+      },
+    },
   ],
 };
 

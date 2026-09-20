@@ -32,7 +32,7 @@
         FROM
             opportunity o
         LEFT JOIN customer c ON o.customer_id = c.id
-        LEFT JOIN opportunity_stage_config osc ON o.stage = osc.id
+        LEFT JOIN opportunity_stage_config osc ON o.stage = osc.id AND osc.organization_id = o.organization_id
         <include refid="fieldConditionJoin">
             <property name="conditions" value="request.filters"/>
             <property name="tablePrefix" value="filter"/>
@@ -135,7 +135,7 @@
         </if>
 
         LEFT JOIN customer c ON o.customer_id = c.id
-        LEFT JOIN opportunity_stage_config osc ON o.stage = osc.id
+        LEFT JOIN opportunity_stage_config osc ON o.stage = osc.id AND osc.organization_id = o.organization_id
 
         <include refid="fieldConditionJoin">
             <property name="conditions" value="request.filterCondition.conditions"/>
@@ -653,7 +653,7 @@
         FROM
             opportunity o
         LEFT JOIN customer c ON o.customer_id = c.id
-        LEFT JOIN opportunity_stage_config osc ON o.stage = osc.id
+        LEFT JOIN opportunity_stage_config osc ON o.stage = osc.id AND osc.organization_id = o.organization_id
         where o.id = #{id}
     </select>
     <select id="getRepeatList" resultType="cn.cordys.crm.search.response.advanced.OpportunityRepeatResponse">
@@ -818,7 +818,7 @@
         FROM
         opportunity o
         LEFT JOIN customer c ON o.customer_id = c.id
-        LEFT JOIN opportunity_stage_config osc ON o.stage = osc.id
+        LEFT JOIN opportunity_stage_config osc ON o.stage = osc.id AND osc.organization_id = o.organization_id
         <include refid="fieldConditionJoin">
             <property name="conditions" value="request.filters"/>
             <property name="tablePrefix" value="filter"/>
@@ -880,7 +880,7 @@
         opportunity o
         LEFT JOIN customer c ON o.customer_id = c.id
         LEFT JOIN customer_contact ct ON o.contact_id = ct.id
-        LEFT JOIN opportunity_stage_config osc ON o.stage = osc.id
+        LEFT JOIN opportunity_stage_config osc ON o.stage = osc.id AND osc.organization_id = o.organization_id
         <include refid="fieldConditionJoin">
             <property name="conditions" value="request.combineSearch.conditions"/>
             <property name="tablePrefix" value="combine"/>

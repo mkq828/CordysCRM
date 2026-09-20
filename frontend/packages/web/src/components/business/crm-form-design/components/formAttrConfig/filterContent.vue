@@ -95,6 +95,8 @@
                             ![OperatorEnum.DYNAMICS, OperatorEnum.FIXED].includes(item.operator as OperatorEnum))"
               v-model:value="item.rightFieldCustomValue"
               :type="item.operator === OperatorEnum.BETWEEN ? 'datetimerange' : 'datetime'"
+              fast-year-select
+              fast-month-select
               clearable
               :disabled="isValueDisabled(item)"
               class="w-full"

@@ -113,6 +113,7 @@ export default {
   'module.paymentRecord': '回款记录',
   'module.paymentRecordFormSetting': '回款记录表单设置',
   'module.businessTitle': '工商抬头',
+  'module.bankAccount': '收款账户',
   'module.priceTableFormSetting': '价格表表单设置',
   'module.custom_form': '自定义表单',
   'module.tender': '标讯',

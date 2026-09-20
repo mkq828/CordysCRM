@@ -106,7 +106,7 @@ public class ModuleFormCacheService {
         businessModuleFormConfig.setFormProp(config.getFormProp());
 
 		// 提前加载价格表子表格字段作为引用集合
-		List<BaseField> subFields = moduleFieldService.getSubFieldsBySourceType(FieldSourceType.PRICE.name());
+		List<BaseField> subFields = moduleFieldService.getSubFieldsBySourceType(FieldSourceType.PRICE.name(), organizationId);
 		Map<String, BaseField> refPriceSubFieldMap = subFields.stream().collect(Collectors.toMap(BaseField::getId, Function.identity(), (p, n) -> p));
 
 		// 处理字段信息

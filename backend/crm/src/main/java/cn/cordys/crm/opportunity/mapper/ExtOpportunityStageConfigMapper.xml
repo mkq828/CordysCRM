@@ -52,7 +52,22 @@
             update_user = #{userId},
             update_time = unix_timestamp() * 1000
         where id = #{request.id}
+          and organization_id = #{orgId}
     </update>
+
+    <select id="getByIdAndOrg" resultType="cn.cordys.crm.opportunity.domain.OpportunityStageConfig">
+        select id, name, type, rate, afoot_roll_back, end_roll_back, pos, organization_id,
+               create_time, update_time, create_user, update_user
+        from opportunity_stage_config
+        where id = #{id}
+          and organization_id = #{orgId}
+    </select>
+
+    <delete id="deleteByIdAndOrg">
+        delete from opportunity_stage_config
+        where id = #{id}
+          and organization_id = #{orgId}
+    </delete>
 
     <select id="getAllStageConfigList" resultType="cn.cordys.crm.opportunity.domain.OpportunityStageConfig">
         select id, name, organization_id, type, rate from opportunity_stage_config
@@ -69,7 +84,7 @@
 
 
     <update id="updatePos">
-        update opportunity_stage_config set pos = #{pos} where id = #{id}
+        update opportunity_stage_config set pos = #{pos} where id = #{id} and organization_id = #{orgId}
     </update>
 
     <select id="countByType" resultType="java.lang.Integer">

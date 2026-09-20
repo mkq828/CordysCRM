@@ -66,6 +66,7 @@ export const GetFieldQuotationListUrl = '/field/source/quotation'; // 获取报�
 export const GetFieldOrderListUrl = '/field/source/order'; // 获取订单列表
 export const GetFieldDisplayListUrl = '/field/display';
 export const GetFieldBusinessTitleListUrl = '/field/source/business-title';
+export const GetFieldBankAccountListUrl = '/field/source/bank-account';
 export const GetFieldRefDetailListUrl = '/field/source/ref-detail'; // 批量获取数据源字段详情
 export const GetFieldConfigUrl = '/field/source/config'; // 获取数据源表单配置
 

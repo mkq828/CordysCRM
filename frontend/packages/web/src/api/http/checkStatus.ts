@@ -33,7 +33,8 @@ export default function checkStatus(
       break;
     }
     case 403:
-      if (router.currentRoute.value.name !== NO_RESOURCE_ROUTE_NAME) {
+      // noErrorTip 表示调用方已自行处理该错误（如后台软性探测三方同步配置），此时不应整页跳转到「暂无资源权限」
+      if (!noErrorTip && router.currentRoute.value.name !== NO_RESOURCE_ROUTE_NAME) {
         router.push({ name: NO_RESOURCE_ROUTE_NAME });
       }
       break;

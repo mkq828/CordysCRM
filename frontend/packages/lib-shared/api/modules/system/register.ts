@@ -3,7 +3,9 @@ import {
   registerApplicationApproveUrl,
   registerApplicationDetailUrl,
   registerApplicationListUrl,
+  registerApplicationPendingCountUrl,
   registerApplicationRejectUrl,
+  registerApplicationToggleUrl,
   registerApplyUrl,
   registerStatusUrl,
 } from '@lib/shared/api/requrls/system/register';
@@ -15,6 +17,7 @@ import type {
   RegisterAuditQueryParams,
   RegisterRejectParams,
   RegisterStatusResult,
+  RegisterToggleParams,
 } from '@lib/shared/models/system/register';
 
 export default function useRegisterApi(CDR: CordysAxios) {
@@ -48,6 +51,16 @@ export default function useRegisterApi(CDR: CordysAxios) {
     return CDR.post({ url: registerApplicationRejectUrl, data });
   }
 
+  // 注册申请-启用/禁用账号
+  function toggle(data: RegisterToggleParams) {
+    return CDR.post({ url: registerApplicationToggleUrl, data });
+  }
+
+  // 企业注册待审数量（管理端首页待办）
+  function pendingCount() {
+    return CDR.get<{ total: number }>({ url: registerApplicationPendingCountUrl });
+  }
+
   return {
     apply,
     status,
@@ -55,5 +68,7 @@ export default function useRegisterApi(CDR: CordysAxios) {
     detail,
     approve,
     reject,
+    toggle,
+    pendingCount,
   };
 }

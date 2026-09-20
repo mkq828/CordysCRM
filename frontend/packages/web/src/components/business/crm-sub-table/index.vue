@@ -355,6 +355,25 @@
         row[sf.id] = sf.type === FieldTypeEnum.INPUT_NUMBER ? null : '';
       });
     }
+
+    // 产品数据源：选中产品后自动带出产品默认价到「产品单价」。
+    // 注意不能走 resourceFieldId 显示字段（那会被渲染成只读），这里直接填充可编辑的单价字段。
+    if (field.dataSourceType === FieldDataSourceTypeEnum.PRODUCT) {
+      const priceField = props.subFields.find(
+        (f) =>
+          f.type === FieldTypeEnum.INPUT_NUMBER &&
+          (f.internalKey === 'orderProductPrice' || f.internalKey === 'contractProductAmount')
+      );
+      if (priceField) {
+        const targetSource = source.filter((e) => !e.parentId).find((e) => val.includes(e.id));
+        if (val.length && targetSource && targetSource.price != null) {
+          // 单价是可编辑的 INPUT_NUMBER，须填充原始数字；若填千分位格式化字符串会导致输入框无法显示
+          row[priceField.id] = Number(targetSource.price);
+        } else {
+          row[priceField.id] = null;
+        }
+      }
+    }
   }
 
   let sumInitialOptions: Record<string, any>[] = []; // 记录子表格内数据源列的初始选项

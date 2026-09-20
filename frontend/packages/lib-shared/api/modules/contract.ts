@@ -112,6 +112,12 @@ import {
   UpdateContractInvoicedViewUrl,
   AddContractInvoicedViewUrl,
   BusinessTitleModuleFormUrl,
+  BankAccountPageUrl,
+  BankAccountAddUrl,
+  BankAccountUpdateUrl,
+  BankAccountDeleteUrl,
+  GetBankAccountDetailUrl,
+  BankAccountModuleFormUrl,
   ContractInvoicedInContractPageUrl,
   GetContractDetailSnapshotUrl,
   ContractInvoicedDetailSnapshotUrl,
@@ -159,6 +165,8 @@ import type {
   BusinessTitleItem,
   SaveBusinessTitleParams,
   BusinessTitleValidateConfig,
+  BankAccountItem,
+  SaveBankAccountParams,
   ContractInvoiceTableQueryParam,
   ContractInvoiceItem,
   SaveContractInvoiceParams,
@@ -627,6 +635,36 @@ export default function useContractApi(CDR: CordysAxios) {
     return CDR.get<FormDesignConfigDetailParams>({ url: BusinessTitleModuleFormUrl });
   }
 
+  // 收款账户列表
+  function getBankAccountList(data: TableQueryParams) {
+    return CDR.post<CommonList<BankAccountItem>>({ url: BankAccountPageUrl, data }, { ignoreCancelToken: true });
+  }
+
+  // 新增收款账户
+  function addBankAccount(data: SaveBankAccountParams) {
+    return CDR.post({ url: BankAccountAddUrl, data });
+  }
+
+  // 更新收款账户
+  function updateBankAccount(data: SaveBankAccountParams) {
+    return CDR.post({ url: BankAccountUpdateUrl, data });
+  }
+
+  // 删除收款账户
+  function deleteBankAccount(id: string) {
+    return CDR.get({ url: `${BankAccountDeleteUrl}/${id}` });
+  }
+
+  // 收款账户详情
+  function getBankAccountDetail(id: string) {
+    return CDR.get<BankAccountItem>({ url: `${GetBankAccountDetailUrl}/${id}` });
+  }
+
+  // 获取收款账户表单字段
+  function getBankAccountModuleForm() {
+    return CDR.get<FormDesignConfigDetailParams>({ url: BankAccountModuleFormUrl });
+  }
+
   // 发票列表
   function getInvoicedList(data: ContractInvoiceTableQueryParam) {
     return CDR.post<CommonList<ContractInvoiceItem>>({ url: ContractInvoicedPageUrl, data });
@@ -936,6 +974,13 @@ export default function useContractApi(CDR: CordysAxios) {
     getBusinessTitleConfig,
     switchBusinessTitleFormConfig,
     getBusinessTitleModuleForm,
+    // 收款账户
+    getBankAccountList,
+    addBankAccount,
+    updateBankAccount,
+    deleteBankAccount,
+    getBankAccountDetail,
+    getBankAccountModuleForm,
     // 发票
     getInvoicedList,
     getInvoicedInContractList,

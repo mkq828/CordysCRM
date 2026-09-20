@@ -18,6 +18,7 @@ import useMessageApi from '@lib/shared/api/modules/system/message';
 import useModuleApi from '@lib/shared/api/modules/system/module';
 import useOrgApi from '@lib/shared/api/modules/system/org';
 import useProcess from '@lib/shared/api/modules/system/process';
+import useSuggestionApi from '@lib/shared/api/modules/system/suggestion';
 
 import checkStatus from '../http/checkStatus';
 
@@ -42,6 +43,7 @@ const orderApi = useOrderApi(CDR);
 const agentApi = useAgentApi(CDR);
 const aiApi = useAiApi(CDR);
 const processApi = useProcess(CDR);
+const suggestionApi = useSuggestionApi(CDR);
 
 export const {
   getFollowPlanDetail,
@@ -351,6 +353,8 @@ export const {
   updateInvoiced,
   getInvoicedList,
   getBusinessTitleModuleForm,
+  getBankAccountList,
+  getBankAccountModuleForm,
   getInvoicedInContractList,
   getContractDetailSnapshot,
   getInvoicedDetailSnapshot,
@@ -429,9 +433,21 @@ export const {
   getAiModelList,
 } = businessApi;
 
-export const { isLogin, signout, getKey, login, getThirdOauthCallback, getThirdCallback, getOauthState } = loginApi;
+export const { isLogin, signout, getKey, getCaptcha, login, getThirdOauthCallback, getThirdCallback, getOauthState } =
+  loginApi;
 
 export const { getLicense, addLicense } = licenseApi;
+
+export const {
+  getSuggestionPage,
+  getSuggestionDetail,
+  addSuggestion,
+  voteSuggestion,
+  getSuggestionCommentList,
+  addSuggestionComment,
+  updateSuggestionStatus,
+  deleteSuggestion,
+} = suggestionApi;
 
 export const { getAgentOptions } = agentApi;
 

@@ -116,6 +116,7 @@ export default {
   'module.paymentRecord': 'Payment Record',
   'module.paymentRecordFormSetting': 'Payment Record Form Setting',
   'module.businessTitle': 'Business Title',
+  'module.bankAccount': 'Bank Account',
   'module.priceTableFormSetting': 'Price Table Form Setting',
   'module.custom_form': 'Custom Form',
   'module.tender': 'Tender',

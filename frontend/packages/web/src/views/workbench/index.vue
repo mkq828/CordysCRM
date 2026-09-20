@@ -82,6 +82,15 @@
                       {{ t('workbench.dataOverview.copiedToMe') }}
                     </div>
                   </div>
+                  <div v-if="useStore.isAdmin" class="task-item" @click="goRegisterAudit">
+                    <div class="task-icon bg-[var(--primary-8)]">
+                      <CrmIcon type="iconicon_enterprise" :size="16" color="var(--text-n10)" />
+                    </div>
+                    <div class="flex flex-1 items-center justify-between">
+                      {{ t('workbench.dataOverview.registerPending') }}
+                      <div class="font-semibold text-[var(--primary-8)]">{{ registerPendingCount }}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CrmCard>
@@ -115,6 +124,7 @@
 
 <script setup lang="ts">
   // import { NDatePicker } from 'naive-ui';
+  import { useRouter } from 'vue-router';
   import { NAlert, NButton, NScrollbar } from 'naive-ui';
 
   import { FormDesignKeyEnum } from '@lib/shared/enums/formDesignEnum';
@@ -134,11 +144,13 @@
   import PersonalInfoDrawer from '@/views/system/business/components/personalInfoDrawer.vue';
   import MessageDrawer from '@/views/system/message/components/messageDrawer.vue';
 
+  import { registerPendingCount as fetchRegisterPendingCount } from '@/api/modules';
   import { quickAccessList } from '@/config/workbench';
   import { useAppStore, useUserStore } from '@/store';
   import { hasAnyPermission } from '@/utils/permission';
 
   const { t } = useI18n();
+  const router = useRouter();
   const appStore = useAppStore();
   const useStore = useUserStore();
 
@@ -202,6 +214,22 @@
     showTaskDrawer.value = true;
   }
 
+  // 企业注册待审（仅 admin 可见）
+  const registerPendingCount = ref(0);
+  function goRegisterAudit() {
+    router.push({ name: 'systemRegisterAudit' });
+  }
+  async function initRegisterPendingCount() {
+    if (!useStore.isAdmin) return;
+    try {
+      const res = await fetchRegisterPendingCount();
+      registerPendingCount.value = res?.total ?? 0;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
+  }
+
   // 消息
   const showMessageDrawer = ref(false);
 
@@ -212,6 +240,7 @@
   onBeforeMount(() => {
     appStore.initMessage();
     appStore.initTodoStatistic();
+    initRegisterPendingCount();
   });
 </script>
 
