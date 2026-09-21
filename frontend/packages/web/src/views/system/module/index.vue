@@ -179,6 +179,11 @@
       key: ModuleConfigEnum.CUSTOM_FORM,
       icon: 'iconicon_form',
     },
+    {
+      label: t('module.finance'),
+      key: ModuleConfigEnum.FINANCE,
+      icon: 'iconicon_money_circle',
+    },
   ]);
 
   const moduleNavList = ref<ModuleNavItem[]>([]);

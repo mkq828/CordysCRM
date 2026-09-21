@@ -128,4 +128,5 @@ export default {
   'module.invoice': 'Invoice Records',
   'module.customForm': 'Custom Form',
   'module.customFormData': 'Custom Form Data',
+  'module.finance': 'Finance',
 };

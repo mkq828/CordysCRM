@@ -125,4 +125,5 @@ export default {
   'module.invoice': '发票记录',
   'module.customForm': '自定义表单',
   'module.customFormData': '自定义表单数据',
+  'module.finance': '财务',
 };

@@ -496,6 +496,13 @@
       groupList: [],
       enable: true,
     },
+    {
+      label: t('module.finance'),
+      key: ModuleConfigEnum.FINANCE,
+      icon: 'iconicon_money_circle',
+      groupList: [],
+      enable: true,
+    },
   ];
 
   const moduleConfigList = computed<ModuleConfigItem[]>(() => {
