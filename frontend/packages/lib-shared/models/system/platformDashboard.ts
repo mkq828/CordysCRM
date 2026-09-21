@@ -4,6 +4,7 @@ export interface OrgOverviewRow {
   orgType: string;
   accountCount: number;
   customerCount: number;
+  clueCount: number;
   opportunityCount: number;
   orderCount: number;
   contractAmount: number | string;

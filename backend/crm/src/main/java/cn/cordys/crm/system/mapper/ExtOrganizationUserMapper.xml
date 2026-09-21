@@ -534,4 +534,14 @@
         from sys_organization_user
         where user_id = #{userId} limit 1
     </select>
+
+    <select id="selectUserIdsBySupervisorIds" resultType="java.lang.String">
+        select user_id
+        from sys_organization_user
+        where organization_id = #{orgId}
+          and supervisor_id in
+        <foreach collection="supervisorIds" item="sid" open="(" close=")" separator=",">
+            #{sid}
+        </foreach>
+    </select>
 </mapper>

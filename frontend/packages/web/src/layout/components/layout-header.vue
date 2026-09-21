@@ -6,6 +6,14 @@
     <div class="flex flex-1 items-center justify-between px-[16px]">
       <CrmTopMenu />
       <div v-if="!props.isPreview" class="flex items-center gap-[8px]">
+        <n-dropdown :options="dataScopeOptions" trigger="click" @select="handleDataScopeSelect">
+          <n-button class="px-[12px] font-medium" quaternary>
+            {{ dataScopeLabel }}
+            <template #icon>
+              <CrmIcon type="iconicon_chevron_down" :size="12" />
+            </template>
+          </n-button>
+        </n-dropdown>
         <CrmButtonGroup not-show-divider class="gap-[8px]" :list="appStore.getNavTopConfigList">
           <template #searchSlot>
             <n-button
@@ -168,7 +176,9 @@
                 </div>
                 <div v-if="appStore.versionInfo.operator" class="flex items-center justify-between">
                   <div class="text-[12px] leading-[20px] text-[var(--text-n4)]">运营方</div>
-                  <div class="text-[12px] leading-[20px] text-[var(--text-n4)]">{{ appStore.versionInfo.operator }}</div>
+                  <div class="text-[12px] leading-[20px] text-[var(--text-n4)]">{{
+                    appStore.versionInfo.operator
+                  }}</div>
                 </div>
               </div>
               <template #trigger>
@@ -207,7 +217,7 @@
 
 <script setup lang="ts">
   import { useRoute } from 'vue-router';
-  import { NBadge, NButton, NDivider, NLayoutHeader, NPopover, NPopselect, useMessage } from 'naive-ui';
+  import { NBadge, NButton, NDivider, NDropdown, NLayoutHeader, NPopover, NPopselect, useMessage } from 'naive-ui';
   import { LanguageOutline } from '@vicons/ionicons5';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -264,6 +274,17 @@
   function changeLanguage(locale: LocaleType) {
     changeLocaleBackEnd(locale);
     changeLocale(locale);
+  }
+
+  const dataScopeOptions = computed(() => [
+    { label: t('common.dataScope.self'), key: 'SELF' },
+    { label: t('common.dataScope.org'), key: 'ORG' },
+  ]);
+  const dataScopeLabel = computed(() =>
+    appStore.dataScope === 'SELF' ? t('common.dataScope.self') : t('common.dataScope.org')
+  );
+  function handleDataScopeSelect(key: string) {
+    appStore.setDataScope(key as 'SELF' | 'ORG');
   }
 
   const showBadge = computed(() => {

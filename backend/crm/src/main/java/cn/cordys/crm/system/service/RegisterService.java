@@ -15,8 +15,6 @@ import cn.cordys.crm.system.domain.Department;
 import cn.cordys.crm.system.domain.Organization;
 import cn.cordys.crm.system.domain.OrganizationUser;
 import cn.cordys.crm.system.domain.RegisterApplication;
-import cn.cordys.crm.system.domain.Role;
-import cn.cordys.crm.system.domain.RolePermission;
 import cn.cordys.crm.system.domain.User;
 import cn.cordys.crm.system.domain.UserRole;
 import cn.cordys.crm.system.dto.request.RegisterApplicationPageRequest;
@@ -72,12 +70,6 @@ public class RegisterService {
 
     @Resource
     private BaseMapper<UserRole> userRoleMapper;
-
-    @Resource
-    private BaseMapper<Role> roleMapper;
-
-    @Resource
-    private BaseMapper<RolePermission> rolePermissionMapper;
 
     @Resource
     private BaseMapper<Department> departmentMapper;
@@ -338,14 +330,12 @@ public class RegisterService {
         organizationUser.setUpdateUser(operatorId);
         organizationUserMapper.insert(organizationUser);
 
-        // 5. 按注册类型创建独立角色并挂载：个人 → 销售专员；企业 → 销售经理。
-        //    快照内置角色权限点而非直接引用全局内置角色，避免后续调整内置角色权限联动改变已注册账号。
+        // 5. 按注册类型直接挂载全局内置角色：企业 → 企业管理员（org_admin，全企业数据）；个人 → 销售专员（sales_staff，仅本人数据）。
+        //    直接引用全局内置角色，由平台 admin 在角色列表中统一维护权限，后续新增功能只需给这两个角色勾选即可联动生效。
         if (enterprise) {
-            String roleId = createSnapshotRole(InternalRole.SALES_MANAGER.getValue(), "企业管理员", orgId, operatorId, now);
-            insertUserRole(userId, roleId, operatorId, now);
+            insertUserRole(userId, InternalRole.ORG_ADMIN.getValue(), operatorId, now);
         } else {
-            String roleId = createSnapshotRole(InternalRole.SALES_STAFF.getValue(), "销售专员", orgId, operatorId, now);
-            insertUserRole(userId, roleId, operatorId, now);
+            insertUserRole(userId, InternalRole.SALES_STAFF.getValue(), operatorId, now);
         }
 
         // 6. 转正营业执照附件（绑定到新组织）
@@ -375,44 +365,6 @@ public class RegisterService {
         userRole.setCreateUser(operatorId);
         userRole.setUpdateUser(operatorId);
         userRoleMapper.insert(userRole);
-    }
-
-    /**
-     * 为自助注册账号创建独立的租户角色：快照内置角色（模板）的数据范围与权限点。
-     * <p>
-     * 不直接引用全局内置角色，避免管理员后续调整内置角色权限时联动改变已注册账号的权限；
-     * 新角色归属当前租户（organizationId），可在企业内独立灵活配置。
-     * </p>
-     */
-    private String createSnapshotRole(String templateRoleId, String roleName, String orgId, String operatorId, long now) {
-        Role template = roleMapper.selectByPrimaryKey(templateRoleId);
-        String roleId = IDGenerator.nextStr();
-        Role role = new Role();
-        role.setId(roleId);
-        role.setName(roleName);
-        role.setInternal(false);
-        role.setDataScope(template != null ? template.getDataScope() : null);
-        role.setOrganizationId(orgId);
-        role.setCreateTime(now);
-        role.setUpdateTime(now);
-        role.setCreateUser(operatorId);
-        role.setUpdateUser(operatorId);
-        roleMapper.insert(role);
-
-        // 快照权限点
-        LambdaQueryWrapper<RolePermission> permissionWrapper = new LambdaQueryWrapper<>();
-        permissionWrapper.eq(RolePermission::getRoleId, templateRoleId);
-        List<RolePermission> permissions = rolePermissionMapper.selectListByLambda(permissionWrapper);
-        if (permissions != null) {
-            for (RolePermission permission : permissions) {
-                RolePermission snapshot = new RolePermission();
-                snapshot.setId(IDGenerator.nextStr());
-                snapshot.setRoleId(roleId);
-                snapshot.setPermissionId(permission.getPermissionId());
-                rolePermissionMapper.insert(snapshot);
-            }
-        }
-        return roleId;
     }
 
     /**

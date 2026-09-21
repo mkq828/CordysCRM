@@ -1,6 +1,7 @@
 export enum OpportunitySearchTypeEnum {
   ALL = 'ALL',
   SELF = 'SELF',
+  ORG = 'ORG',
   DEPARTMENT = 'DEPARTMENT',
   OPPORTUNITY_SUCCESS = 'OPPORTUNITY_SUCCESS',
 }

@@ -11,6 +11,7 @@ export enum SystemRouteEnum {
   SYSTEM_PROCESS_INDEX = 'systemProcessIndex',
   SYSTEM_PROCESS_WORKFLOW = 'systemProcessWorkflow',
   SYSTEM_REGISTER_AUDIT = 'systemRegisterAudit',
+  SYSTEM_BUG_REPORT = 'systemBugReport',
 }
 
 export enum OpportunityRouteEnum {

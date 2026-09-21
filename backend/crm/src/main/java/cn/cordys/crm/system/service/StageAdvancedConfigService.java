@@ -152,9 +152,10 @@ public class StageAdvancedConfigService {
      * @param originStage
      * @param targetStage
      * @param moduleType
+     * @param orgId
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public boolean checkStage(String originStage, String targetStage, String moduleType) {
+    public boolean checkStage(String originStage, String targetStage, String moduleType, String orgId) {
         if (Strings.CI.equals(originStage, targetStage)) {
             return true;
         }
@@ -164,8 +165,8 @@ public class StageAdvancedConfigService {
             return false;
         }
 
-        StageConfigResponse originConfig = extStageAdvancedConfigMapper.getStageConfig(tableName, originStage);
-        StageConfigResponse targetConfig = extStageAdvancedConfigMapper.getStageConfig(tableName, targetStage);
+        StageConfigResponse originConfig = extStageAdvancedConfigMapper.getStageConfig(tableName, originStage, orgId);
+        StageConfigResponse targetConfig = extStageAdvancedConfigMapper.getStageConfig(tableName, targetStage, orgId);
 
         if (originConfig == null || targetConfig == null) {
             return false;

@@ -9,6 +9,7 @@ import cn.cordys.common.permission.PermissionCache;
 import cn.cordys.common.response.result.CrmHttpResultCode;
 import cn.cordys.common.util.Translator;
 import cn.cordys.crm.system.domain.OrganizationUser;
+import cn.cordys.crm.system.mapper.ExtOrganizationUserMapper;
 import cn.cordys.crm.system.service.DepartmentService;
 import cn.cordys.crm.system.service.RoleService;
 import cn.cordys.mybatis.BaseMapper;
@@ -35,6 +36,8 @@ public class DataScopeService {
     @Resource
     private BaseMapper<OrganizationUser> organizationUserMapper;
     @Resource
+    private ExtOrganizationUserMapper extOrganizationUserMapper;
+    @Resource
     private RoleService roleService;
     @Resource
     private BaseService baseService;
@@ -58,6 +61,11 @@ public class DataScopeService {
             // 只查看自己的数据
             deptDataPermission.setSelf(true);
             return deptDataPermission;
+        }
+
+        if (InternalUserView.isOrg(viewId)) {
+            // 企业视图：管理员看全企业，其余看本人及下属
+            return getOrgDataPermission(userId, orgId, permission);
         }
 
         // 数据权限是全部,但是查询条件是部门,则按照部门查询
@@ -110,6 +118,39 @@ public class DataScopeService {
         }
 
         return getDeptDataPermissionForDept(userId, orgId, dataScopeRoleMap, permission);
+    }
+
+    /**
+     * 企业视图数据权限：管理员看全企业，其余看本人及所有下属（递归）。
+     */
+    private DeptDataPermissionDTO getOrgDataPermission(String userId, String orgId, String permission) {
+        DeptDataPermissionDTO dto = getDeptDataPermission(userId, orgId, permission);
+        dto.setViewId(InternalUserView.ORG.name());
+        if (BooleanUtils.isTrue(dto.getAll()) || BooleanUtils.isTrue(dto.getInvisible())) {
+            return dto;
+        }
+        dto.setSelf(false);
+        dto.setDeptIds(new HashSet<>());
+        dto.setUserIds(getUserIdsWithSubordinates(userId, orgId));
+        return dto;
+    }
+
+    /**
+     * 收集本人及其直接/间接下属的 userId 集合。
+     */
+    public Set<String> getUserIdsWithSubordinates(String userId, String orgId) {
+        Set<String> result = new HashSet<>();
+        result.add(userId);
+        List<String> frontier = new ArrayList<>(List.of(userId));
+        while (!frontier.isEmpty()) {
+            List<String> subIds = extOrganizationUserMapper.selectUserIdsBySupervisorIds(frontier, orgId);
+            if (CollectionUtils.isEmpty(subIds)) {
+                break;
+            }
+            result.addAll(subIds);
+            frontier = subIds;
+        }
+        return result;
     }
 
     private DeptDataPermissionDTO getDeptDataPermissionForAllPermission(String userId, String orgId) {

@@ -432,6 +432,13 @@
 
     </select>
 
+    <select id="sumRecordAmountByPaymentPlanId" resultType="java.math.BigDecimal">
+        select ifnull(sum(record_amount), 0)
+        from contract_payment_record
+        where payment_plan_id = #{paymentPlanId}
+          and organization_id = #{orgId}
+    </select>
+
     <update id="updateRecord">
         update contract_payment_record
         <set>

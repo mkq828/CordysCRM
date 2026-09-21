@@ -9,6 +9,7 @@ import cn.cordys.crm.contract.dto.response.ContractPaymentRecordStatisticRespons
 import cn.cordys.crm.contract.dto.response.CustomerPaymentRecordStatisticResponse;
 import org.apache.ibatis.annotations.Param;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -54,4 +55,13 @@ public interface ExtContractPaymentRecordMapper {
     ContractPaymentRecordStatisticResponse searchStatistic(@Param("request") ContractPaymentRecordStatisticRequest request, @Param("orgId") String orgId, @Param("userId") String userId, @Param("dataPermission") DeptDataPermissionDTO dataPermission);
 
     void updateRecord(@Param("contractPaymentRecord")ContractPaymentRecord contractPaymentRecord);
+
+    /**
+     * 汇总指定回款计划下的已回款金额
+     *
+     * @param paymentPlanId 回款计划ID
+     * @param orgId         组织ID
+     * @return 已回款金额合计
+     */
+    BigDecimal sumRecordAmountByPaymentPlanId(@Param("paymentPlanId") String paymentPlanId, @Param("orgId") String orgId);
 }

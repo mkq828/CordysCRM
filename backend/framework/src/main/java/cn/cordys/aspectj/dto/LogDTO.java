@@ -70,6 +70,21 @@ public class LogDTO {
     @Schema(description = "请求来源")
     private String requestSource;
 
+    @Schema(description = "链路追踪ID")
+    private String traceId;
+
+    @Schema(description = "请求参数")
+    private String requestParams;
+
+    @Schema(description = "浏览器User-Agent")
+    private String userAgent;
+
+    @Schema(description = "客户端IP")
+    private String ip;
+
+    @Schema(description = "异常堆栈")
+    private String errorStack;
+
     /**
      * 原始值
      */

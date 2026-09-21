@@ -130,6 +130,7 @@ const useAppStore = defineStore('app', {
       ...defaultPlatformConfig,
     },
     orgId: '',
+    dataScope: 'ORG',
     moduleConfigList: cloneDeep(defaultModuleConfig),
     currentTopMenu: {} as RouteRecordRaw,
     topMenus: [],
@@ -204,6 +205,9 @@ const useAppStore = defineStore('app', {
   actions: {
     setOrgId(id: string) {
       this.orgId = id;
+    },
+    setDataScope(scope: 'SELF' | 'ORG') {
+      this.dataScope = scope;
     },
     setMenuCollapsed(collapsed: boolean) {
       this.menuCollapsed = collapsed;
@@ -475,7 +479,14 @@ const useAppStore = defineStore('app', {
     },
   },
   persist: {
-    paths: ['menuIconStatus', 'pageConfig', 'moduleConfigList', 'navTopConfigList', 'activePlatformResource'],
+    paths: [
+      'menuIconStatus',
+      'pageConfig',
+      'moduleConfigList',
+      'navTopConfigList',
+      'activePlatformResource',
+      'dataScope',
+    ],
   },
 });
 

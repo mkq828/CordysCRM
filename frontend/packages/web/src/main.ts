@@ -10,12 +10,12 @@ import useLocale from '@lib/shared/locale/useLocale';
 import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
 import App from './App.vue';
 
-// eslint-disable-next-line import/no-unresolved
 import 'virtual:svg-icons-register';
 import directive from './directive/index';
 import useDiscreteApi from './hooks/useDiscreteApi';
 import router from './router';
 import store from './store';
+import { recordVueError } from './utils/bugCollector';
 
 async function setupApp() {
   const app = createApp(App);
@@ -47,6 +47,9 @@ async function setupApp() {
   });
 
   app.use(directive);
+  app.config.errorHandler = (err, _instance, info) => {
+    recordVueError(err, info);
+  };
   app.mount('#app');
 }
 

@@ -36,6 +36,7 @@
   import { WHITE_LIST } from './router/constants';
   import useLicenseStore from './store/modules/setting/license';
   import useUserStore from './store/modules/user';
+  import { installBugCollector } from './utils/bugCollector';
 
   const { goUserHasPermissionPage, logout } = useUser();
 
@@ -165,6 +166,7 @@
 
   onMounted(() => {
     adjustOSTheme();
+    installBugCollector();
     window.onerror = (_message) => {
       if (
         typeof _message === 'string' &&

@@ -143,9 +143,6 @@
   }
 
   const isDisabled = computed(() => {
-    if (props.activeRoleId === 'org_admin') {
-      return true;
-    }
     if (props.isNew) {
       return !hasAnyPermission(['SYSTEM_ROLE:ADD']);
     }

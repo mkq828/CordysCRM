@@ -36,4 +36,19 @@ public class OperationLogDetailResponse implements Serializable {
 
     @Schema(description = "字段差异")
     private List<JsonDifferenceDTO> diffs = List.of();
+
+    @Schema(description = "链路追踪ID")
+    private String traceId;
+
+    @Schema(description = "客户端IP")
+    private String ip;
+
+    @Schema(description = "浏览器User-Agent")
+    private String userAgent;
+
+    @Schema(description = "请求参数")
+    private String requestParams;
+
+    @Schema(description = "异常堆栈")
+    private String errorStack;
 }

@@ -67,6 +67,13 @@
             and o.owner = #{userId}
         </if>
 
+        <if test="dataPermission != null and dataPermission.userIds != null and dataPermission.userIds.size() > 0">
+            and o.owner in
+            <foreach collection="dataPermission.userIds" item="uid" open="(" close=")" separator=",">
+                #{uid}
+            </foreach>
+        </if>
+
         <if test="dataPermission != null and dataPermission.collaborationIds.size() > 0">
             and o.owner not in
             <foreach collection="dataPermission.collaborationIds" item="collaborationId" open="(" close=")" separator=",">

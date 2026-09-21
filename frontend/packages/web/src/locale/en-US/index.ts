@@ -49,6 +49,7 @@ export default {
     'menu.settings.workflowSetting': 'Workflow',
     'menu.settings.log': 'Logs',
     'menu.settings.registerAudit': 'Register Audit',
+    'menu.settings.bugReport': 'Bug Report',
     'navbar.action.locale': 'Switch to English',
     ...sys,
     ...localeSettings,

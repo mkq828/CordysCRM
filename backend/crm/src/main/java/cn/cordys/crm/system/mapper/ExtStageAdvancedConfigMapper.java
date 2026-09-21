@@ -13,7 +13,7 @@ public interface ExtStageAdvancedConfigMapper {
 
     List<StageAdvancedConfig> selectConfigByType(@Param("orgId") String orgId, @Param("moduleType") String moduleType);
 
-    StageConfigResponse getStageConfig(@Param("sourceTable")String sourceTable, @Param("id")String id);
+    StageConfigResponse getStageConfig(@Param("sourceTable")String sourceTable, @Param("id")String id, @Param("orgId")String orgId);
 
     StageAdvancedConfig getConfigByOriginAndTarget(@Param("originId")String originId, @Param("targetId")String targetId,@Param("moduleType")String moduleType);
 }

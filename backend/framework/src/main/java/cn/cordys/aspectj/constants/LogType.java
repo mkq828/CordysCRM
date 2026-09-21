@@ -97,6 +97,11 @@ public final class LogType {
      */
     public static final String DOWNLOAD = "DOWNLOAD";
 
+    /**
+     * 系统异常（500 兜底异常日志）
+     */
+    public static final String EXCEPTION = "EXCEPTION";
+
     private LogType() {
         // 私有构造函数防止实例化
     }

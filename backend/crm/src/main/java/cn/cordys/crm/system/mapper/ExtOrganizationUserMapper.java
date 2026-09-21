@@ -60,4 +60,6 @@ public interface ExtOrganizationUserMapper {
     void updateUserByUserId(@Param("userId") String userId, @Param("time") long time, @Param("operatorId") String operatorId);
 
     String getDepartmentByUserId(@Param("userId") String userId);
+
+    List<String> selectUserIdsBySupervisorIds(@Param("supervisorIds") List<String> supervisorIds, @Param("orgId") String orgId);
 }

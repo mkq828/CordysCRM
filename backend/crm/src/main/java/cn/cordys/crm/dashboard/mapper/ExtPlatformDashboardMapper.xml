@@ -15,6 +15,15 @@
     <select id="countCustomersGroupByOrg" resultType="map">
         SELECT organization_id AS organizationId, COUNT(*) AS value
         FROM customer
+        WHERE in_shared_pool = 0
+        GROUP BY organization_id
+    </select>
+
+    <select id="countCluesGroupByOrg" resultType="map">
+        SELECT organization_id AS organizationId, COUNT(*) AS value
+        FROM clue
+        WHERE in_shared_pool = 0
+          AND (transition_type IS NULL OR transition_type != 'CUSTOMER')
         GROUP BY organization_id
     </select>
 

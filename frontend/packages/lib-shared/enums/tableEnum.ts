@@ -10,6 +10,7 @@ export enum TableKeyEnum {
   SYSTEM_MESSAGE_TABLE = 'systemMessageTable',
   SYSTEM_ANNOUNCEMENT_TABLE = 'systemAnnouncementTable',
   SYSTEM_REGISTER_AUDIT_TABLE = 'systemRegisterAuditTable',
+  SYSTEM_BUG_REPORT_TABLE = 'systemBugReportTable',
   MODULE_OPPORTUNITY_RULE_TABLE = 'moduleOpportunityRuleTable',
   MODULE_CLUE_POOL = 'moduleCluePool',
   MODULE_OPEN_SEA = 'moduleOpenSea',

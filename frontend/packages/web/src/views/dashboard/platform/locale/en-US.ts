@@ -21,6 +21,7 @@ export default {
   'dashboard.platform.orgType.PERSONAL': 'Personal',
   'dashboard.platform.accountCount': 'Accounts',
   'dashboard.platform.customerCount': 'Customers',
+  'dashboard.platform.clueCount': 'Leads',
   'dashboard.platform.opportunityCount': 'Opportunities',
   'dashboard.platform.orderCount': 'Orders',
   'dashboard.platform.contractAmount': 'Contract Amount',

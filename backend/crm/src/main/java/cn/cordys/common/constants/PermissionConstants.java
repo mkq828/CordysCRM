@@ -20,6 +20,10 @@ public class PermissionConstants {
     public static final String OPERATION_LOG_READ = "OPERATION_LOG:READ";
     /*------ end: OPERATION_LOG ------*/
 
+    /*------ start: BUG_REPORT ------*/
+    public static final String BUG_REPORT_READ = "BUG_REPORT:READ";
+    /*------ end: BUG_REPORT ------*/
+
     /*------ start: SYSTEM_NOTICE ------*/
     public static final String SYSTEM_NOTICE_READ = "SYSTEM_NOTICE:READ";
     public static final String SYSTEM_NOTICE_ADD = "SYSTEM_NOTICE:ADD";

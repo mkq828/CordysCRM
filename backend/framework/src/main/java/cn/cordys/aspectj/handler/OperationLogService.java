@@ -7,6 +7,7 @@ import cn.cordys.common.util.ServletUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 /**
@@ -48,6 +49,11 @@ public class OperationLogService {
         // 补全请求信息
         reqDTO.setMethod(request.getMethod());
         reqDTO.setPath(request.getRequestURI());
+        reqDTO.setRequestParams(request.getQueryString());
+        reqDTO.setUserAgent(ServletUtils.getUserAgent(request));
+        reqDTO.setIp(ServletUtils.getClientIp(request));
+        // traceId 由 TraceIdWebFilter 写入 MDC（同步阶段捕获，避免 @Async 线程丢失）
+        reqDTO.setTraceId(MDC.get("traceId"));
     }
 
     public void record(OperationLog operationLog) {

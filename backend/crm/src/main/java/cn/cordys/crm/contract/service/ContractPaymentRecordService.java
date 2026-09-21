@@ -26,6 +26,7 @@ import cn.cordys.common.uid.SerialNumGenerator;
 import cn.cordys.common.uid.utils.EnumUtils;
 import cn.cordys.common.util.BeanUtils;
 import cn.cordys.common.util.Translator;
+import cn.cordys.crm.contract.constants.ContractPaymentPlanStatus;
 import cn.cordys.crm.contract.domain.*;
 import cn.cordys.crm.contract.dto.request.ContractPaymentRecordAddRequest;
 import cn.cordys.crm.contract.dto.request.ContractPaymentRecordPageRequest;
@@ -157,6 +158,7 @@ public class ContractPaymentRecordService extends BaseExportService {
         // 保存自定义字段值&回款记录
         contractPaymentRecordFieldService.saveModuleField(paymentRecord, currentOrg, currentUser, request.getModuleFields(), false);
         contractPaymentRecordMapper.insert(paymentRecord);
+        recalculatePaymentPlanStatus(paymentRecord.getPaymentPlanId());
         // 日志
         baseService.handleAddLogWithSubTable(paymentRecord, request.getModuleFields(), Translator.get("products_info"),
                 moduleFormCacheService.getBusinessFormConfig(FormKey.CONTRACT_PAYMENT_RECORD.getKey(), currentOrg));
@@ -175,6 +177,15 @@ public class ContractPaymentRecordService extends BaseExportService {
         contractPaymentRecord.setUpdateTime(System.currentTimeMillis());
         contractPaymentRecord.setUpdateUser(currentUser);
         contractPaymentRecordMapper.update(contractPaymentRecord);
+        String oldPlanId = oldRecord.getPaymentPlanId();
+        String newPlanId = contractPaymentRecord.getPaymentPlanId();
+        if (StringUtils.isEmpty(newPlanId)) {
+            newPlanId = oldPlanId;
+        }
+        recalculatePaymentPlanStatus(oldPlanId);
+        if (!Objects.equals(newPlanId, oldPlanId)) {
+            recalculatePaymentPlanStatus(newPlanId);
+        }
         List<BaseModuleFieldValue> oldFvs = contractPaymentRecordFieldService.getModuleFieldValuesByResourceId(request.getId());
         updateModuleField(contractPaymentRecord, request.getModuleFields(), currentOrg, currentUser);
         baseService.handleUpdateLogWithSubTable(oldRecord, contractPaymentRecord, oldFvs, request.getModuleFields(),
@@ -191,7 +202,43 @@ public class ContractPaymentRecordService extends BaseExportService {
         }
         contractPaymentRecordMapper.deleteByPrimaryKey(id);
         contractPaymentRecordFieldService.deleteByResourceId(id);
+        recalculatePaymentPlanStatus(oldRecord.getPaymentPlanId());
         OperationLogContext.setResourceName(oldRecord.getName());
+    }
+
+    /**
+     * 根据回款计划下已回款金额重算回款计划状态：
+     * 累计为 0 → PENDING（未完成）；0 < 累计 < 计划金额 → PARTIALLY_COMPLETED（部分完成）；累计 >= 计划金额 → COMPLETED（已完成）。
+     *
+     * @param paymentPlanId 回款计划ID
+     */
+    private void recalculatePaymentPlanStatus(String paymentPlanId) {
+        if (StringUtils.isEmpty(paymentPlanId)) {
+            return;
+        }
+        ContractPaymentPlan plan = contractPaymentPlanMapper.selectByPrimaryKey(paymentPlanId);
+        if (plan == null) {
+            return;
+        }
+        BigDecimal accumulated = extContractPaymentRecordMapper.sumRecordAmountByPaymentPlanId(paymentPlanId, plan.getOrganizationId());
+        if (accumulated == null) {
+            accumulated = BigDecimal.ZERO;
+        }
+        BigDecimal planAmount = plan.getPlanAmount() == null ? BigDecimal.ZERO : plan.getPlanAmount();
+        String status;
+        if (accumulated.compareTo(BigDecimal.ZERO) <= 0) {
+            status = ContractPaymentPlanStatus.PENDING.name();
+        } else if (planAmount.compareTo(BigDecimal.ZERO) > 0 && accumulated.compareTo(planAmount) >= 0) {
+            status = ContractPaymentPlanStatus.COMPLETED.name();
+        } else {
+            status = ContractPaymentPlanStatus.PARTIALLY_COMPLETED.name();
+        }
+        if (!status.equals(plan.getPlanStatus())) {
+            ContractPaymentPlan update = new ContractPaymentPlan();
+            update.setId(paymentPlanId);
+            update.setPlanStatus(status);
+            contractPaymentPlanMapper.update(update);
+        }
     }
 
     public ContractPaymentRecordGetResponse get(String id) {

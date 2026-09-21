@@ -70,6 +70,7 @@ export interface AppState {
   defaultPlatformConfig: PlatformConfig;
   themeOverridesConfig: GlobalThemeOverrides;
   orgId: string;
+  dataScope: 'SELF' | 'ORG'; // 全局数据范围：我的 / 企业
   moduleConfigList: ModuleNavBaseInfoItem[]; // 模块配置列表
   topMenus: RouteRecordRaw[];
   currentTopMenu: RouteRecordRaw;

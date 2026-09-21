@@ -17,6 +17,8 @@ public class PermissionDefinitionItem {
     private String name;
     @Schema(description = "是否是企业版菜单")
     private Boolean license = false;
+    @Schema(description = "是否是平台级菜单（仅 admin 可见）")
+    private Boolean platform = false;
     @Schema(description = "菜单是否全选")
     private Boolean enable = false;
     @Schema(description = "菜单下的权限列表")

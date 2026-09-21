@@ -48,6 +48,7 @@ export default {
     'menu.suggestion': '需求反馈',
     'menu.settings.log': '系统日志',
     'menu.settings.registerAudit': '注册审核',
+    'menu.settings.bugReport': '问题反馈',
     'navbar.action.locale': '切换为中文',
     ...sys,
     ...localeSettings,

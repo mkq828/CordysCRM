@@ -62,6 +62,7 @@ public class PlatformDashboardService {
                 .toList();
         Map<String, Long> userCounts = toLongMap(extPlatformDashboardMapper.countUsersGroupByOrg());
         Map<String, Long> customerCounts = toLongMap(extPlatformDashboardMapper.countCustomersGroupByOrg());
+        Map<String, Long> clueCounts = toLongMap(extPlatformDashboardMapper.countCluesGroupByOrg());
         Map<String, Long> opportunityCounts = toLongMap(extPlatformDashboardMapper.countOpportunitiesGroupByOrg());
         Map<String, Long> orderCounts = toLongMap(extPlatformDashboardMapper.countOrdersGroupByOrg());
         Map<String, BigDecimal> contractAmounts = toBigDecimalMap(extPlatformDashboardMapper.sumContractAmountGroupByOrg());
@@ -94,6 +95,7 @@ public class PlatformDashboardService {
             row.setCreateTime(org.getCreateTime());
             row.setAccountCount(value(userCounts.get(orgId)));
             row.setCustomerCount(value(customerCounts.get(orgId)));
+            row.setClueCount(value(clueCounts.get(orgId)));
             row.setOpportunityCount(value(opportunityCounts.get(orgId)));
             row.setOrderCount(value(orderCounts.get(orgId)));
 
@@ -159,7 +161,7 @@ public class PlatformDashboardService {
 
     /**
      * 计算每个租户的「连续使用天数」与「近30天活跃天数」。
-     * 连续天数：从今天（今天未登录则从昨天）往前数连续有登录的天数，中断即止；
+     * 连续天数：历史最长连续登录天数（任意起点往前连续的最长天数）；
      * 近30天活跃天数：最近30个自然日内有登录的天数。
      */
     private Map<String, int[]> computeLoginDayStats(List<Map<String, Object>> list) {
@@ -181,21 +183,36 @@ public class PlatformDashboardService {
         Map<String, int[]> result = new HashMap<>();
         for (Map.Entry<String, Set<LocalDate>> entry : daysByOrg.entrySet()) {
             Set<LocalDate> days = entry.getValue();
-            LocalDate cursor = days.contains(today) ? today : today.minusDays(1);
-            int usageDays = 0;
-            while (days.contains(cursor)) {
-                usageDays++;
-                cursor = cursor.minusDays(1);
-            }
-            int activeDays30 = 0;
-            for (LocalDate day : days) {
-                if (!day.isBefore(thirtyDaysAgo) && !day.isAfter(today)) {
-                    activeDays30++;
-                }
-            }
-            result.put(entry.getKey(), new int[] { usageDays, activeDays30 });
+            result.put(entry.getKey(), computeStreak(days, thirtyDaysAgo, today));
         }
         return result;
+    }
+
+    /**
+     * usageDays = 历史最长连续登录天数（任意起点往前连续的最长天数）；
+     * activeDays30 = 近30个自然日内有登录的天数。
+     */
+    private int[] computeStreak(Set<LocalDate> days, LocalDate thirtyDaysAgo, LocalDate today) {
+        List<LocalDate> sorted = days.stream().sorted().toList();
+        int maxStreak = 0;
+        int current = 0;
+        LocalDate prev = null;
+        for (LocalDate day : sorted) {
+            if (prev != null && day.equals(prev.plusDays(1))) {
+                current++;
+            } else {
+                current = 1;
+            }
+            maxStreak = Math.max(maxStreak, current);
+            prev = day;
+        }
+        int activeDays30 = 0;
+        for (LocalDate day : days) {
+            if (!day.isBefore(thirtyDaysAgo) && !day.isAfter(today)) {
+                activeDays30++;
+            }
+        }
+        return new int[] { maxStreak, activeDays30 };
     }
 
     private Map<String, Long> toLongMap(List<Map<String, Object>> list) {

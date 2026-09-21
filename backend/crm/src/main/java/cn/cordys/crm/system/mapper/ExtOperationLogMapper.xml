@@ -11,7 +11,9 @@
             t.create_time,
             t.create_user as operator,
             t.resource_name,
-            t.detail
+            t.detail,
+            t.trace_id,
+            t.ip
         FROM
         sys_operation_log t
         INNER JOIN sys_user on sys_user.id = t.create_user

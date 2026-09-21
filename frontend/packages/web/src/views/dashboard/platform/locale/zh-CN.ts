@@ -21,6 +21,7 @@ export default {
   'dashboard.platform.orgType.PERSONAL': '个人',
   'dashboard.platform.accountCount': '账号数',
   'dashboard.platform.customerCount': '客户数',
+  'dashboard.platform.clueCount': '线索数',
   'dashboard.platform.opportunityCount': '商机数',
   'dashboard.platform.orderCount': '订单数',
   'dashboard.platform.contractAmount': '合同总额',

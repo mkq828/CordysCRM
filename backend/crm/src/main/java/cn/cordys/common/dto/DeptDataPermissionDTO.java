@@ -44,4 +44,9 @@ public class DeptDataPermissionDTO {
      * 写作人id集合
      */
     private Set<String> collaborationIds = new HashSet<>();
+
+    /**
+     * 可见负责人id集合（本人及下属，企业视图用）
+     */
+    private Set<String> userIds = new HashSet<>();
 }

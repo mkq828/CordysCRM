@@ -255,13 +255,14 @@ export default function useHiddenTab(type?: TabType) {
       const typeValue = type as keyof typeof tabApiMap;
       const tabApi = tabApiMap[typeValue];
       if (tabApi) {
-        const result = await tabApi();
-        const { all, dept } = result;
-        tabList.value = tabListMap[typeValue].filter((e) => {
-          if (e.name === 'ALL') return !!all;
-          if (e.name === 'DEPARTMENT') return !!dept;
-          return true;
-        }) as TabPaneProps[];
+        // 数据范围收敛为全局「我的 / 企业」开关，列表页不再展示「全部 / 部门」范围 tab
+        await tabApi();
+        tabList.value = [
+          { name: CustomerSearchTypeEnum.ORG, tab: t('common.dataScope.org') },
+          ...tabListMap[typeValue].filter(
+            (e) => e.name !== CustomerSearchTypeEnum.ALL && e.name !== CustomerSearchTypeEnum.DEPARTMENT
+          ),
+        ] as TabPaneProps[];
       } else {
         tabList.value = tabListMap[type];
       }

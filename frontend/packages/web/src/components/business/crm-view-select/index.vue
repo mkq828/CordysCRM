@@ -58,6 +58,7 @@
         :node-props="getNodeProps"
         :menu-props="{ class: 'crm-view-select-menu' }"
         @update:show="setDraggerSort"
+        @update:value="handleSelectChange"
       >
         <template #header>
           <n-button type="primary" text @click="handleAdd">
@@ -183,9 +184,18 @@
     await viewStore.loadCustomViews(props.type);
     if (id) {
       activeTab.value = id;
+      if (id === CustomerSearchTypeEnum.SELF || id === CustomerSearchTypeEnum.ORG) {
+        appStore.setDataScope(id === CustomerSearchTypeEnum.SELF ? 'SELF' : 'ORG');
+      }
     }
     if (refreshTable) {
       emit('refreshTableData');
+    }
+  }
+  // 下拉选择范围视图时同步全局开关
+  function handleSelectChange(val: string) {
+    if (val === CustomerSearchTypeEnum.SELF || val === CustomerSearchTypeEnum.ORG) {
+      appStore.setDataScope(val === CustomerSearchTypeEnum.SELF ? 'SELF' : 'ORG');
     }
   }
   async function handleDeleteOrDisable(id: string) {
@@ -210,12 +220,14 @@
     await viewStore.loadInternalViews(props.type, tabList.value as TabPaneProps[]);
     await viewStore.loadCustomViews(props.type);
     nextTick(async () => {
-      // 如果上一次的值存在则取上一次，不存在就取固定视图的第一个
+      // 业务视图记住上一次选择；范围视图（我的/企业）跟随全局开关
+      const scopeTab = appStore.dataScope === 'SELF' ? CustomerSearchTypeEnum.SELF : CustomerSearchTypeEnum.ORG;
       const lastTab = await viewStore.getActiveView(props.type);
-      if (lastTab && sortData.value.find((item) => item.id === lastTab)) {
+      const isRange = lastTab === CustomerSearchTypeEnum.SELF || lastTab === CustomerSearchTypeEnum.ORG;
+      if (lastTab && !isRange && sortData.value.find((item) => item.id === lastTab)) {
         activeTab.value = lastTab;
       } else {
-        activeTab.value = tags.value[0]?.id;
+        activeTab.value = scopeTab;
       }
     });
   });
@@ -224,6 +236,18 @@
     () => activeTab.value,
     async (val) => {
       viewStore.setActiveView(props.type, val);
+    }
+  );
+
+  // 全局「我的 / 企业」开关变化时，当前处于范围视图则跟随并刷新
+  watch(
+    () => appStore.dataScope,
+    (scope) => {
+      const target = scope === 'SELF' ? CustomerSearchTypeEnum.SELF : CustomerSearchTypeEnum.ORG;
+      if (activeTab.value === CustomerSearchTypeEnum.SELF || activeTab.value === CustomerSearchTypeEnum.ORG) {
+        activeTab.value = target;
+        emit('refreshTableData');
+      }
     }
   );
 

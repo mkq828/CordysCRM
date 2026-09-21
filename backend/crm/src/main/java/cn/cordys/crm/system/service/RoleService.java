@@ -5,6 +5,7 @@ import cn.cordys.aspectj.constants.LogModule;
 import cn.cordys.aspectj.constants.LogType;
 import cn.cordys.aspectj.context.OperationLogContext;
 import cn.cordys.aspectj.dto.LogContextInfo;
+import cn.cordys.common.constants.InternalUser;
 import cn.cordys.common.constants.RoleDataScope;
 import cn.cordys.common.dto.RoleDataScopeDTO;
 import cn.cordys.common.exception.GenericException;
@@ -30,6 +31,7 @@ import cn.cordys.crm.system.mapper.ExtRoleMapper;
 import cn.cordys.crm.system.mapper.ExtUserRoleMapper;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
+import cn.cordys.security.SessionUtils;
 import jakarta.annotation.Resource;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -378,6 +380,19 @@ public class RoleService {
     private List<PermissionDefinitionItem> getPermissionDefinitionItems(Set<String> permissionIds) {
         // 获取所有的权限
         List<PermissionDefinitionItem> permissionDefinitions = getPermissionDefinitions();
+        // 非 admin 用户不可见平台级权限点（注册审核/企业设置/系统日志/License/仪表板/智能体）
+        if (!isAdmin()) {
+            permissionDefinitions = permissionDefinitions.stream()
+                    .filter(item -> !BooleanUtils.isTrue(item.getPlatform()))
+                    .collect(Collectors.toList());
+            for (PermissionDefinitionItem firstLevel : permissionDefinitions) {
+                if (CollectionUtils.isNotEmpty(firstLevel.getChildren())) {
+                    firstLevel.setChildren(firstLevel.getChildren().stream()
+                            .filter(child -> !BooleanUtils.isTrue(child.getPlatform()))
+                            .collect(Collectors.toList()));
+                }
+            }
+        }
         // 设置勾选项
         for (PermissionDefinitionItem firstLevel : permissionDefinitions) {
             List<PermissionDefinitionItem> children = firstLevel.getChildren();
@@ -437,6 +452,44 @@ public class RoleService {
             throw new GenericException(e);
         }
         return permissionDefinitions;
+    }
+
+    /**
+     * 是否平台超管（硬编码 admin 账号）。
+     */
+    private boolean isAdmin() {
+        return InternalUser.ADMIN.getValue().equals(SessionUtils.getUserId());
+    }
+
+    /**
+     * 收集平台级权限点 ID（仅 admin 可见，非 admin 用户不允许勾选/变更）。
+     */
+    private Set<String> getPlatformPermissionIds() {
+        Set<String> ids = new HashSet<>();
+        collectPlatformPermissionIds(getPermissionDefinitions(), ids);
+        return ids;
+    }
+
+    private void collectPlatformPermissionIds(List<PermissionDefinitionItem> items, Set<String> ids) {
+        if (CollectionUtils.isEmpty(items)) {
+            return;
+        }
+        for (PermissionDefinitionItem item : items) {
+            if (BooleanUtils.isTrue(item.getPlatform())) {
+                collectAllPermissionIds(item, ids);
+            } else if (CollectionUtils.isNotEmpty(item.getChildren())) {
+                collectPlatformPermissionIds(item.getChildren(), ids);
+            }
+        }
+    }
+
+    private void collectAllPermissionIds(PermissionDefinitionItem item, Set<String> ids) {
+        if (CollectionUtils.isNotEmpty(item.getPermissions())) {
+            item.getPermissions().forEach(p -> ids.add(p.getId()));
+        }
+        if (CollectionUtils.isNotEmpty(item.getChildren())) {
+            item.getChildren().forEach(child -> collectAllPermissionIds(child, ids));
+        }
     }
 
     /**
@@ -520,6 +573,14 @@ public class RoleService {
     public void updatePermissionSetting(List<PermissionUpdateRequest> permissions, String roleId) {
         if (permissions == null) {
             return;
+        }
+
+        // 非 admin 用户不允许变更平台级权限（防止越权提权）
+        if (!isAdmin()) {
+            Set<String> platformPermissionIds = getPlatformPermissionIds();
+            permissions = permissions.stream()
+                    .filter(p -> !platformPermissionIds.contains(p.getId()))
+                    .collect(Collectors.toList());
         }
 
         // 先删除

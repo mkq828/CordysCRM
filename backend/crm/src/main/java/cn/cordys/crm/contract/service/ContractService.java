@@ -725,7 +725,7 @@ public class ContractService extends BaseExportService implements ApprovalResour
         final Map<String, String> originalVal = new HashMap<>(1);
         originalVal.put("contractStage", stageMap.get(contract.getStage()));
 
-        if (!stageAdvancedConfigService.checkStage(contract.getStage(), request.getStage(), FormKey.CONTRACT.getKey())) {
+        if (!stageAdvancedConfigService.checkStage(contract.getStage(), request.getStage(), FormKey.CONTRACT.getKey(), contract.getOrganizationId())) {
             return;
         }
         contract.setStage(request.getStage());
@@ -993,7 +993,7 @@ public class ContractService extends BaseExportService implements ApprovalResour
             return true;
         }
         try {
-            if (!stageAdvancedConfigService.checkStage(originContract.getStage(), stageField.getFieldValue().toString(), FormKey.CONTRACT.getKey())) {
+            if (!stageAdvancedConfigService.checkStage(originContract.getStage(), stageField.getFieldValue().toString(), FormKey.CONTRACT.getKey(), originContract.getOrganizationId())) {
                 return true;
             }
         } catch (Exception e) {

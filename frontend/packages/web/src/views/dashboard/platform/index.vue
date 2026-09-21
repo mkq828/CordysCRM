@@ -131,6 +131,7 @@
     orgType: string;
     accountCount: string;
     customerCount: string;
+    clueCount: string;
     opportunityCount: string;
     orderCount: string;
     contractAmount: string;
@@ -155,6 +156,7 @@
     { key: 'orgType', label: t('dashboard.platform.orgType'), align: 'left' },
     { key: 'accountCount', label: t('dashboard.platform.accountCount'), align: 'right' },
     { key: 'customerCount', label: t('dashboard.platform.customerCount'), align: 'right' },
+    { key: 'clueCount', label: t('dashboard.platform.clueCount'), align: 'right' },
     { key: 'opportunityCount', label: t('dashboard.platform.opportunityCount'), align: 'right' },
     { key: 'orderCount', label: t('dashboard.platform.orderCount'), align: 'right' },
     { key: 'contractAmount', label: t('dashboard.platform.contractAmount'), align: 'right' },
@@ -175,6 +177,7 @@
       orgType: t(`dashboard.platform.orgType.${row.orgType}`),
       accountCount: fmtCount(row.accountCount),
       customerCount: fmtCount(row.customerCount),
+      clueCount: fmtCount(row.clueCount),
       opportunityCount: fmtCount(row.opportunityCount),
       orderCount: fmtCount(row.orderCount),
       contractAmount: fmtAmount(row.contractAmount),

@@ -96,6 +96,13 @@
             and c.owner = #{userId}
         </if>
 
+        <if test="dataPermission != null and dataPermission.userIds != null and dataPermission.userIds.size() > 0">
+            and c.owner in
+            <foreach collection="dataPermission.userIds" item="uid" open="(" close=")" separator=",">
+                #{uid}
+            </foreach>
+        </if>
+
         <if test="request.keyword != null and request.keyword != ''">
             and c.name like concat('%', #{request.keyword},'%')
         </if>

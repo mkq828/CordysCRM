@@ -27,6 +27,11 @@ public interface ExtPlatformDashboardMapper {
     List<Map<String, Object>> countCustomersGroupByOrg();
 
     /**
+     * 各租户线索数（clue）
+     */
+    List<Map<String, Object>> countCluesGroupByOrg();
+
+    /**
      * 各租户商机数（opportunity）
      */
     List<Map<String, Object>> countOpportunitiesGroupByOrg();

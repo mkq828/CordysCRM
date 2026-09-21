@@ -35,4 +35,10 @@ public class OperationLogResponse implements Serializable {
     @Schema(description = "日志描述")
     private String detail;
 
+    @Schema(description = "链路追踪ID")
+    private String traceId;
+
+    @Schema(description = "客户端IP")
+    private String ip;
+
 }

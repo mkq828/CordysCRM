@@ -26,6 +26,9 @@ public class OrgOverviewRow {
     @Schema(description = "客户数")
     private long customerCount;
 
+    @Schema(description = "线索数")
+    private long clueCount;
+
     @Schema(description = "商机数")
     private long opportunityCount;
 
@@ -47,7 +50,7 @@ public class OrgOverviewRow {
     @Schema(description = "近30天是否有登录")
     private boolean active;
 
-    @Schema(description = "连续使用天数（当前连续活跃天数）")
+    @Schema(description = "连续使用天数（历史最长连续天数）")
     private int usageDays;
 
     @Schema(description = "近30天活跃天数")

@@ -33,7 +33,11 @@ public enum InternalUserView {
     /**
      * 赢单视图
      */
-    OPPORTUNITY_SUCCESS;
+    OPPORTUNITY_SUCCESS,
+    /**
+     * 企业视图（管理员全企业，其余本人及下属）
+     */
+    ORG;
 
     public static final String CURRENT_USER = "CURRENT_USER";
 
@@ -67,5 +71,9 @@ public enum InternalUserView {
 
     public static boolean isVisible(String searchType) {
         return Strings.CS.equals(CUSTOMER_COLLABORATION.name(), searchType);
+    }
+
+    public static boolean isOrg(String searchType) {
+        return Strings.CS.equals(ORG.name(), searchType);
     }
 }

@@ -56,4 +56,19 @@ public class ServletUtils {
 
         return getRequestHost(request);
     }
+
+    /**
+     * 获取客户端 IP，优先取 X-Forwarded-For 首段，否则取 remoteAddr。
+     *
+     * @param request 请求
+     *
+     * @return 客户端 IP
+     */
+    public static String getClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isEmpty()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
 }

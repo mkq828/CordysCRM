@@ -712,7 +712,7 @@ public class OrderService extends BaseExportService implements ApprovalResourceH
             return true;
         }
         try {
-            if (!stageAdvancedConfigService.checkStage(originOrder.getStage(), stageField.getFieldValue().toString(), FormKey.ORDER.getKey())) {
+            if (!stageAdvancedConfigService.checkStage(originOrder.getStage(), stageField.getFieldValue().toString(), FormKey.ORDER.getKey(), originOrder.getOrganizationId())) {
                 return true;
             }
         } catch (Exception e) {
@@ -888,7 +888,7 @@ public class OrderService extends BaseExportService implements ApprovalResourceH
         final Map<String, String> originalVal = new HashMap<>(1);
         originalVal.put("orderStage", stageMap.get(order.getStage()));
 
-        if (!stageAdvancedConfigService.checkStage(order.getStage(), request.getStage(), FormKey.ORDER.getKey())) {
+        if (!stageAdvancedConfigService.checkStage(order.getStage(), request.getStage(), FormKey.ORDER.getKey(), order.getOrganizationId())) {
             return;
         }
         order.setStage(request.getStage());
@@ -1109,7 +1109,7 @@ public class OrderService extends BaseExportService implements ApprovalResourceH
             }
         }
 
-        if (!stageAdvancedConfigService.checkStage(order.getStage(), request.getStage(), FormKey.ORDER.getKey())) {
+        if (!stageAdvancedConfigService.checkStage(order.getStage(), request.getStage(), FormKey.ORDER.getKey(), order.getOrganizationId())) {
             return;
         }
 

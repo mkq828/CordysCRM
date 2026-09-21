@@ -1,10 +1,18 @@
 package cn.cordys.common.response.handler;
 
+import cn.cordys.aspectj.constants.LogModule;
+import cn.cordys.aspectj.constants.LogType;
+import cn.cordys.aspectj.dto.LogDTO;
+import cn.cordys.aspectj.handler.OperationLogHandler;
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.exception.IResultCode;
 import cn.cordys.common.response.result.CrmHttpResultCode;
 import cn.cordys.common.util.ServiceUtils;
+import cn.cordys.common.util.ServletUtils;
 import cn.cordys.common.util.Translator;
+import cn.cordys.context.OrganizationContext;
+import cn.cordys.security.SessionUtils;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +21,7 @@ import org.apache.shiro.UnavailableSecurityManagerException;
 import org.apache.shiro.authz.UnauthorizedException;
 import org.apache.shiro.lang.ShiroException;
 import org.eclipse.jetty.io.EofException;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -35,6 +44,9 @@ import java.util.Map;
 @RestControllerAdvice
 @Slf4j
 public class RestControllerExceptionHandler {
+
+    @Resource
+    private OperationLogHandler operationLogHandler;
 
     /**
      * 处理 NOT_FOUND 异常，拼接资源名称以提供更详细的错误信息。
@@ -144,10 +156,48 @@ public class RestControllerExceptionHandler {
      * @return ResponseEntity 返回响应实体，包含错误信息
      */
     @ExceptionHandler({Exception.class})
-    public ResponseEntity<ResultHolder> handleException(Exception e) {
+    public ResponseEntity<ResultHolder> handleException(HttpServletRequest request, Exception e) {
+        String errorStack = getStackTraceAsString(e);
+        recordExceptionLog(request, e, errorStack);
         return ResponseEntity.internalServerError()
                 .body(ResultHolder.error(CrmHttpResultCode.FAILED.getCode(),
-                        e.getMessage(), getStackTraceAsString(e)));
+                        e.getMessage(), errorStack));
+    }
+
+    /**
+     * 记录系统异常（500 兜底）操作日志，便于按 traceId 排查问题。
+     * 仅真正的未捕获异常会走到这里，业务校验失败（GenericException）不会触发。
+     *
+     * @param request    请求
+     * @param e          异常
+     * @param errorStack 异常堆栈字符串
+     */
+    private void recordExceptionLog(HttpServletRequest request, Exception e, String errorStack) {
+        try {
+            if (operationLogHandler == null) {
+                return;
+            }
+            LogDTO logDTO = new LogDTO();
+            logDTO.setType(LogType.EXCEPTION);
+            logDTO.setModule(LogModule.SYSTEM);
+            logDTO.setResourceId(LogType.EXCEPTION);
+            logDTO.setResourceName(e.getClass().getSimpleName());
+            logDTO.setDetail(e.getMessage());
+            logDTO.setErrorStack(errorStack);
+            logDTO.setTraceId(MDC.get("traceId"));
+            logDTO.setRequestParams(request.getQueryString());
+            logDTO.setUserAgent(ServletUtils.getUserAgent(request));
+            logDTO.setIp(ServletUtils.getClientIp(request));
+            logDTO.setMethod(request.getMethod());
+            logDTO.setPath(request.getRequestURI());
+            logDTO.setCreateUser(SessionUtils.getUserId());
+            logDTO.setOrganizationId(OrganizationContext.getOrganizationId());
+            logDTO.setCreateTime(System.currentTimeMillis());
+            operationLogHandler.handleLog(logDTO);
+        } catch (Exception ex) {
+            // 异常日志落库失败不应影响原异常响应
+            log.warn("记录异常操作日志失败", ex);
+        }
     }
 
     @ExceptionHandler({NoResourceFoundException.class, UnavailableSecurityManagerException.class})

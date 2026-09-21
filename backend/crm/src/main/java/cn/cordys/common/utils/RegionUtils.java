@@ -69,8 +69,10 @@ public class RegionUtils {
             return StringUtils.EMPTY;
         }
 
+        String text = stripChinaPrefix(str.trim());
+
         Queue<String> queue = new LinkedList<>();
-        CollectionUtils.addAll(queue, str.split(SPILT_STR));
+        CollectionUtils.addAll(queue, text.split(SPILT_STR));
         List<RegionCode> regionCodes = getRegionCodes();
         StringBuilder result = new StringBuilder();
 
@@ -89,7 +91,77 @@ public class RegionUtils {
         result.append(SPILT_STR);
         queue.forEach(result::append);
 
-        return result.toString();
+        String mapped = result.toString();
+        // 无"-"分隔的中文地址（如"中国深圳市宝安区"）无法按段匹配，改用贪心最长前缀解析
+        if (nameToCode && StringUtils.isBlank(getCode(mapped))) {
+            String greedy = mappingByNameGreedy(text);
+            if (greedy != null) {
+                return greedy;
+            }
+        }
+        return mapped;
+    }
+
+    /**
+     * 去掉"中国/中华人民共和国"前缀（导入、手填地址常见写法）
+     */
+    private static String stripChinaPrefix(String text) {
+        if (text.startsWith("中华人民共和国")) {
+            return text.substring("中华人民共和国".length());
+        }
+        if (text.startsWith("中国")) {
+            return text.substring("中国".length());
+        }
+        return text;
+    }
+
+    /**
+     * 无"-"分隔的中文地址（如"中国深圳市宝安区"）按行政区划名称贪心最长前缀匹配解析。
+     * 沿行政区划树向下匹配（允许省略中间层级，如"深圳市"直接出现在"广东省"下），
+     * 从而消解同名歧义（如"南山区"同时存在于深圳与鹤岗）；取最深一级编码，剩余文本作为详细地址。
+     */
+    private static String mappingByNameGreedy(String text) {
+        if (StringUtils.isBlank(text)) {
+            return null;
+        }
+        String remaining = text;
+        String deepestCode = null;
+        List<RegionCode> scope = getRegionCodes();
+        while (!remaining.isEmpty()) {
+            RegionCode hit = findLongestNamePrefix(scope, remaining);
+            if (hit == null) {
+                break;
+            }
+            deepestCode = hit.getCode();
+            remaining = remaining.substring(hit.getName().length());
+            scope = hit.getChildren();
+        }
+        if (deepestCode == null) {
+            return null;
+        }
+        return StringUtils.isBlank(remaining) ? deepestCode + SPILT_STR : deepestCode + SPILT_STR + remaining;
+    }
+
+    /**
+     * 在给定节点列表（含后代）中，递归查找名称是 remaining 前缀的最长节点。
+     */
+    private static RegionCode findLongestNamePrefix(List<RegionCode> nodes, String remaining) {
+        if (CollectionUtils.isEmpty(nodes)) {
+            return null;
+        }
+        RegionCode best = null;
+        for (RegionCode node : nodes) {
+            if (StringUtils.isNotBlank(node.getName()) && remaining.startsWith(node.getName())) {
+                if (best == null || node.getName().length() > best.getName().length()) {
+                    best = node;
+                }
+            }
+            RegionCode childBest = findLongestNamePrefix(node.getChildren(), remaining);
+            if (childBest != null && (best == null || childBest.getName().length() > best.getName().length())) {
+                best = childBest;
+            }
+        }
+        return best;
     }
 
     /**

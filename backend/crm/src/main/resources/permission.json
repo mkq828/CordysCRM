@@ -61,6 +61,7 @@
       {
         "id": "SYS_REGISTER_AUDIT",
         "name": "permission.register.audit.name",
+        "platform": true,
         "permissions": [
           {
             "id": "SYS_REGISTER_AUDIT:READ"
@@ -106,6 +107,7 @@
       {
         "id": "SYSTEM_SETTING",
         "name": "permission.system.setting.name",
+        "platform": true,
         "permissions": [
           {
             "id": "SYSTEM_SETTING:READ"
@@ -124,6 +126,7 @@
       {
         "id": "SYSTEM_SETTING",
         "name": "permission.operation.log",
+        "platform": true,
         "permissions": [
           {
             "id": "OPERATION_LOG:READ"
@@ -134,6 +137,7 @@
         "id": "SYSTEM_LICENSE",
         "name": "permission.system.license",
         "license": false,
+        "platform": true,
         "permissions": [
           {
             "id": "LICENSE:READ",
@@ -444,6 +448,7 @@
     "id": "DASHBOARD_MANAGEMENT",
     "name": "permission.dashboard_management.name",
     "license": false,
+    "platform": true,
     "children": [
       {
         "id": "DASHBOARD",
@@ -502,6 +507,7 @@
     "id": "AGENT_MANAGEMENT",
     "name": "permission.agent_management.name",
     "license": false,
+    "platform": true,
     "children": [
       {
         "id": "AGENT",

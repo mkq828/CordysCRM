@@ -31,6 +31,7 @@
         select id, name, type, afoot_roll_back, end_roll_back, circulation_type, pos
         from ${sourceTable}
         where id = #{id}
+          and organization_id = #{orgId}
     </select>
 
 
