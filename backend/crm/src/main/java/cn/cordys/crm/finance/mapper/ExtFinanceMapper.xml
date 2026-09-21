@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.cordys.crm.finance.mapper.ExtFinanceMapper">
+
+    <select id="listContracts" resultType="cn.cordys.crm.finance.dto.FinanceContractRow">
+        select c.id          as contractId,
+               c.name        as contractName,
+               c.number      as contractNumber,
+               c.customer_id as customerId,
+               c.amount      as amount,
+               c.create_time as createTime,
+               cu.name       as customerName,
+               cu.create_time as customerCreateTime,
+               ifnull((
+                   select sum(cpr.record_amount)
+                   from contract_payment_record cpr
+                   where cpr.contract_id = c.id
+                     and cpr.organization_id = #{orgId}
+                     and cpr.verification_status = 'DONE'
+               ), 0) as verifiedAmount
+        from contract c
+        left join customer cu on cu.id = c.customer_id
+        where c.organization_id = #{orgId}
+        <if test="keyword != null and keyword != ''">
+            and (
+                cu.name like concat('%', #{keyword}, '%')
+                or c.name like concat('%', #{keyword}, '%')
+                or c.number like concat('%', #{keyword}, '%')
+            )
+        </if>
+        order by c.create_time desc, c.id asc
+    </select>
+
+    <select id="listPaymentRecords" resultType="cn.cordys.crm.finance.dto.response.FinancePaymentRecordResponse">
+        select id,
+               contract_id,
+               no,
+               name,
+               record_amount,
+               record_end_time,
+               create_time,
+               verification_status,
+               verify_user,
+               verify_time,
+               verify_remark,
+               verify_proof,
+               revoke_user,
+               revoke_time,
+               revoke_remark
+        from contract_payment_record
+        where organization_id = #{orgId}
+          and contract_id in
+        <foreach collection="contractIds" item="contractId" open="(" close=")" separator=",">
+            #{contractId}
+        </foreach>
+        order by record_end_time desc, create_time desc, id desc
+    </select>
+
+</mapper>

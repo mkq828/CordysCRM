@@ -253,6 +253,11 @@ public class PermissionConstants {
 	public static final String CONTRACT_PAYMENT_RECORD_IMPORT = "CONTRACT_PAYMENT_RECORD:IMPORT";
 	public static final String CONTRACT_PAYMENT_RECORD_EXPORT = "CONTRACT_PAYMENT_RECORD:EXPORT";
 
+	/*------ start: FINANCE ------*/
+	public static final String FINANCE_READ = "FINANCE:READ";
+	public static final String FINANCE_VERIFY = "FINANCE:VERIFY";
+	/*------ end: FINANCE ------*/
+
     /*------ start: ORDER_ROLE ------*/
     public static final String ORDER_READ = "ORDER:READ";
     public static final String ORDER_ADD = "ORDER:ADD";

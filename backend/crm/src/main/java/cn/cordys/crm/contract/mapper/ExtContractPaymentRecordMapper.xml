@@ -117,6 +117,7 @@
                 )
             </if>
             where cpr.organization_id = #{orgId}
+            and cpr.verification_status = 'DONE'
             <if test="dataPermission != null and dataPermission.self">
                 and cpr.owner = #{userId}
             </if>
@@ -437,6 +438,7 @@
         from contract_payment_record
         where payment_plan_id = #{paymentPlanId}
           and organization_id = #{orgId}
+          and verification_status = 'DONE'
     </select>
 
     <update id="updateRecord">
@@ -473,6 +475,36 @@
         <where>
             id = #{contractPaymentRecord.id}
         </where>
+    </update>
+
+    <update id="verifyRecord">
+        update contract_payment_record
+        set verification_status = 'DONE',
+            verify_user = #{currentUser},
+            verify_time = #{verifyTime},
+            verify_remark = #{remark},
+            verify_proof = #{proof},
+            revoke_user = null,
+            revoke_time = null,
+            revoke_remark = null,
+            update_user = #{currentUser},
+            update_time = #{verifyTime}
+        where id = #{id}
+    </update>
+
+    <update id="revokeRecord">
+        update contract_payment_record
+        set verification_status = 'PENDING',
+            revoke_user = #{currentUser},
+            revoke_time = #{revokeTime},
+            revoke_remark = #{remark},
+            verify_user = null,
+            verify_time = null,
+            verify_remark = null,
+            verify_proof = null,
+            update_user = #{currentUser},
+            update_time = #{revokeTime}
+        where id = #{id}
     </update>
 
 </mapper>

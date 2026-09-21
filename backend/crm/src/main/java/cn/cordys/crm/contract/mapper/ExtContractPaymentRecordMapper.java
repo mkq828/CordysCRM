@@ -64,4 +64,27 @@ public interface ExtContractPaymentRecordMapper {
      * @return 已回款金额合计
      */
     BigDecimal sumRecordAmountByPaymentPlanId(@Param("paymentPlanId") String paymentPlanId, @Param("orgId") String orgId);
+
+    /**
+     * 回款核销（待核销 -> 已完成）
+     *
+     * @param id          回款记录ID
+     * @param currentUser 核销人
+     * @param verifyTime  核销时间
+     * @param remark      核销备注
+     * @param proof       收款证明附件ID（逗号分隔）
+     */
+    void verifyRecord(@Param("id") String id, @Param("currentUser") String currentUser, @Param("verifyTime") Long verifyTime,
+                      @Param("remark") String remark, @Param("proof") String proof);
+
+    /**
+     * 回款核销撤回（已完成 -> 待核销）
+     *
+     * @param id          回款记录ID
+     * @param currentUser 撤回人
+     * @param revokeTime  撤回时间
+     * @param remark      撤回备注
+     */
+    void revokeRecord(@Param("id") String id, @Param("currentUser") String currentUser, @Param("revokeTime") Long revokeTime,
+                      @Param("remark") String remark);
 }

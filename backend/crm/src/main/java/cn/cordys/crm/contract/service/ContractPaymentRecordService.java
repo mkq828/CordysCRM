@@ -27,6 +27,7 @@ import cn.cordys.common.uid.utils.EnumUtils;
 import cn.cordys.common.util.BeanUtils;
 import cn.cordys.common.util.Translator;
 import cn.cordys.crm.contract.constants.ContractPaymentPlanStatus;
+import cn.cordys.crm.contract.constants.ContractPaymentVerificationStatus;
 import cn.cordys.crm.contract.domain.*;
 import cn.cordys.crm.contract.dto.request.ContractPaymentRecordAddRequest;
 import cn.cordys.crm.contract.dto.request.ContractPaymentRecordPageRequest;
@@ -37,6 +38,8 @@ import cn.cordys.crm.contract.dto.response.ContractPaymentRecordResponse;
 import cn.cordys.crm.contract.dto.response.ContractPaymentRecordStatisticResponse;
 import cn.cordys.crm.contract.dto.response.CustomerPaymentRecordStatisticResponse;
 import cn.cordys.crm.contract.mapper.ExtContractPaymentRecordMapper;
+import cn.cordys.crm.finance.dto.request.FinanceRevokeRequest;
+import cn.cordys.crm.finance.dto.request.FinanceVerifyRequest;
 import cn.cordys.crm.system.constants.ImportType;
 import cn.cordys.crm.system.constants.SheetKey;
 import cn.cordys.crm.system.dto.field.SerialNumberField;
@@ -155,6 +158,7 @@ public class ContractPaymentRecordService extends BaseExportService {
         paymentRecord.setUpdateUser(currentUser);
         paymentRecord.setUpdateTime(System.currentTimeMillis());
         paymentRecord.setOrganizationId(currentOrg);
+        paymentRecord.setVerificationStatus(ContractPaymentVerificationStatus.PENDING.name());
         // 保存自定义字段值&回款记录
         contractPaymentRecordFieldService.saveModuleField(paymentRecord, currentOrg, currentUser, request.getModuleFields(), false);
         contractPaymentRecordMapper.insert(paymentRecord);
@@ -204,6 +208,48 @@ public class ContractPaymentRecordService extends BaseExportService {
         contractPaymentRecordFieldService.deleteByResourceId(id);
         recalculatePaymentPlanStatus(oldRecord.getPaymentPlanId());
         OperationLogContext.setResourceName(oldRecord.getName());
+    }
+
+    /**
+     * 回款核销：待核销 → 已完成，记录核销人/时间/备注/收款证明。
+     *
+     * @param request     核销请求
+     * @param currentUser 当前用户
+     */
+    @OperationLog(module = LogModule.CONTRACT_PAYMENT_RECORD, type = LogType.UPDATE, operator = "{#currentUser}")
+    public void verify(FinanceVerifyRequest request, String currentUser) {
+        ContractPaymentRecord record = contractPaymentRecordMapper.selectByPrimaryKey(request.getId());
+        if (record == null) {
+            throw new GenericException(Translator.get("record.not.exist"));
+        }
+        if (ContractPaymentVerificationStatus.DONE.name().equals(record.getVerificationStatus())) {
+            return;
+        }
+        String proof = CollectionUtils.isEmpty(request.getProofAttachmentIds())
+                ? null : String.join(",", request.getProofAttachmentIds());
+        extContractPaymentRecordMapper.verifyRecord(request.getId(), currentUser, System.currentTimeMillis(), request.getRemark(), proof);
+        recalculatePaymentPlanStatus(record.getPaymentPlanId());
+        OperationLogContext.setResourceName(record.getName());
+    }
+
+    /**
+     * 回款核销撤回：已完成 → 待核销，记录撤回人/时间/备注。
+     *
+     * @param request     撤回请求
+     * @param currentUser 当前用户
+     */
+    @OperationLog(module = LogModule.CONTRACT_PAYMENT_RECORD, type = LogType.UPDATE, operator = "{#currentUser}")
+    public void revoke(FinanceRevokeRequest request, String currentUser) {
+        ContractPaymentRecord record = contractPaymentRecordMapper.selectByPrimaryKey(request.getId());
+        if (record == null) {
+            throw new GenericException(Translator.get("record.not.exist"));
+        }
+        if (ContractPaymentVerificationStatus.PENDING.name().equals(record.getVerificationStatus())) {
+            return;
+        }
+        extContractPaymentRecordMapper.revokeRecord(request.getId(), currentUser, System.currentTimeMillis(), request.getRemark());
+        recalculatePaymentPlanStatus(record.getPaymentPlanId());
+        OperationLogContext.setResourceName(record.getName());
     }
 
     /**

@@ -86,6 +86,11 @@ export enum TenderRouteEnum {
   TENDER_INDEX = 'tenderIndex',
 }
 
+export enum FinanceRouteEnum {
+  FINANCE = 'finance',
+  FINANCE_INDEX = 'financeIndex',
+}
+
 export enum FullPageEnum {
   FULL_PAGE = 'fullPage',
   FULL_PAGE_DASHBOARD = 'fullPageDashboard',

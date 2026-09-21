@@ -39,6 +39,7 @@ export default {
     'menu.agent': 'Agent',
     'menu.custom_form': 'Custom Form',
     'menu.tender': 'Tender',
+    'menu.finance': 'Finance',
     'menu.customForm': 'Custom Form',
     'menu.suggestion': 'Suggestions',
     'menu.settings.businessSetting': 'Enterprise',

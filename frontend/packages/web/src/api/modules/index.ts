@@ -6,6 +6,7 @@ import useContractApi from '@lib/shared/api/modules/contract';
 import useCustomerApi from '@lib/shared/api/modules/customer';
 import useCustomFormApi from '@lib/shared/api/modules/customForm';
 import useDashboard from '@lib/shared/api/modules/dashboard';
+import useFinanceApi from '@lib/shared/api/modules/finance';
 import useFollowApi from '@lib/shared/api/modules/follow';
 import useHomeApi from '@lib/shared/api/modules/home';
 import useOpportunityApi from '@lib/shared/api/modules/opportunity';
@@ -59,6 +60,7 @@ const processApi = useProcessApi(CDR);
 const registerApi = useRegisterApi(CDR);
 const suggestionApi = useSuggestionApi(CDR);
 const platformDashboardApi = usePlatformDashboardApi(CDR);
+const financeApi = useFinanceApi(CDR);
 
 export const {
   addCustomForm,
@@ -974,3 +976,5 @@ export const {
   toggle: registerToggle,
   pendingCount: registerPendingCount,
 } = registerApi;
+
+export const { financeOverview, financePage, financeVerify, financeRevoke } = financeApi;

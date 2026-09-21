@@ -38,6 +38,7 @@ export default {
     'menu.agent': '智能体',
     'menu.custom_form': '自定义表单',
     'menu.tender': '标讯',
+    'menu.finance': '财务',
     'menu.settings.businessSetting': '企业设置',
     'menu.settings.license': 'License',
     'menu.settings.messageSetting': '消息设置',

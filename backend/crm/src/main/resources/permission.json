@@ -719,6 +719,27 @@
     ]
   },
   {
+    "id": "FINANCE_MANAGEMENT",
+    "name": "permission.finance_management.name",
+    "license": false,
+    "children": [
+      {
+        "id": "FINANCE",
+        "name": "permission.finance.name",
+        "permissions": [
+          {
+            "id": "FINANCE:READ",
+            "license": false
+          },
+          {
+            "id": "FINANCE:VERIFY",
+            "license": false
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "ORDER_MANAGEMENT",
     "name": "permission.order_management.name",
     "license": false,
