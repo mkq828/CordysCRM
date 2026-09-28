@@ -48,7 +48,19 @@ public class RegisterApplicationResponse {
     @Schema(description = "开通的用户ID")
     private String userId;
 
-    @Schema(description = "累计使用天数(自开通起)")
+    @Schema(description = "套餐ID")
+    private String planId;
+
+    @Schema(description = "套餐版本(PERSONAL/ENTERPRISE)")
+    private String planVersion;
+
+    @Schema(description = "套餐状态(FREE/ACTIVE/EXPIRED)")
+    private String planStatus;
+
+    @Schema(description = "套餐到期时间(毫秒)")
+    private Long planExpireTime;
+
+    @Schema(description = "累计使用天数(实际登录天数)")
     private Long usageDays;
 
     @Schema(description = "最后一次登录时间")

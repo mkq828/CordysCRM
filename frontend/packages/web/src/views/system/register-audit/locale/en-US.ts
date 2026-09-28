@@ -40,4 +40,10 @@ export default {
   'registerAudit.disableTip': 'Disable this account?',
   'registerAudit.disableTipContent': 'The account will no longer be able to log in; data is kept.',
   'registerAudit.toggleSuccess': 'Operation succeeded',
+  'registerAudit.planStatus': 'Plan Status',
+  'registerAudit.planStatus.free': 'Trial',
+  'registerAudit.open': 'Open',
+  'registerAudit.openTitle': 'Open Plan',
+  'registerAudit.openExpireRequired': 'Please select expire time',
+  'registerAudit.openSuccess': 'Plan opened',
 };

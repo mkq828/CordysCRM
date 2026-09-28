@@ -1,6 +1,7 @@
 package cn.cordys.crm.system.service;
 
 import cn.cordys.common.constants.InternalRole;
+import cn.cordys.common.constants.InternalUser;
 import cn.cordys.common.constants.ThirdConfigTypeConstants;
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.uid.IDGenerator;
@@ -8,6 +9,8 @@ import cn.cordys.common.util.BeanUtils;
 import cn.cordys.common.util.CodingUtils;
 import cn.cordys.common.util.EncryptUtils;
 import cn.cordys.common.util.PasswordUtils;
+import cn.cordys.context.OrganizationContext;
+import cn.cordys.crm.system.constants.NotificationConstants;
 import cn.cordys.crm.system.constants.RegisterResultCode;
 import cn.cordys.crm.system.constants.RegisterType;
 import cn.cordys.crm.system.constants.RegisterVerifyStatus;
@@ -29,6 +32,7 @@ import cn.cordys.crm.system.mapper.ExtRegisterApplicationMapper;
 import cn.cordys.crm.system.mapper.ExtUserMapper;
 import cn.cordys.crm.system.mapper.OrganizationMapper;
 import cn.cordys.crm.system.mapper.RegisterApplicationMapper;
+import cn.cordys.crm.system.notice.CommonNoticeSendService;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
@@ -39,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * 自助注册服务
@@ -91,6 +96,12 @@ public class RegisterService {
 
     @Resource
     private CaptchaService captchaService;
+
+    @Resource
+    private TenantPlanService tenantPlanService;
+
+    @Resource
+    private CommonNoticeSendService commonNoticeSendService;
 
     /**
      * 提交注册申请
@@ -160,6 +171,18 @@ public class RegisterService {
         application.setUpdateUser(phone);
         registerApplicationMapper.insert(application);
 
+        // 企业注册需人工审核：站内信通知平台管理员及时处理（避免企业用户流失）
+        if (enterprise) {
+            commonNoticeSendService.sendNotice(
+                    NotificationConstants.Module.SYSTEM,
+                    NotificationConstants.Event.ENTERPRISE_REGISTER_APPLY,
+                    Map.of("name", application.getName()),
+                    InternalUser.ADMIN.getValue(),
+                    OrganizationContext.DEFAULT_ORGANIZATION_ID,
+                    List.of(InternalUser.ADMIN.getValue()),
+                    false);
+        }
+
         // 个人注册免审：提交即开通账号
         if (!enterprise) {
             openAccount(application, phone);
@@ -201,15 +224,8 @@ public class RegisterService {
      * 分页查询申请单
      */
     public List<RegisterApplicationResponse> pageList(RegisterApplicationPageRequest request) {
-        List<RegisterApplicationResponse> list = extRegisterApplicationMapper.pageList(request);
-        long now = System.currentTimeMillis();
-        for (RegisterApplicationResponse item : list) {
-            // 累计使用天数 = 自审核通过（开通）至今的自然天数，仅已开通账号计算
-            if (RegisterVerifyStatus.APPROVED.getValue().equals(item.getVerifyStatus()) && item.getVerifyTime() != null) {
-                item.setUsageDays(Math.max(0, (now - item.getVerifyTime()) / 86_400_000L));
-            }
-        }
-        return list;
+        // 累计使用天数由 SQL 子查询按 sys_login_log 去重日期统计（实际登录天数），见 ExtRegisterApplicationMapper.pageList
+        return extRegisterApplicationMapper.pageList(request);
     }
 
     /**
@@ -350,6 +366,8 @@ public class RegisterService {
         moduleFormMigrationService.initForm(orgId);
         // 8. 播种阶段配置（否则新建商机/合同/订单会因无阶段配置报错）
         tenantConfigService.initStageConfigs(orgId);
+        // 9. 初始化免费试用套餐（付费用户管理：记录套餐版本与到期时间）
+        tenantPlanService.initFreeTrial(orgId, operatorId);
     }
 
     /**

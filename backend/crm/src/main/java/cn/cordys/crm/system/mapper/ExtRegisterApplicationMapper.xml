@@ -53,9 +53,19 @@
                ra.verify_time,
                ra.create_time,
                ra.user_id,
+               tp.id as plan_id,
+               tp.version as plan_version,
+               tp.status as plan_status,
+               tp.expire_time as plan_expire_time,
                (select max(ll.create_time)
                 from sys_login_log ll
                 where ll.operator = ra.user_id) as last_login_time,
+               (case
+                    when ra.user_id is null then null
+                    else (select count(distinct from_unixtime(ll.create_time / 1000, '%Y-%m-%d'))
+                          from sys_login_log ll
+                          where ll.operator = ra.user_id)
+                end) as usage_days,
                (case
                     when ra.user_id is null then null
                     else (select exists(select 1
@@ -64,7 +74,10 @@
                                           and ou.enable = 1))
                 end) as enabled
         from sys_register_application ra
+                 left join sys_user su on su.id = ra.user_id
+                 left join tenant_plan tp on tp.organization_id = su.last_organization_id
         <where>
+            and (ra.verify_status != 'APPROVED' or tp.status is null or tp.status = 'FREE')
             <if test="request.type != null and request.type != ''">
                 and ra.type = #{request.type}
             </if>

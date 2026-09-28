@@ -40,4 +40,10 @@ export default {
   'registerAudit.disableTip': '确认禁用该账号？',
   'registerAudit.disableTipContent': '禁用后该账号将无法登录，仅保留历史数据。',
   'registerAudit.toggleSuccess': '操作成功',
+  'registerAudit.planStatus': '套餐状态',
+  'registerAudit.planStatus.free': '试用中',
+  'registerAudit.open': '开通',
+  'registerAudit.openTitle': '开通套餐',
+  'registerAudit.openExpireRequired': '请选择到期时间',
+  'registerAudit.openSuccess': '开通成功',
 };

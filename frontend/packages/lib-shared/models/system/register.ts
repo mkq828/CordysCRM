@@ -49,6 +49,10 @@ export interface RegisterAuditItem {
   verifyUser?: string;
   verifyTime?: number;
   userId?: string;
+  planId?: string;
+  planVersion?: string;
+  planStatus?: string;
+  planExpireTime?: number;
   usageDays?: number;
   lastLoginTime?: number;
   enabled?: boolean;

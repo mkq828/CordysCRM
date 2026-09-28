@@ -115,6 +115,45 @@
         </div>
       </template>
     </n-modal>
+
+    <!-- 开通套餐弹窗 -->
+    <n-modal
+      v-model:show="showOpen"
+      preset="card"
+      :title="t('registerAudit.openTitle')"
+      class="w-[480px]"
+      :mask-closable="false"
+    >
+      <div class="flex flex-col gap-[16px]">
+        <div class="flex items-center gap-[12px]">
+          <span class="w-[80px] shrink-0 text-right">{{ t('paidUser.version') }}</span>
+          <CrmSelect v-model:value="openForm.version" :options="openVersionOptions" class="flex-1" />
+        </div>
+        <div class="flex items-center gap-[12px]">
+          <span class="w-[80px] shrink-0 text-right">{{ t('paidUser.expireTime') }}</span>
+          <CrmDatePicker v-model:value="openForm.expireTime" type="datetime" class="flex-1" />
+        </div>
+        <div class="flex items-start gap-[12px]">
+          <span class="w-[80px] shrink-0 pt-[6px] text-right">{{ t('paidUser.remark') }}</span>
+          <n-input
+            v-model:value="openForm.remark"
+            type="textarea"
+            :rows="2"
+            maxlength="255"
+            show-count
+            class="flex-1"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-[12px]">
+          <n-button @click="showOpen = false">{{ t('common.cancel') }}</n-button>
+          <n-button type="primary" :loading="openLoading" @click="confirmOpen">
+            {{ t('common.confirm') }}
+          </n-button>
+        </div>
+      </template>
+    </n-modal>
   </div>
 </template>
 
@@ -137,16 +176,28 @@
   import { PreviewAttachmentUrl } from '@lib/shared/api/requrls/system/module';
   import { SpecialColumnEnum, TableKeyEnum } from '@lib/shared/enums/tableEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
+  import type { Edition } from '@lib/shared/models/system/edition';
   import type { RegisterAuditItem, RegisterType, RegisterVerifyStatus } from '@lib/shared/models/system/register';
+  import type { TenantPlanVersion } from '@lib/shared/models/system/tenant-plan';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
+  import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
   import type { ActionsItem } from '@/components/pure/crm-more-action/type';
+  import CrmSelect from '@/components/pure/crm-select/index.vue';
   import CrmTable from '@/components/pure/crm-table/index.vue';
   import { CrmDataTableColumn } from '@/components/pure/crm-table/type';
   import useTable from '@/components/pure/crm-table/useTable';
   import CrmOperationButton from '@/components/business/crm-operation-button/index.vue';
 
-  import { registerApprove, registerDetail, registerPageList, registerReject, registerToggle } from '@/api/modules';
+  import {
+    editionOptions,
+    registerApprove,
+    registerDetail,
+    registerPageList,
+    registerReject,
+    registerToggle,
+    tenantPlanOpen,
+  } from '@/api/modules';
   import useModal from '@/hooks/useModal';
   import useLicenseStore from '@/store/modules/setting/license';
   import useUserStore from '@/store/modules/user';
@@ -290,8 +341,67 @@
     });
   }
 
+  // 开通套餐
+  const showOpen = ref(false);
+  const openLoading = ref(false);
+  const openForm = ref<{ id: string; version: TenantPlanVersion; expireTime: number | null; remark: string }>({
+    id: '',
+    version: 'BASIC',
+    expireTime: null,
+    remark: '',
+  });
+
+  const openVersionOptions = ref<{ label: string; value: string }[]>([]);
+
+  async function loadEditions() {
+    try {
+      const editions = await editionOptions();
+      openVersionOptions.value = editions.map((e: Edition) => ({ label: e.name, value: e.code }));
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
+  }
+
+  function openPlan(row: RegisterAuditItem) {
+    openForm.value = {
+      id: row.planId || '',
+      version: (row.type === 'ENTERPRISE' ? 'ENTERPRISE' : 'BASIC') as TenantPlanVersion,
+      expireTime: Date.now() + 365 * 24 * 60 * 60 * 1000,
+      remark: '',
+    };
+    showOpen.value = true;
+  }
+
+  async function confirmOpen() {
+    if (!openForm.value.expireTime) {
+      Message.warning(t('registerAudit.openExpireRequired'));
+      return;
+    }
+    openLoading.value = true;
+    try {
+      await tenantPlanOpen({
+        id: openForm.value.id,
+        version: openForm.value.version,
+        expireTime: openForm.value.expireTime,
+        remark: openForm.value.remark.trim(),
+      });
+      Message.success(t('registerAudit.openSuccess'));
+      showOpen.value = false;
+      tableRefreshId.value += 1;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    } finally {
+      openLoading.value = false;
+    }
+  }
+
   function buildActions(row: RegisterAuditItem): ActionsItem[] {
     const list: ActionsItem[] = [{ label: t('registerAudit.detail'), key: 'detail' }];
+    if (row.planStatus === 'FREE') {
+      list.push({ label: t('registerAudit.open'), key: 'open' });
+    }
     if (row.verifyStatus === 'PENDING') {
       list.push(
         { label: t('registerAudit.approve'), key: 'approve' },
@@ -312,6 +422,9 @@
     switch (key) {
       case 'detail':
         openDetail(row);
+        break;
+      case 'open':
+        openPlan(row);
         break;
       case 'approve':
         handleApprove(row);
@@ -378,6 +491,15 @@
           { type: statusTagType(row.verifyStatus), size: 'small' },
           { default: () => statusLabel(row.verifyStatus) }
         ),
+    },
+    {
+      title: t('registerAudit.planStatus'),
+      key: 'planStatus',
+      width: 100,
+      render: (row: RegisterAuditItem) =>
+        row.planStatus === 'FREE'
+          ? h(NTag, { type: 'warning', size: 'small' }, { default: () => t('registerAudit.planStatus.free') })
+          : '-',
     },
     {
       title: t('registerAudit.usageDays'),
@@ -457,6 +579,7 @@
   }
 
   onMounted(() => {
+    loadEditions();
     search();
   });
 </script>
