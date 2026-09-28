@@ -35,4 +35,10 @@ export default {
   'finance.revokeConfirmContent': 'The payment will become pending again after revoke. Continue?',
   'finance.verifyUser': 'Verified By',
   'finance.verifyTime': 'Verified At',
+  'finance.contractName': 'Contract Name',
+  'finance.bankAccount': 'Bank Account',
+  'finance.paymentVoucher': 'Payment Voucher',
+  'finance.bankAccountTypeBankCard': 'Bank card',
+  'finance.bankAccountTypeWechat': 'WeChat',
+  'finance.bankAccountTypeAlipay': 'Alipay',
 };

@@ -101,13 +101,21 @@
                       <span class="flex items-center gap-[6px]">
                         <n-button
                           v-if="record.verificationStatus === 'PENDING'"
+                          v-permission="['FINANCE:VERIFY']"
                           size="tiny"
                           type="primary"
-                          @click.stop="openVerify(record)"
+                          @click.stop="openVerify(record, contract)"
                         >
                           {{ t('finance.verify') }}
                         </n-button>
-                        <n-button v-else size="tiny" quaternary type="error" @click.stop="openRevoke(record)">
+                        <n-button
+                          v-else
+                          v-permission="['FINANCE:VERIFY']"
+                          size="tiny"
+                          quaternary
+                          type="error"
+                          @click.stop="openRevoke(record)"
+                        >
                           {{ t('finance.revoke') }}
                         </n-button>
                       </span>
@@ -131,25 +139,74 @@
 
     <!-- 核销弹窗 -->
     <n-modal v-model:show="verifyModal.show" preset="card" :title="t('finance.verifyTitle')" class="!w-[560px]">
-      <div class="modal-info">
-        <div>{{ t('finance.recordName') }}：{{ verifyModal.record?.name || '-' }}</div>
-        <div>{{ t('finance.recordAmount') }}：{{ fmtMoney(verifyModal.record?.recordAmount) }}</div>
-        <div>{{ t('finance.recordTime') }}：{{ fmtTime(verifyModal.record?.recordEndTime) }}</div>
-      </div>
-      <div class="form-item">
-        <div class="form-label">{{ t('finance.proof') }}</div>
-        <n-upload v-model:file-list="proofFileList" multiple :custom-request="uploadProof" :default-upload="false">
-          <n-button>{{ t('finance.uploadProof') }}</n-button>
-        </n-upload>
-      </div>
-      <div class="form-item">
-        <div class="form-label">{{ t('finance.verifyRemark') }}</div>
-        <n-input
-          v-model:value="verifyModal.remark"
-          type="textarea"
-          :rows="3"
-          :placeholder="t('finance.verifyRemarkPlaceholder')"
-        />
+      <div class="verify-form">
+        <div v-if="verifyModal.contract" class="verify-row">
+          <span class="verify-label">{{ t('finance.contractName') }}：</span>
+          <span class="verify-value">{{ verifyModal.contract.contractName || '-' }}</span>
+        </div>
+        <div v-if="verifyModal.contract" class="verify-row">
+          <span class="verify-label">{{ t('finance.contractAmount') }}：</span>
+          <span class="verify-value">{{ fmtMoney(verifyModal.contract.amount) }}</span>
+        </div>
+        <div v-if="bankAccountText" class="verify-row">
+          <span class="verify-label">{{ t('finance.bankAccount') }}：</span>
+          <span class="verify-value">{{ bankAccountText }}</span>
+        </div>
+        <div class="verify-row">
+          <span class="verify-label">{{ t('finance.recordName') }}：</span>
+          <span class="verify-value">{{ verifyModal.record?.name || '-' }}</span>
+        </div>
+        <div class="verify-row">
+          <span class="verify-label">{{ t('finance.recordAmount') }}：</span>
+          <span class="verify-value">{{ fmtMoney(verifyModal.record?.recordAmount) }}</span>
+        </div>
+        <div class="verify-row">
+          <span class="verify-label">{{ t('finance.recordTime') }}：</span>
+          <span class="verify-value">{{ fmtTime(verifyModal.record?.recordEndTime) }}</span>
+        </div>
+        <div v-if="verifyModal.record?.vouchers?.length" class="verify-row">
+          <span class="verify-label">{{ t('finance.paymentVoucher') }}：</span>
+          <div class="verify-value voucher-list">
+            <div v-for="voucher in verifyModal.record.vouchers" :key="voucher.id" class="voucher-item">
+              <n-image
+                v-if="isImage(voucher.type)"
+                :src="voucherUrl(voucher)"
+                :width="48"
+                :height="48"
+                object-fit="cover"
+                class="voucher-thumb"
+                preview-disabled
+                @click="previewVoucher(voucher)"
+              />
+              <div v-else class="voucher-name">{{ voucher.name }}</div>
+              <n-button v-if="isImage(voucher.type)" size="tiny" text type="primary" @click="previewVoucher(voucher)">
+                {{ t('common.preview') }}
+              </n-button>
+              <n-button size="tiny" text type="primary" @click="downloadVoucher(voucher)">
+                {{ t('common.download') }}
+              </n-button>
+            </div>
+          </div>
+        </div>
+        <div class="verify-row">
+          <span class="verify-label">{{ t('finance.proof') }}：</span>
+          <div class="verify-value">
+            <n-upload v-model:file-list="proofFileList" multiple :custom-request="uploadProof" @remove="removeProof">
+              <n-button>{{ t('finance.uploadProof') }}</n-button>
+            </n-upload>
+          </div>
+        </div>
+        <div class="verify-row verify-row-top">
+          <span class="verify-label">{{ t('finance.verifyRemark') }}：</span>
+          <div class="verify-value">
+            <n-input
+              v-model:value="verifyModal.remark"
+              type="textarea"
+              :rows="3"
+              :placeholder="t('finance.verifyRemarkPlaceholder')"
+            />
+          </div>
+        </div>
       </div>
       <template #footer>
         <div class="flex justify-end gap-[8px]">
@@ -160,21 +217,30 @@
         </div>
       </template>
     </n-modal>
+    <n-image-preview v-model:show="voucherPreview.show" :src="voucherPreview.src" />
 
     <!-- 撤回弹窗 -->
     <n-modal v-model:show="revokeModal.show" preset="card" :title="t('finance.revokeTitle')" class="!w-[480px]">
-      <div class="modal-info">
-        <div>{{ t('finance.recordName') }}：{{ revokeModal.record?.name || '-' }}</div>
-        <div>{{ t('finance.recordAmount') }}：{{ fmtMoney(revokeModal.record?.recordAmount) }}</div>
-      </div>
-      <div class="form-item">
-        <div class="form-label">{{ t('finance.revokeRemark') }}</div>
-        <n-input
-          v-model:value="revokeModal.remark"
-          type="textarea"
-          :rows="3"
-          :placeholder="t('finance.revokeRemarkPlaceholder')"
-        />
+      <div class="verify-form">
+        <div class="verify-row">
+          <span class="verify-label">{{ t('finance.recordName') }}：</span>
+          <span class="verify-value">{{ revokeModal.record?.name || '-' }}</span>
+        </div>
+        <div class="verify-row">
+          <span class="verify-label">{{ t('finance.recordAmount') }}：</span>
+          <span class="verify-value">{{ fmtMoney(revokeModal.record?.recordAmount) }}</span>
+        </div>
+        <div class="verify-row verify-row-top">
+          <span class="verify-label">{{ t('finance.revokeRemark') }}：</span>
+          <div class="verify-value">
+            <n-input
+              v-model:value="revokeModal.remark"
+              type="textarea"
+              :rows="3"
+              :placeholder="t('finance.revokeRemarkPlaceholder')"
+            />
+          </div>
+        </div>
       </div>
       <template #footer>
         <div class="flex justify-end gap-[8px]">
@@ -189,17 +255,46 @@
 </template>
 
 <script setup lang="ts">
-  import { NButton, NEmpty, NInput, NModal, NPagination, NSpin, NTag, NUpload, useMessage } from 'naive-ui';
+  import {
+    NButton,
+    NEmpty,
+    NImage,
+    NImagePreview,
+    NInput,
+    NModal,
+    NPagination,
+    NSpin,
+    NTag,
+    NUpload,
+    useMessage,
+  } from 'naive-ui';
 
-  import type { FinanceCustomerGroup, FinanceOverview, FinancePaymentRecord } from '@lib/shared/api/modules/finance';
+  import type {
+    FinanceContract,
+    FinanceCustomerGroup,
+    FinanceOverview,
+    FinancePaymentRecord,
+  } from '@lib/shared/api/modules/finance';
+  import { PreviewAttachmentUrl } from '@lib/shared/api/requrls/system/module';
+  import { BankAccountTypeEnum } from '@lib/shared/enums/bankAccountEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
+  import { formatTimeValue } from '@lib/shared/method';
 
-  import { financeOverview, financePage, financeRevoke, financeVerify, uploadTempAttachment } from '@/api/modules';
+  import {
+    downloadAttachment,
+    financeOverview,
+    financePage,
+    financeRevoke,
+    financeVerify,
+    uploadTempAttachment,
+  } from '@/api/modules';
+  import useUserStore from '@/store/modules/user';
 
   import type { UploadCustomRequestOptions, UploadFileInfo } from 'naive-ui';
 
   const { t } = useI18n();
   const Message = useMessage();
+  const userStore = useUserStore();
 
   const loading = ref(false);
   const keyword = ref('');
@@ -218,12 +313,8 @@
   }
 
   function fmtTime(ts?: number) {
-    if (!ts) return '-';
-    const d = new Date(ts);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(
-      d.getMinutes()
-    )}`;
+    // 回款时间是 dateType="date" 的日期字段，仅显示到天（与合同列表一致），不拼时分
+    return formatTimeValue(ts ?? '', 'date');
   }
 
   const overviewCards = computed(() => [
@@ -307,19 +398,72 @@
     show: boolean;
     loading: boolean;
     record: FinancePaymentRecord | null;
+    contract: FinanceContract | null;
     remark: string;
   }>({
     show: false,
     loading: false,
     record: null,
+    contract: null,
     remark: '',
   });
   const proofFileList = ref<UploadFileInfo[]>([]);
+  // naive-ui 的 fileList 只保留白名单字段（id/name/status…），自定义字段会被剥离，
+  // 所以上传成功的附件 id 单独用 file.id 做 key 记录，提交时从这里取。
+  const uploadedProofIds = ref<Record<string, string>>({});
+  const voucherPreview = reactive<{ show: boolean; src: string }>({ show: false, src: '' });
 
-  function openVerify(record: FinancePaymentRecord) {
+  function bankAccountTypeLabel(type?: string) {
+    if (type === BankAccountTypeEnum.WECHAT) return t('finance.bankAccountTypeWechat');
+    if (type === BankAccountTypeEnum.ALIPAY) return t('finance.bankAccountTypeAlipay');
+    if (type === BankAccountTypeEnum.BANK_CARD) return t('finance.bankAccountTypeBankCard');
+    return '';
+  }
+
+  const bankAccountText = computed(() => {
+    const { record } = verifyModal;
+    if (!record || (!record.bankAccountName && !record.bankAccountNo)) return '';
+    return [record.bankAccountName, bankAccountTypeLabel(record.bankAccountType), record.bankAccountNo]
+      .filter(Boolean)
+      .join(' · ');
+  });
+
+  function isImage(type?: string) {
+    return /(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(type || '');
+  }
+
+  function voucherUrl(voucher: { id: string }) {
+    return `${PreviewAttachmentUrl}/${voucher.id}?userId=${userStore.userInfo.id}`;
+  }
+
+  function previewVoucher(voucher: { id: string }) {
+    voucherPreview.src = voucherUrl(voucher);
+    voucherPreview.show = true;
+  }
+
+  async function downloadVoucher(voucher: { id: string; name: string }) {
+    try {
+      const res = await downloadAttachment(voucher.id);
+      const url = URL.createObjectURL(new Blob([res], { type: 'application/octet-stream' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = voucher.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
+  }
+
+  function openVerify(record: FinancePaymentRecord, contract: FinanceContract) {
     verifyModal.record = record;
+    verifyModal.contract = contract;
     verifyModal.remark = '';
     proofFileList.value = [];
+    uploadedProofIds.value = {};
     verifyModal.show = true;
   }
 
@@ -327,7 +471,7 @@
     try {
       const res = await uploadTempAttachment(options.file.file as File);
       const [attachmentId] = res.data;
-      (options.file as unknown as { attachmentId?: string }).attachmentId = attachmentId;
+      uploadedProofIds.value[options.file.id] = attachmentId;
       options.onFinish();
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -336,13 +480,15 @@
     }
   }
 
+  function removeProof(options: { file: UploadFileInfo }) {
+    delete uploadedProofIds.value[options.file.id];
+  }
+
   async function submitVerify() {
     if (!verifyModal.record) return;
     verifyModal.loading = true;
     try {
-      const proofAttachmentIds = proofFileList.value
-        .map((f) => (f as unknown as { attachmentId?: string }).attachmentId)
-        .filter(Boolean) as string[];
+      const proofAttachmentIds = Object.values(uploadedProofIds.value).filter(Boolean);
       await financeVerify({
         id: verifyModal.record.id,
         remark: verifyModal.remark || undefined,
@@ -402,16 +548,29 @@
 
 <style lang="less" scoped>
   .finance-page {
-    @apply flex h-full flex-col gap-[12px] p-[16px];
+    display: flex;
+    padding: 16px;
+    height: 100%;
+    flex-direction: column;
+    gap: 12px;
     .overview-grid {
-      @apply grid grid-cols-4 gap-[12px];
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
       .overview-card {
-        @apply rounded-[8px] border border-[var(--text-n8)] bg-[var(--text-n10)] p-[16px];
+        padding: 16px;
+        border: 1px solid var(--text-n8);
+        border-radius: 8px;
+        background-color: var(--text-n10);
         .overview-label {
-          @apply mb-[8px] text-[12px] text-[var(--text-n4)];
+          margin-bottom: 8px;
+          font-size: 12px;
+          color: var(--text-n4);
         }
         .overview-value {
-          @apply text-[20px] font-semibold text-[var(--text-n1)];
+          font-size: 20px;
+          font-weight: 600;
+          color: var(--text-n1);
           &.is-red {
             color: #e5484d;
           }
@@ -419,22 +578,41 @@
       }
     }
     .search-bar {
-      @apply flex items-center gap-[8px];
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     .customer-list {
-      @apply flex flex-col gap-[12px];
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
     .customer-card {
-      @apply overflow-hidden rounded-[8px] border border-[var(--text-n8)] bg-[var(--text-n10)];
+      overflow: hidden;
+      border: 1px solid var(--text-n8);
+      border-radius: 8px;
+      background-color: var(--text-n10);
       .customer-header {
-        @apply flex cursor-pointer items-center justify-between px-[16px] py-[12px];
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        cursor: pointer;
         .customer-name {
-          @apply text-[15px] font-semibold text-[var(--text-n1)];
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--text-n1);
         }
         .customer-amounts {
-          @apply flex items-center gap-[20px] text-[13px] text-[var(--text-n3)];
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          font-size: 13px;
+          color: var(--text-n3);
           b {
-            @apply ml-[6px] font-semibold text-[var(--text-n1)];
+            margin-left: 6px;
+            font-weight: 600;
+            color: var(--text-n1);
             &.is-red {
               color: #e5484d;
             }
@@ -442,23 +620,44 @@
         }
       }
       .contract-list {
-        @apply flex flex-col gap-[8px] border-t border-[var(--text-n8)] bg-[var(--text-n9)] p-[12px];
+        display: flex;
+        padding: 12px;
+        border-top: 1px solid var(--text-n8);
+        background-color: var(--text-n9);
+        flex-direction: column;
+        gap: 8px;
       }
     }
     .contract-card {
-      @apply overflow-hidden rounded-[6px] border border-[var(--text-n8)] bg-[var(--text-n10)];
+      overflow: hidden;
+      border: 1px solid var(--text-n8);
+      border-radius: 6px;
+      background-color: var(--text-n10);
       .contract-header {
-        @apply flex cursor-pointer items-center justify-between px-[16px] py-[10px];
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 16px;
+        cursor: pointer;
         .contract-number {
-          @apply text-[12px] text-[var(--text-n4)];
+          font-size: 12px;
+          color: var(--text-n4);
         }
         .contract-name {
-          @apply text-[14px] font-medium text-[var(--text-n1)];
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-n1);
         }
         .contract-amounts {
-          @apply flex items-center gap-[16px] text-[12px] text-[var(--text-n3)];
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          font-size: 12px;
+          color: var(--text-n3);
           b {
-            @apply ml-[4px] font-semibold text-[var(--text-n1)];
+            margin-left: 4px;
+            font-weight: 600;
+            color: var(--text-n1);
             &.is-red {
               color: #e5484d;
             }
@@ -466,32 +665,85 @@
         }
       }
       .record-table {
-        @apply border-t border-[var(--text-n8)] px-[16px] py-[8px];
+        padding: 8px 16px;
+        border-top: 1px solid var(--text-n8);
         .record-row {
-          @apply grid grid-cols-[100px_1fr_120px_140px_90px_110px] items-center gap-[8px] border-b border-[var(--text-n8)] py-[8px] text-[12px] text-[var(--text-n3)];
+          display: grid;
+          align-items: center;
+          padding: 8px 0;
+          font-size: 12px;
+          border-bottom: 1px solid var(--text-n8);
+          color: var(--text-n3);
+          grid-template-columns: 100px 1fr 120px 140px 90px 110px;
+          gap: 8px;
           &:last-child {
-            @apply border-none;
+            border: none;
           }
           &.record-row-head {
-            @apply text-[var(--text-n4)];
+            color: var(--text-n4);
           }
         }
         .record-empty {
-          @apply py-[16px] text-center text-[12px] text-[var(--text-n4)];
+          padding: 16px 0;
+          font-size: 12px;
+          text-align: center;
+          color: var(--text-n4);
         }
       }
     }
     .pagination-bar {
-      @apply flex justify-end;
+      display: flex;
+      justify-content: flex-end;
     }
-    .modal-info {
-      @apply mb-[12px] flex flex-col gap-[6px] rounded-[6px] bg-[var(--text-n9)] p-[12px] text-[13px] text-[var(--text-n2)];
+  }
+  .verify-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .verify-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    .verify-label {
+      width: 70px;
+      font-size: 13px;
+      text-align: right;
+      color: var(--text-n2);
+      flex-shrink: 0;
     }
-    .form-item {
-      @apply mb-[16px];
-      .form-label {
-        @apply mb-[8px] text-[13px] text-[var(--text-n2)];
+    .verify-value {
+      flex: 1;
+      min-width: 0;
+      font-size: 13px;
+      color: var(--text-n1);
+    }
+    &.verify-row-top {
+      align-items: flex-start;
+      .verify-label {
+        line-height: 34px;
       }
+    }
+  }
+  .voucher-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    .voucher-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .voucher-thumb {
+      overflow: hidden;
+      border-radius: 4px;
+      flex-shrink: 0;
+      cursor: zoom-in;
+    }
+    .voucher-name {
+      font-size: 13px;
+      color: var(--text-n2);
     }
   }
 </style>

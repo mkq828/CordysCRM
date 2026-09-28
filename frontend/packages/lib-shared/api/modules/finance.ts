@@ -30,6 +30,18 @@ export interface FinancePaymentRecord {
   revokeUserName: string;
   revokeTime: number;
   revokeRemark: string;
+  bankAccountName?: string;
+  bankAccountType?: string;
+  bankAccountNo?: string;
+  bankAccountOpeningBank?: string;
+  vouchers?: FinanceAttachment[];
+}
+
+export interface FinanceAttachment {
+  id: string;
+  name: string;
+  type?: string;
+  size?: number;
 }
 
 export interface FinanceContract {

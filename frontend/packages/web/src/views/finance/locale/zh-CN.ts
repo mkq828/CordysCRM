@@ -35,4 +35,10 @@ export default {
   'finance.revokeConfirmContent': '撤回后该回款将重新变为待核销，确定撤回吗？',
   'finance.verifyUser': '核销人',
   'finance.verifyTime': '核销时间',
+  'finance.contractName': '合同名称',
+  'finance.bankAccount': '收款账户',
+  'finance.paymentVoucher': '付款凭证',
+  'finance.bankAccountTypeBankCard': '银行卡',
+  'finance.bankAccountTypeWechat': '微信',
+  'finance.bankAccountTypeAlipay': '支付宝',
 };

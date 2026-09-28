@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 财务回款明细
@@ -13,6 +14,21 @@ public class FinancePaymentRecordResponse {
 
     @Schema(description = "回款记录ID")
     private String id;
+
+    @Schema(description = "收款账户名称")
+    private String bankAccountName;
+
+    @Schema(description = "收款方式(BANK_CARD/微信/支付宝)")
+    private String bankAccountType;
+
+    @Schema(description = "银行账号")
+    private String bankAccountNo;
+
+    @Schema(description = "开户行")
+    private String bankAccountOpeningBank;
+
+    @Schema(description = "付款凭证附件")
+    private List<FinanceAttachmentResponse> vouchers;
 
     @Schema(description = "合同ID")
     private String contractId;
