@@ -2,6 +2,7 @@ package cn.cordys.crm.system.domain;
 
 import cn.cordys.common.domain.BaseModel;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import lombok.Data;
 
@@ -34,4 +35,14 @@ public class Organization extends BaseModel {
 
     @Schema(description = "营业执照附件ID")
     private String businessLicenseAttachmentId;
+
+    @Schema(description = "签约城市经理(永久)")
+    private String signManagerId;
+
+    @Schema(description = "跟进城市经理(可转移)")
+    private String followManagerId;
+
+    @Schema(description = "是否演示租户(1=是,0=否)")
+    @Column(name = "is_demo")
+    private Boolean demo;
 }

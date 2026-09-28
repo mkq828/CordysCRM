@@ -1,5 +1,6 @@
 package cn.cordys.crm.system.service;
 
+import cn.cordys.common.constants.InternalRole;
 import cn.cordys.common.constants.InternalUser;
 import cn.cordys.common.constants.ThirdDetailType;
 import cn.cordys.common.dto.RoleDataScopeDTO;
@@ -17,6 +18,8 @@ import cn.cordys.crm.system.constants.LoginType;
 import cn.cordys.crm.system.constants.OrganizationConfigConstants;
 import cn.cordys.crm.system.domain.*;
 import cn.cordys.crm.system.dto.ThirdAuthConfigDTO;
+import cn.cordys.crm.platform.constants.PlatformCityManagerStatus;
+import cn.cordys.crm.platform.domain.PlatformCityManager;
 import cn.cordys.crm.system.mapper.ExtOrganizationConfigDetailMapper;
 import cn.cordys.crm.system.mapper.ExtOrganizationConfigMapper;
 import cn.cordys.crm.system.mapper.ExtOrganizationMapper;
@@ -85,6 +88,12 @@ public class UserLoginService {
     @Resource
     private CaptchaService captchaService;
 
+    @Resource
+    private TenantPlanService tenantPlanService;
+
+    @Resource
+    private BaseMapper<PlatformCityManager> cityManagerMapper;
+
     /**
      * 用户登录
      *
@@ -115,6 +124,8 @@ public class UserLoginService {
             SessionUser sessionUser = SessionUtils.getUser();
             SessionUtils.putUser(sessionUser);
             recordLoginLog(request);
+            // 单点登录：登记当前会话，踢掉旧会话（同一账号只保留一个有效会话）
+            SessionUtils.recordLogin(sessionUser.getId(), SessionUtils.getSessionId());
 
             return sessionUser;
         } catch (ExcessiveAttemptsException e) {
@@ -122,7 +133,10 @@ public class UserLoginService {
         } catch (LockedAccountException e) {
             throw new LockedAccountException(Translator.get("password_is_incorrect"));
         } catch (DisabledAccountException e) {
-            throw new DisabledAccountException(Translator.get("password_is_incorrect"));
+            // 账号被禁用(checkUserStatus)与套餐到期(checkSubscription)都会抛 DisabledAccountException：
+            // 前者消息已经是「密码错误」，后者是「服务已到期」。这里不能统一覆盖成「密码错误」，
+            // 否则到期账号登录会被误提示成密码错误，用户以为是自己输错了密码。
+            throw new DisabledAccountException(e.getMessage());
         } catch (ExpiredCredentialsException e) {
             throw new ExpiredCredentialsException(Translator.get("password_is_incorrect"));
         } catch (AuthenticationException e) {
@@ -146,9 +160,11 @@ public class UserLoginService {
         UserDTO userDTO = Optional.ofNullable(extUserMapper.selectByPhoneOrEmail(userKey))
                 .orElseThrow(() -> new AuthenticationException(Translator.get("password_is_incorrect")));
 
-        // 非管理员用户需要检查是否被禁用
-        if (!isAdminUser(userDTO.getId())) {
+        // 平台员工（admin/city_manager）跳过租户成员禁用检查；城市经理按员工在职状态校验
+        if (!isPlatformUser(userDTO.getId())) {
             checkUserStatus(userDTO);
+        } else if (hasCityManagerRole(userDTO.getId())) {
+            checkCityManagerStatus(userDTO.getId());
         }
 
         // 获取用户所属组织列表
@@ -156,6 +172,11 @@ public class UserLoginService {
 
         // 确定当前使用的组织ID
         String organizationId = determineOrganizationId(userDTO, orgIds);
+
+        // 平台员工不检查套餐到期（到期禁止登录仅针对付费租户）
+        if (!isPlatformUser(userDTO.getId())) {
+            checkSubscription(userDTO, organizationId);
+        }
 
         // 设置用户权限和角色信息
         setupUserPermissions(userDTO, organizationId, orgIds);
@@ -265,6 +286,30 @@ public class UserLoginService {
     }
 
     /**
+     * 检查租户套餐是否到期（到期禁止登录，保留数据）
+     *
+     * @param organizationId 本次登录使用的组织ID
+     */
+    private void checkSubscription(UserDTO userDTO, String organizationId) {
+        if (StringUtils.isBlank(organizationId)) {
+            return;
+        }
+        TenantPlan plan = tenantPlanService.getByOrganizationId(organizationId);
+        // 无套餐记录（存量老租户未初始化）放行，避免误伤
+        if (plan == null) {
+            return;
+        }
+        if (tenantPlanService.isExpired(plan)) {
+            throw new DisabledAccountException(Translator.get("account.expired"));
+        }
+        // 宽限期内放行登录，仅前端横幅提示
+        if (tenantPlanService.isInGrace(plan)) {
+            userDTO.setPlanInGrace(true);
+            userDTO.setPlanExpireTime(plan.getExpireTime());
+        }
+    }
+
+    /**
      * 设置用户的部门信息
      */
     private void setUserDepartmentInfo(UserDTO userDTO, OrganizationUser orgUser) {
@@ -315,6 +360,11 @@ public class UserLoginService {
         // 管理员可以访问所有组织
         if (isAdminUser(userId)) {
             return extOrganizationMapper.selectAllOrganizationIds();
+        }
+
+        // 城市经理是平台员工，不归属租户组织，挂默认组织避免 OrganizationContext 抛 FORBIDDEN
+        if (hasCityManagerRole(userId)) {
+            return Set.of(OrganizationContext.DEFAULT_ORGANIZATION_ID);
         }
 
         // 普通用户只能访问已授权且启用的组织
@@ -396,6 +446,30 @@ public class UserLoginService {
      */
     private boolean isAdminUser(String userId) {
         return Strings.CS.equals(userId, InternalUser.ADMIN.getValue());
+    }
+
+    /**
+     * 判断是否为平台员工（admin 或城市经理）
+     */
+    private boolean isPlatformUser(String userId) {
+        return isAdminUser(userId) || hasCityManagerRole(userId);
+    }
+
+    /**
+     * 判断用户是否拥有城市经理角色
+     */
+    private boolean hasCityManagerRole(String userId) {
+        return roleService.getRoleIdsByUserId(userId).contains(InternalRole.CITY_MANAGER.getValue());
+    }
+
+    /**
+     * 校验城市经理账号在职状态（离职禁用则禁止登录）
+     */
+    private void checkCityManagerStatus(String userId) {
+        PlatformCityManager manager = cityManagerMapper.selectByPrimaryKey(userId);
+        if (manager != null && PlatformCityManagerStatus.DISABLED.name().equals(manager.getStatus())) {
+            throw new DisabledAccountException(Translator.get("password_is_incorrect"));
+        }
     }
 
     /**

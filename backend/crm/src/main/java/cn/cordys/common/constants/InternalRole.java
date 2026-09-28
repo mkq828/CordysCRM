@@ -11,7 +11,8 @@ import lombok.Getter;
 public enum InternalRole {
     ORG_ADMIN("org_admin"),
     SALES_MANAGER("sales_manager"),
-    SALES_STAFF("sales_staff");
+    SALES_STAFF("sales_staff"),
+    CITY_MANAGER("city_manager");
 
     private final String value;
 
