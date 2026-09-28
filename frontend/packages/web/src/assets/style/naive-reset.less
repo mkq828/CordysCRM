@@ -138,6 +138,11 @@
 .n-button--medium-type {
   height: 32px !important;
 }
+// 按钮按压反馈（苹果风：按下即响应）
+.n-button:not(:disabled):active {
+  transform: scale(0.97);
+  transition: transform 120ms ease-out;
+}
 // 消息框
 .n-message,
 .n-notification,
@@ -359,6 +364,26 @@
     &:active::before {
       background: var(--text-n8);
     }
+  }
+}
+// 弹层 spring 动效（苹果风）
+// 抽屉：iOS 抽屉曲线滑入
+.n-drawer {
+  &.slide-in-from-right-transition-enter-active,
+  &.slide-in-from-left-transition-enter-active,
+  &.slide-in-from-top-transition-enter-active,
+  &.slide-in-from-bottom-transition-enter-active {
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1) !important;
+  }
+}
+// 弹窗：从 0.96 轻放大 + 柔和曲线
+.n-modal {
+  &.fade-in-scale-up-transition-enter-active {
+    transition: opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1), transform 0.3s cubic-bezier(0.32, 0.72, 0, 1) !important;
+  }
+  &.fade-in-scale-up-transition-enter-from,
+  &.fade-in-scale-up-transition-leave-to {
+    transform: scale(0.96) !important;
   }
 }
 // 弹窗的上下比例

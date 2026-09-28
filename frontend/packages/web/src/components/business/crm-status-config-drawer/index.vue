@@ -168,7 +168,7 @@
               :rule="[{ required: true, message: t('common.notNull', { value: t('crmStatusConfigDrawer.field') }) }]"
               class="block flex-1 overflow-hidden"
             >
-              <n-select
+              <CrmSelect
                 v-model:value="item.fieldId"
                 filterable
                 :placeholder="t('common.pleaseSelect')"
@@ -184,7 +184,7 @@
               :path="`circulationFieldValues[${listIndex}].valueType`"
               class="block w-[105px]"
             >
-              <n-select
+              <CrmSelect
                 v-model:value="item.valueType"
                 :options="[
                   {
@@ -205,7 +205,7 @@
               class="block flex-1 overflow-hidden"
             >
               <template v-if="item.fieldProps">
-                <n-date-picker
+                <CrmDatePicker
                   v-if="[FieldTypeEnum.TIME_RANGE_PICKER, FieldTypeEnum.DATE_TIME].includes(item.fieldProps.type)"
                   v-model:value="item.fieldValue"
                   type="datetime"
@@ -261,7 +261,7 @@
                       : t('common.pleaseSelect')
                   "
                 />
-                <n-select
+                <CrmSelect
                   v-else-if="
                     [
                       FieldTypeEnum.SELECT,
@@ -407,12 +407,10 @@
     NButton,
     NCheckbox,
     NDataTable,
-    NDatePicker,
     NForm,
     NFormItem,
     NIcon,
     NInput,
-    NSelect,
     NSwitch,
     NTabPane,
     NTabs,
@@ -432,6 +430,7 @@
   import { initFieldValue } from '@lib/shared/method/formCreate';
   import type { CirculationFieldValueItem, CirculationSetting } from '@lib/shared/models/opportunity';
 
+  import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
   import CrmDrawer from '@/components/pure/crm-drawer/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmIndustrySelect from '@/components/pure/crm-industry-select/index.vue';
@@ -439,6 +438,7 @@
   import CrmModal from '@/components/pure/crm-modal/index.vue';
   import CrmMoreAction from '@/components/pure/crm-more-action/index.vue';
   import type { ActionsItem } from '@/components/pure/crm-more-action/type';
+  import CrmSelect from '@/components/pure/crm-select/index.vue';
   import CrmTag from '@/components/pure/crm-tag/index.vue';
   import CrmTagInput from '@/components/pure/crm-tag-input/index.vue';
   import CrmBatchForm from '@/components/business/crm-batch-form/index.vue';

@@ -90,7 +90,7 @@
               :disabled="isValueDisabled(item)"
               @update:value="valueChange"
             />
-            <n-date-picker
+            <CrmDatePicker
               v-else-if=" ([FieldTypeEnum.TIME_RANGE_PICKER,FieldTypeEnum.DATE_TIME].includes(item.leftFieldType) &&
                             ![OperatorEnum.DYNAMICS, OperatorEnum.FIXED].includes(item.operator as OperatorEnum))"
               v-model:value="item.rightFieldCustomValue"
@@ -241,18 +241,7 @@
 </template>
 
 <script lang="ts" setup>
-  import {
-    FormInst,
-    NButton,
-    NDatePicker,
-    NForm,
-    NFormItem,
-    NIcon,
-    NInput,
-    NSelect,
-    SelectOption,
-    SelectProps,
-  } from 'naive-ui';
+  import { FormInst, NButton, NForm, NFormItem, NIcon, NInput, NSelect, SelectOption, SelectProps } from 'naive-ui';
   import { Add } from '@vicons/ionicons5';
 
   import { OperatorEnum } from '@lib/shared/enums/commonEnum';
@@ -263,6 +252,7 @@
   import { scrollIntoView } from '@lib/shared/method/dom';
 
   import { operatorOptionsMap } from '@/components/pure/crm-advance-filter/index';
+  import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmIndustrySelect from '@/components/pure/crm-industry-select/index.vue';
   import CrmInputNumber from '@/components/pure/crm-input-number/index.vue';

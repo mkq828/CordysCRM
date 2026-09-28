@@ -20,7 +20,7 @@
         path="attributes"
         :label="t('org.attributes')"
       >
-        <n-select
+        <CrmSelect
           v-model:value="form.attributes"
           :placeholder="t('common.pleaseSelect')"
           :options="attributesOptions"
@@ -40,7 +40,7 @@
         path="value"
         :label="t('common.batchUpdate')"
       >
-        <n-select v-model:value="form.value" :placeholder="t('common.pleaseSelect')" :options="valueOptions" />
+        <CrmSelect v-model:value="form.value" :placeholder="t('common.pleaseSelect')" :options="valueOptions" />
       </n-form-item>
       <n-form-item
         v-else-if="form.attributes === 'departmentId'"
@@ -58,6 +58,7 @@
           filterable
           clearable
           children-field="children"
+          :to="'body'"
         />
       </n-form-item>
       <n-form-item
@@ -99,14 +100,14 @@
         path="onboardingDate"
         :label="t('common.batchUpdate')"
       >
-        <n-date-picker
+        <CrmDatePicker
           v-model:value="form.onboardingDate"
           type="date"
           fast-year-select
           fast-month-select
           class="w-full"
         >
-        </n-date-picker>
+        </CrmDatePicker>
       </n-form-item>
     </n-form>
     <template #footer>
@@ -128,10 +129,8 @@
     DataTableRowKey,
     FormInst,
     NButton,
-    NDatePicker,
     NForm,
     NFormItem,
-    NSelect,
     NTreeSelect,
     SelectOption,
     useMessage,
@@ -143,7 +142,9 @@
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import { SelectedUsersItem } from '@lib/shared/models/system/module';
 
+  import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
   import CrmModal from '@/components/pure/crm-modal/index.vue';
+  import CrmSelect from '@/components/pure/crm-select/index.vue';
   import type { CrmTreeNodeData } from '@/components/pure/crm-tree/type';
   import CrmCitySelect from '@/components/business/crm-city-select/index.vue';
   import CrmUserTagSelector from '@/components/business/crm-user-tag-selector/index.vue';

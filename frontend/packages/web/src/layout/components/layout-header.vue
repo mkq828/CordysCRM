@@ -401,7 +401,7 @@
     if (route.name !== WorkbenchRouteEnum.WORKBENCH_BOARD) {
       appStore.initMessage();
     }
-    appStore.connectSystemMessageSSE(userStore.showSystemNotify);
+    appStore.connectSystemMessageSSE();
     userStore.initApiKeyList();
   });
 

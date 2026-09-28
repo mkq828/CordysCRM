@@ -1027,7 +1027,7 @@
               }
             "
           />
-          <n-date-picker
+          <CrmDatePicker
             v-if="fieldConfig.dateDefaultType === 'custom'"
             v-model:value="fieldConfig.defaultValue"
             :type="fieldConfig.dateType"
@@ -1035,7 +1035,7 @@
             fast-month-select
             :disabled="fieldConfig.disabledProps?.includes('defaultValue') || !!fieldConfig.resourceFieldId"
             class="w-full"
-          ></n-date-picker>
+          ></CrmDatePicker>
         </template>
         <CrmUserTagSelector
           v-else-if="[FieldTypeEnum.MEMBER, FieldTypeEnum.MEMBER_MULTIPLE].includes(fieldConfig.type)"
@@ -1440,7 +1440,6 @@
     NButton,
     NCheckbox,
     NCheckboxGroup,
-    NDatePicker,
     NInput,
     NInputGroup,
     NInputGroupLabel,
@@ -1467,6 +1466,7 @@
   import { CustomFormItem } from '@lib/shared/models/customForm';
 
   import CrmColorSelect from '@/components/pure/crm-color-select/index.vue';
+  import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmInputNumber from '@/components/pure/crm-input-number/index.vue';
   import CrmModal from '@/components/pure/crm-modal/index.vue';

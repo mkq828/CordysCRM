@@ -20,7 +20,7 @@
       v-html="props.fieldConfig.description"
     ></div>
     <n-divider v-if="props.isSubTableField && !props.isSubTableRender" class="!my-0" />
-    <n-date-picker
+    <CrmDatePicker
       v-model:value="value"
       :type="props.fieldConfig.dateType"
       fast-year-select
@@ -29,17 +29,19 @@
       :disabled="props.fieldConfig.editable === false || props.disabled || !!props.fieldConfig.resourceFieldId"
       class="w-full"
       :status="props.feedback ? 'error' : undefined"
-      @update-value="($event) => emit('change', $event)"
+      @update-value="($event: number | [number, number] | null) => emit('change', $event)"
     >
-    </n-date-picker>
+    </CrmDatePicker>
   </n-form-item>
 </template>
 
 <script setup lang="ts">
-  import { NDatePicker, NDivider, NFormItem } from 'naive-ui';
+  import { NDivider, NFormItem } from 'naive-ui';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import type { FormConfig } from '@lib/shared/models/system/module';
+
+  import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
 
   import { FormCreateField } from '../../types';
 

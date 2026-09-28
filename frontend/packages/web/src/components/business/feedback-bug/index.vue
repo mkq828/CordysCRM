@@ -27,7 +27,7 @@
         <span class="text-sm">{{ t('feedback.includeScreenshot') }}</span>
         <n-switch v-model:value="includeScreenshot" />
       </div>
-      <div class="text-xs text-gray-400">
+      <div class="text-xs text-orange-500">
         {{ t('feedback.collectedInfo') }}：{{ collected.errors }} {{ t('feedback.errors') }} /
         {{ collected.failedRequests }}
         {{ t('feedback.failedRequests') }}

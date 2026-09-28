@@ -87,4 +87,10 @@ export default {
   'workbench.cancelApprovalSuccess': 'Withdrawn',
   'workbench.approvalStatus': 'Approval status',
   'workbench.quotationStatus': 'Status',
+  'workbench.plan.all': 'All schedules',
+  'workbench.plan.depart': 'Department schedules',
+  'workbench.plan.personal': 'My schedule',
+  'workbench.record.all': 'All records',
+  'workbench.record.depart': 'Department records',
+  'workbench.record.personal': 'My records',
 };

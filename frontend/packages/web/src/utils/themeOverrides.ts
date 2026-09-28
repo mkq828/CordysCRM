@@ -12,7 +12,7 @@ export function getThemeOverrides(): GlobalThemeOverrides {
   return {
     common: {
       fontSize: '14px',
-      borderRadiusSmall: '4px',
+      borderRadiusSmall: '6px',
       borderColor: getLessVariableValue('--text-n7'), // 边框颜色
       primaryColor: getLessVariableValue('--primary-8'), // 主题品牌色
       primaryColorHover: getLessVariableValue('--primary-1'), // 主题hover颜色
@@ -63,9 +63,9 @@ export function getThemeOverrides(): GlobalThemeOverrides {
       invertedColor: 'rgb(0, 20, 40)',
       inputColor: getLessVariableValue('--text-n10'),
       // 盒子投影设置
-      boxShadow1: '0 4px 10px -1px rgba(100, 103, 103, .15)', // 基础投影
-      boxShadow2: '0 4px 15px 2px rgba(100, 103, 103, .1)', // 中层投影
-      boxShadow3: '0 6px 35px 6px rgba(100, 103, 103, .1)', // 上层投影
+      boxShadow1: '0 1px 2px rgba(0, 0, 0, .04), 0 2px 8px rgba(0, 0, 0, .06)', // 基础投影
+      boxShadow2: '0 2px 6px rgba(0, 0, 0, .05), 0 8px 24px rgba(0, 0, 0, .08)', // 中层投影
+      boxShadow3: '0 4px 12px rgba(0, 0, 0, .06), 0 16px 48px rgba(0, 0, 0, .12)', // 上层投影
       heightSmall: '24px',
       heightMedium: '32px',
       heightLarge: '40px',
@@ -209,9 +209,9 @@ export function getThemeOverrides(): GlobalThemeOverrides {
       thColorHoverModal: getLessVariableValue('--text-n10'),
       thColorModal: getLessVariableValue('--text-n10'),
       thFontWeight: 500,
-      tdColorHover: getLessVariableValue('--text-n9'),
+      tdColorHover: getLessVariableValue('--primary-6'),
       tdTextColor: getLessVariableValue('--text-n1'),
-      tdColorHoverModal: getLessVariableValue('--text-n9'),
+      tdColorHoverModal: getLessVariableValue('--primary-6'),
       emptyPadding: '12px',
     },
     Input: {

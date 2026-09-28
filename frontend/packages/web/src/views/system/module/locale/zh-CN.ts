@@ -80,7 +80,7 @@ export default {
   'module.capacitySet.value': '值',
   'module.capacitySet.condition': '判断条件',
   'module.personal.info': '个人信息',
-  'module.personal.plan': '我的计划',
+  'module.personal.plan': '我的日程',
   'module.personal.myExport': '我的导出',
   'module.logout': '退出系统',
   'module.customerFormSetting': '客户表单设置',

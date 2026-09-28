@@ -50,6 +50,7 @@
             filterable
             clearable
             children-field="children"
+            :to="'body'"
           >
             <template #empty>
               <div class="flex w-full items-center justify-start text-[var(--text-n4)]">
@@ -89,7 +90,7 @@
             path="employeeType"
             :label="t('org.employeeType')"
           >
-            <n-select
+            <CrmSelect
               v-model:value="form.employeeType"
               :placeholder="t('common.pleaseSelect')"
               clearable
@@ -130,7 +131,7 @@
             <CrmCitySelect v-model:value="form.workCity" />
           </n-form-item>
           <n-form-item require-mark-placement="left" label-placement="left" path="roleIds" :label="t('org.role')">
-            <n-select
+            <CrmSelect
               v-model:value="form.roleIds"
               multiple
               filterable
@@ -144,14 +145,14 @@
             path="onboardingDate"
             :label="t('org.onboardingDate')"
           >
-            <n-date-picker
+            <CrmDatePicker
               v-model:value="form.onboardingDate"
               type="date"
               fast-year-select
               fast-month-select
               class="w-full"
             >
-            </n-date-picker>
+            </CrmDatePicker>
           </n-form-item>
           <!-- TODO  不上 -->
           <!-- <n-form-item
@@ -160,7 +161,7 @@
             path="userGroupIds"
             :label="t('org.userGroup')"
           >
-            <n-select
+            <CrmSelect
               v-model:value="form.userGroupIds"
               :placeholder="t('common.pleaseSelect')"
               :options="userGroupOptions"
@@ -206,13 +207,11 @@
     FormItemRule,
     FormRules,
     NButton,
-    NDatePicker,
     NForm,
     NFormItem,
     NInput,
     NRadio,
     NRadioGroup,
-    NSelect,
     NSpace,
     NSwitch,
     NTreeSelect,
@@ -225,7 +224,9 @@
   import { validateEmail, validatePhone } from '@lib/shared/method/validate';
   import type { MemberParams } from '@lib/shared/models/system/org';
 
+  import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
   import CrmDrawer from '@/components/pure/crm-drawer/index.vue';
+  import CrmSelect from '@/components/pure/crm-select/index.vue';
   import type { CrmTreeNodeData } from '@/components/pure/crm-tree/type';
   import CrmCitySelect from '@/components/business/crm-city-select/index.vue';
   import CrmExpandButton from '@/components/business/crm-expand-button/index.vue';

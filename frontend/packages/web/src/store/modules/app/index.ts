@@ -114,7 +114,7 @@ const useAppStore = defineStore('app', {
     menuCollapsed: false,
     collapsedWidth: 56,
     // 分页
-    pageSize: 30,
+    pageSize: 20,
     showSizePicker: true,
     showQuickJumper: true,
     loginLoading: false,
@@ -284,7 +284,7 @@ const useAppStore = defineStore('app', {
     /**
      * 连接SSE消息订阅流
      */
-    async connectSystemMessageSSE(callback: () => void) {
+    async connectSystemMessageSSE(callback?: () => void) {
       const userStore = useUserStore();
 
       await this.disconnectSystemMessageSSE();
@@ -302,7 +302,7 @@ const useAppStore = defineStore('app', {
             const data = JSON.parse(event.data);
 
             this.messageInfo = { ...data };
-            callback();
+            callback?.();
           } catch (error) {
             // eslint-disable-next-line no-console
             console.error('SSE Message parsing failure:', error);
@@ -350,9 +350,6 @@ const useAppStore = defineStore('app', {
         this.messageInfo.notificationDTOList = notifications;
         this.messageInfo.announcementDTOList = announcements;
         this.messageInfo.read = !(announcements?.length || notifications?.length);
-
-        const userStore = useUserStore();
-        userStore.showSystemNotify();
       } catch (error) {
         // eslint-disable-next-line no-console
         console.log(error);

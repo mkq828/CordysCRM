@@ -123,6 +123,7 @@
   } from '@/enums/routeEnum';
 
   import { MenuGroupOption, MenuOption } from 'naive-ui/es/menu/src/interface';
+  import type { VNodeChild } from 'vue';
 
   const emit = defineEmits<{
     (e: 'openPersonalInfo', tab: PersonalEnum): void;
@@ -216,6 +217,10 @@
   ]);
 
   function renderLabel(option: MenuOption | MenuGroupOption) {
+    // 展开态菜单名已完整显示，悬浮重复弹文字纯干扰；折叠成图标时才用 tooltip 补全名称
+    if (!collapsed.value) {
+      return option.label as VNodeChild;
+    }
     return h(
       NTooltip,
       {
@@ -275,9 +280,6 @@
     await router.push({ name });
     if (isRequiredExportRoute(key as OpportunityRouteEnum | ClueRouteEnum | CustomerRouteEnum)) {
       initExportPop();
-    }
-    if (!routeItem.name?.toString().includes('system')) {
-      expandedKeys.value = [];
     }
   }
 
@@ -347,8 +349,11 @@
       menuValue.value = hideChildrenRoute.name as (typeof AppRouteEnum)[keyof typeof AppRouteEnum];
     } else {
       menuValue.value = _route.name as (typeof AppRouteEnum)[keyof typeof AppRouteEnum];
-      if (_route.name?.toString().includes('system')) {
-        expandedKeys.value = [AppRouteEnum.SYSTEM];
+      // 进入二级页面时保持所属一级菜单展开（含 system、收费管理等带子菜单的顶级菜单）
+      // matched[0] 即一级菜单 record（实测 matched 只有两级，无根布局层）
+      const topMenuName = _route.matched[0]?.name;
+      if (topMenuName) {
+        expandedKeys.value = [topMenuName as string];
       }
     }
   }

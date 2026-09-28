@@ -28,7 +28,7 @@
     </div>
     <div class="text-[12px] text-[var(--primary-8)]">{{ formattedDateRange }}</div>
   </div>
-  <n-date-picker
+  <CrmDatePicker
     v-else
     v-model:value="fixedValue"
     class="w-full"
@@ -43,12 +43,13 @@
 
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue';
-  import { NDatePicker, NSelect } from 'naive-ui';
+  import { NSelect } from 'naive-ui';
   import dayjs from 'dayjs';
 
   import { OperatorEnum } from '@lib/shared/enums/commonEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
 
+  import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
   import CrmInputNumber from '@/components/pure/crm-input-number/index.vue';
 
   import { timeOptions, unitOptions } from './config';

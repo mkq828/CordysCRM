@@ -83,7 +83,7 @@ export default {
   'module.capacitySet.value': 'Value',
   'module.capacitySet.condition': 'Condition',
   'module.personal.info': 'Personal information',
-  'module.personal.plan': 'My plan',
+  'module.personal.plan': 'My schedule',
   'module.personal.myExport': 'My export',
   'module.logout': 'Exit',
   'module.customerFormSetting': 'Account form set',

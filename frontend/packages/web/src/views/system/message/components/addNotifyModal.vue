@@ -87,7 +87,7 @@
           path="range"
           :label="t('system.message.timeOfPublication')"
         >
-          <n-date-picker
+          <CrmDatePicker
             v-model:value="form.range"
             :default-value="getDefaultRange()"
             class="w-[340px]"
@@ -102,7 +102,7 @@
             <template #separator>
               <div class="text-[var(--text-n4)]">{{ t('common.to') }}</div>
             </template>
-          </n-date-picker>
+          </CrmDatePicker>
         </n-form-item>
         <n-form-item
           require-mark-placement="left"
@@ -122,18 +122,7 @@
 </template>
 
 <script lang="ts" setup>
-  import {
-    FormInst,
-    FormItemRule,
-    FormRules,
-    NButton,
-    NDatePicker,
-    NForm,
-    NFormItem,
-    NInput,
-    NTooltip,
-    useMessage,
-  } from 'naive-ui';
+  import { FormInst, FormItemRule, FormRules, NButton, NForm, NFormItem, NInput, NTooltip, useMessage } from 'naive-ui';
   import { cloneDeep } from 'lodash-es';
 
   import { MemberApiTypeEnum, MemberSelectTypeEnum } from '@lib/shared/enums/moduleEnum';
@@ -141,6 +130,7 @@
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import type { AnnouncementSaveParams } from '@lib/shared/models/system/message';
 
+  import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
   import CrmModal from '@/components/pure/crm-modal/index.vue';
   import CrmPopConfirm from '@/components/pure/crm-pop-confirm/index.vue';
   import type { Option } from '@/components/business/crm-select-user-drawer/type';
@@ -179,9 +169,10 @@
     if (!value) {
       return new Error(t('common.notNull', { value: `${t('system.message.timeOfPublication')}` }));
     }
-    const [start, end] = value;
+    const [, end] = value;
     const now = Date.now();
-    if (Number(start) < now || Number(end) < now) {
+    // 发布即推送：开始时间允许等于/略早于当前，仅要求结束时间在未来
+    if (Number(end) < now) {
       return new Error(t('common.dateCannotBeInPast'));
     }
     return true;
@@ -269,7 +260,7 @@
 
   const getDefaultRange = () => {
     const now = Date.now();
-    return [now + 5 * 60 * 1000, now + 24 * 60 * 60 * 1000] as [number, number];
+    return [now, now + 24 * 60 * 60 * 1000] as [number, number];
   };
 
   async function getDetail() {

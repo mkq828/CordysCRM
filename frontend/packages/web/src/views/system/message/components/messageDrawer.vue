@@ -54,13 +54,13 @@
         <div class="mb-[16px] flex items-center justify-between">
           <div class="flex items-center gap-[8px]">
             <CrmSearchInput v-model:value="keyword" class="!w-[240px]" @search="searchData" />
-            <n-select
+            <CrmSelect
               v-model:value="timeDays"
               class="w-[180px]"
               :options="selectTimeOptions"
               @update:value="changeHandler"
             />
-            <n-date-picker
+            <CrmDatePicker
               v-if="timeDays === 'custom'"
               v-model:value="range"
               class="w-[240px]"
@@ -75,7 +75,7 @@
               <template #separator>
                 <div class="text-[var(--text-n4)]">{{ t('common.to') }}</div>
               </template>
-            </n-date-picker>
+            </CrmDatePicker>
           </div>
         </div>
         <CrmMessageList
@@ -93,7 +93,7 @@
 
 <script lang="ts" setup>
   import { useRouter } from 'vue-router';
-  import { NButton, NDatePicker, NDivider, NSelect, NSwitch, SelectOption } from 'naive-ui';
+  import { NButton, NDivider, NSwitch, SelectOption } from 'naive-ui';
   import dayjs from 'dayjs';
 
   import {
@@ -104,8 +104,10 @@
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import type { MessageCenterSubsetParams } from '@lib/shared/models/system/message';
 
+  import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
   import CrmDrawer from '@/components/pure/crm-drawer/index.vue';
   import CrmSearchInput from '@/components/pure/crm-search-input/index.vue';
+  import CrmSelect from '@/components/pure/crm-select/index.vue';
   import CrmTab from '@/components/pure/crm-tab/index.vue';
   import CrmMessageList from '@/components/business/crm-message-list/index.vue';
 

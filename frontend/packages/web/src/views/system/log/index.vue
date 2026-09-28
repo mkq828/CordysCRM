@@ -35,7 +35,7 @@
           />
         </n-form-item>
         <n-form-item :label="t('log.operationTime')" path="time">
-          <n-date-picker
+          <CrmDatePicker
             v-model:value="form.time"
             type="datetimerange"
             fast-year-select
@@ -132,17 +132,7 @@
 </template>
 
 <script setup lang="ts">
-  import {
-    CascaderOption,
-    NButton,
-    NCascader,
-    NDatePicker,
-    NForm,
-    NFormItem,
-    NInput,
-    NScrollbar,
-    NSelect,
-  } from 'naive-ui';
+  import { CascaderOption, NButton, NCascader, NForm, NFormItem, NInput, NScrollbar, NSelect } from 'naive-ui';
   import dayjs from 'dayjs';
 
   import { FieldTypeEnum, FormDesignKeyEnum } from '@lib/shared/enums/formDesignEnum';
@@ -159,6 +149,7 @@
   } from '@lib/shared/models/system/log';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
+  import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
   import CrmDrawer from '@/components/pure/crm-drawer/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmTab from '@/components/pure/crm-tab/index.vue';

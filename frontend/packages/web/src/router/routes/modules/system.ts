@@ -20,6 +20,7 @@ const system: AppRouteRecordRaw = {
       'PROCESS_SETTING:READ',
       'SYS_REGISTER_AUDIT:READ',
       'BUG_REPORT:READ',
+      'PAID_USER:READ',
     ],
     icon: 'iconicon_set_up',
     collapsedLocale: 'menu.collapsedSettings',
@@ -128,6 +129,24 @@ const system: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.settings.bugReport',
         permissions: ['BUG_REPORT:READ'],
+      },
+    },
+    {
+      path: 'paid-user',
+      name: SystemRouteEnum.SYSTEM_PAID_USER,
+      component: () => import('@/views/system/paid-user/index.vue'),
+      meta: {
+        locale: 'menu.settings.paidUser',
+        permissions: ['PAID_USER:READ'],
+      },
+    },
+    {
+      path: 'edition',
+      name: SystemRouteEnum.SYSTEM_EDITION,
+      component: () => import('@/views/system/edition/index.vue'),
+      meta: {
+        locale: 'menu.settings.edition',
+        permissions: ['PAID_USER:READ'],
       },
     },
   ],
