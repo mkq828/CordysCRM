@@ -8,30 +8,43 @@ import type { ApiKeyItem } from '@lib/shared/models/system/business';
 import type { LoginParams } from '@lib/shared/models/system/login';
 import type { UserInfo } from '@lib/shared/models/user';
 
-import NotifyContent from '@/views/system/message/components/notifyContent.vue';
-
 import { getApiKeyList, isLogin, login, signout } from '@/api/modules';
-import useDiscreteApi from '@/hooks/useDiscreteApi';
 import useUser from '@/hooks/useUser';
 import router from '@/router';
+import { NO_RESOURCE_ROUTE_NAME, NO_RESOURCE_ROUTE_NAME_INDEX } from '@/router/constants';
 import useAppStore from '@/store/modules/app/index';
 import useLicenseStore from '@/store/modules/setting/license';
 import { getFirstRouteNameByPermission, hasAnyPermission } from '@/utils/permission';
-
-import type { NotificationOptions, NotificationReactive } from 'naive-ui';
-
-const { notification } = useDiscreteApi();
 
 export interface UserState {
   loginType: string[];
   userInfo: UserInfo;
   clientIdRandomId: string; // 客户端随机id
-  notify: NotificationReactive | null;
   apiKeyList: ApiKeyItem[];
 }
 
 const useUserStore = defineStore('user', {
-  persist: true,
+  persist: {
+    // planInGrace / planExpireTime 是「本次登录时」的临时状态，由 /is-login、/login 每次实时返回。
+    // 持久化会导致：账号从「宽限期」变成「已停用」后，localStorage 里的旧 planInGrace=true 仍然在，
+    // 刷新时宽限期弹窗照弹，和「服务已到期」同时出现（两种互斥状态重复提示）。
+    // 这里在序列化/反序列化两侧都把这两个字段剥掉，只保留真正需要落盘的字段。
+    serializer: {
+      serialize(state) {
+        const userInfo = state.userInfo as UserInfo;
+        const { planInGrace: _g, planExpireTime: _e, ...rest } = userInfo;
+        return JSON.stringify({ ...state, userInfo: rest });
+      },
+      deserialize(value) {
+        const parsed = JSON.parse(value);
+        if (parsed?.userInfo) {
+          const { planInGrace: _g, planExpireTime: _e, ...rest } = parsed.userInfo;
+          parsed.userInfo = rest;
+        }
+        return parsed;
+      },
+    },
+  },
   state: (): UserState => ({
     loginType: [],
     userInfo: {
@@ -60,13 +73,15 @@ const useUserStore = defineStore('user', {
       defaultPwd: true,
     },
     clientIdRandomId: '',
-    notify: null,
     apiKeyList: [],
   }),
 
   getters: {
     isAdmin(state: UserState) {
       return state.userInfo.id === 'admin';
+    },
+    isCityManager(state: UserState) {
+      return state.userInfo.roles.some((e: any) => e?.id === 'city_manager');
     },
     getScopedValue(state: UserState) {
       const hasAllScopedData = state.userInfo.roles.some((e: any) => e?.dataScope === 'ALL');
@@ -111,7 +126,6 @@ const useUserStore = defineStore('user', {
       }
       licenseStore.resetLicenseValidation();
       appStore.disconnectSystemMessageSSE();
-      this.destroySystemNotify();
       // 重置用户信息
       this.$reset();
       clearToken();
@@ -189,30 +203,22 @@ const useUserStore = defineStore('user', {
         if (isLoginPage()) {
           const currentRouteName = getFirstRouteNameByPermission(router.getRoutes());
           await router.push({ name: currentRouteName });
+        } else if (
+          router.currentRoute.value.name === NO_RESOURCE_ROUTE_NAME ||
+          router.currentRoute.value.name === NO_RESOURCE_ROUTE_NAME_INDEX
+        ) {
+          // 权限刷新后仍停留在「暂无资源权限」页：通常是路由守卫在 /is-login 刷新权限前
+          // 用了 localStorage 里的旧 permissionIds 误判（新增权限点后旧会话缓存过期）。
+          // 这里按最新权限纠正到有权限的首页，避免刷新后卡在无权限页。
+          const currentRouteName = getFirstRouteNameByPermission(router.getRoutes());
+          await router.push({ name: currentRouteName });
         }
       } else if (!isLoginPage()) {
+        // 校验失败（token 失效 / 账号硬到期被停用）时同步清掉本地 token 再跳登录页：
+        // 否则路由守卫「已登录访问 login」分支会因 token 仍在而把跳转弹回原页面，
+        // 导致硬到期后刷新仍停留在工作台。
+        clearToken();
         router.push({ name: 'login' });
-      }
-    },
-    // 展示系统公告
-    showSystemNotify() {
-      const appStore = useAppStore();
-      if (appStore.messageInfo.announcementDTOList?.length) {
-        this.notify = notification.create({
-          title: '',
-          content: () => {
-            return h(NotifyContent, {
-              onClose: () => this.destroySystemNotify(),
-            });
-          },
-          duration: undefined,
-          maxCount: 1,
-        } as NotificationOptions);
-      }
-    },
-    destroySystemNotify() {
-      if (typeof this.notify?.destroy === 'function') {
-        this.notify?.destroy();
       }
     },
     async initApiKeyList() {

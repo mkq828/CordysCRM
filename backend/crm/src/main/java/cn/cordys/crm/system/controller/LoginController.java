@@ -3,6 +3,7 @@ package cn.cordys.crm.system.controller;
 import cn.cordys.common.constants.UserSource;
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.request.LoginRequest;
+import cn.cordys.common.response.result.CrmHttpResultCode;
 import cn.cordys.common.util.Translator;
 import cn.cordys.common.util.rsa.RsaKey;
 import cn.cordys.common.util.rsa.RsaUtils;
@@ -47,6 +48,11 @@ public class LoginController {
     public SessionUser isLogin(HttpServletRequest httpServletRequest,
                                HttpServletResponse httpServletResponse) {
         SessionUser sessionUser = refreshSessionUser();
+        if (sessionUser == null && SessionUtils.isKickedRequest(httpServletRequest)) {
+            // 单点登录：会话被新登录顶掉后，/is-login 走 anon 链不经过 CsrfFilter，刷新会拿到空的 200，
+            // 前端因此静默跳登录页看不到「已在其他设备登录」提示。这里补一次被踢检测，抛 401 + code 100461。
+            throw new GenericException(CrmHttpResultCode.KICKED_OUT);
+        }
         if (sessionUser != null) {
             FileAccessTokenUtils.setAccessCookie(httpServletResponse, sessionUser.getId(), httpServletRequest.isSecure());
         }

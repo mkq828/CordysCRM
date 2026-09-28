@@ -13,7 +13,7 @@ export default function useUser() {
   const logout = async (logoutTo?: string, noRedirect?: boolean, silence = false) => {
     try {
       const userStore = useUserStore();
-      await userStore.logout();
+      await userStore.logout(silence);
       const { message } = useDiscreteApi();
       const currentRoute = router.currentRoute.value;
       if (!silence) {

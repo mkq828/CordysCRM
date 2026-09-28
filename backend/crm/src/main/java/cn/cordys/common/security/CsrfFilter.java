@@ -1,7 +1,9 @@
 package cn.cordys.common.security;
 
+import cn.cordys.common.response.result.CrmHttpResultCode;
 import cn.cordys.common.util.CodingUtils;
 import cn.cordys.common.util.CommonBeanFactory;
+import cn.cordys.common.util.Translator;
 import cn.cordys.security.SessionConstants;
 import cn.cordys.security.SessionUser;
 import cn.cordys.security.SessionUtils;
@@ -17,6 +19,8 @@ import org.apache.shiro.web.filter.authc.AnonymousFilter;
 import org.apache.shiro.web.util.WebUtils;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
+
+import java.io.IOException;
 
 import static cn.cordys.security.SessionUser.getRandomAlphabetic;
 
@@ -43,7 +47,15 @@ public class CsrfFilter extends AnonymousFilter {
 
         // 如果用户未认证，返回认证无效状态
         if (!SecurityUtils.getSubject().isAuthenticated()) {
-            ((HttpServletResponse) response).setHeader(SessionConstants.AUTHENTICATION_STATUS, SessionConstants.AUTHENTICATION_INVALID);
+            HttpServletResponse httpResponse = (HttpServletResponse) response;
+            // 单点登录：旧会话被新登录踢掉后，残留请求走到这里。从 CSRF token 解密出 userId，
+            // 若该用户存在被踢标记，则直接返回 401 + code 100461，前端弹「该账号已在其他设备登录」。
+            String kickedUserId = decryptCsrfUserId(httpServletRequest);
+            if (kickedUserId != null && SessionUtils.isKicked(kickedUserId)) {
+                writeKickedResponse(httpResponse);
+                return false;
+            }
+            httpResponse.setHeader(SessionConstants.AUTHENTICATION_STATUS, SessionConstants.AUTHENTICATION_INVALID);
             return true;
         }
 
@@ -135,6 +147,50 @@ public class CsrfFilter extends AnonymousFilter {
         if (!Strings.CS.equals(SessionUtils.getSessionId(), signatureArray[2]) &&
                 !Strings.CS.equals(xAuthToken, signatureArray[2])) {
             throw new RuntimeException("CSRF token does not match the current session");
+        }
+    }
+
+    /**
+     * 从 CSRF token 解密出 userId（用于单点登录被踢检测）。
+     * 解密失败（匿名请求、非法 token）时静默返回 null，避免影响正常未认证流程。
+     *
+     * @param request HttpServletRequest
+     *
+     * @return userId，无法解析时返回 null
+     */
+    private String decryptCsrfUserId(HttpServletRequest request) {
+        String csrfToken = request.getHeader(SessionConstants.CSRF_TOKEN);
+        if (StringUtils.isBlank(csrfToken)) {
+            return null;
+        }
+        try {
+            String decrypted = CodingUtils.aesDecrypt(csrfToken, SessionUser.secret, CodingUtils.generateIv());
+            String[] parts = StringUtils.split(StringUtils.trimToNull(decrypted), "|");
+            if (parts != null && parts.length >= 1) {
+                return parts[0];
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 单点登录被踢：写死 HTTP 401 + body code=100461（不走异常处理器，避免 code%1000 把状态码映射成 461）。
+     *
+     * @param response HttpServletResponse
+     */
+    private void writeKickedResponse(HttpServletResponse response) {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json;charset=UTF-8");
+        response.setHeader(SessionConstants.AUTHENTICATION_STATUS, SessionConstants.AUTHENTICATION_INVALID);
+        String body = "{\"code\":" + CrmHttpResultCode.KICKED_OUT.getCode()
+                + ",\"message\":\"" + Translator.get("account.kicked.other.device") + "\"}";
+        try {
+            response.getWriter().write(body);
+        } catch (IOException e) {
+            // 响应写入失败不抛异常，避免掩盖被踢语义
         }
     }
 }

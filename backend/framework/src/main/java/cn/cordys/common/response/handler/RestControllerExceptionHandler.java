@@ -139,7 +139,12 @@ public class RestControllerExceptionHandler {
             if (errorCode.equals(CrmHttpResultCode.NOT_FOUND)) {
                 message = getNotFoundMessage(message);
             }
-            return ResponseEntity.status(code % 1000)
+            // 单点登录被踢：HTTP 状态码固定 401，不能按 code%1000 映射成 461。
+            // 前端 401 分支靠 body 里的 code=100461 区分「该账号已在其他设备登录」文案。
+            int httpStatus = errorCode.equals(CrmHttpResultCode.KICKED_OUT)
+                    ? HttpStatus.UNAUTHORIZED.value()
+                    : code % 1000;
+            return ResponseEntity.status(httpStatus)
                     .body(ResultHolder.error(code, message, e.getMessage()));
         } else {
             // 其他类型的错误，返回 500 状态码

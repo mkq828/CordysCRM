@@ -1,15 +1,20 @@
 package cn.cordys.security;
 
+import cn.cordys.common.util.CodingUtils;
 import cn.cordys.common.util.CommonBeanFactory;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.data.redis.RedisIndexedSessionRepository;
 
+import java.time.Duration;
 import java.util.Map;
 
 import static cn.cordys.security.SessionConstants.ATTR_USER;
@@ -23,6 +28,15 @@ import static cn.cordys.security.SessionConstants.ATTR_USER;
  */
 @Slf4j
 public class SessionUtils {
+
+    /** 单点登录：当前会话映射 Redis key 前缀（userId -> 当前 sessionId） */
+    private static final String SESSION_CURRENT_KEY_PREFIX = "cordys:session:current:";
+    /** 单点登录：被踢标记 Redis key 前缀（userId -> 旧会话已被踢） */
+    private static final String SESSION_KICKED_KEY_PREFIX = "cordys:session:kicked:";
+    /** 当前会话映射 TTL（秒），对齐 session 超时 */
+    private static final long SESSION_CURRENT_TTL_SECONDS = 43200;
+    /** 被踢标记 TTL（秒），对齐 session 超时：旧会话被踢后，只要仍在会话生命周期内，任何残留请求都应提示「已在其他设备登录」而非通用的「没权限令牌」 */
+    private static final long SESSION_KICKED_TTL_SECONDS = 43200;
 
     /**
      * 获取当前用户的 ID。
@@ -144,5 +158,88 @@ public class SessionUtils {
         // indexed 模式下 findByPrincipalName 只返回未过期、仍在 principal 索引里的 Session
         Map<String, ?> sessions = repo.findByPrincipalName(userId);
         return MapUtils.isNotEmpty(sessions);
+    }
+
+    /**
+     * 单点登录：登录成功后记录「userId -> 当前 sessionId」，并踢掉旧会话。
+     * <p>
+     * 同一账号只能保持一个有效会话：若已存在旧会话且不等于当前会话，则删除旧会话并写入「被踢」标记，
+     * 旧会话残留的请求会因此走未认证分支并被 {@link #isKicked(String)} 识别为被踢下线。
+     * </p>
+     *
+     * @param userId           用户 ID（SessionUser.id）
+     * @param currentSessionId 当前登录产生的 sessionId
+     */
+    public static void recordLogin(String userId, String currentSessionId) {
+        if (StringUtils.isBlank(userId) || StringUtils.isBlank(currentSessionId)) {
+            return;
+        }
+        StringRedisTemplate redis = CommonBeanFactory.getBean(StringRedisTemplate.class);
+        if (redis == null) {
+            return;
+        }
+        String currentKey = SESSION_CURRENT_KEY_PREFIX + userId;
+        String oldSessionId = redis.opsForValue().get(currentKey);
+        if (StringUtils.isNotBlank(oldSessionId) && !oldSessionId.equals(currentSessionId)) {
+            // 精确删除旧会话（按 sessionId，避免误删刚登录的当前会话）
+            RedisIndexedSessionRepository repo = CommonBeanFactory.getBean(RedisIndexedSessionRepository.class);
+            if (repo != null) {
+                repo.deleteById(oldSessionId);
+                repo.getSessionRedisOperations().delete("spring:session:sessions:" + oldSessionId);
+            }
+            // 写被踢标记，供 CsrfFilter 识别旧会话并返回「该账号已在其他设备登录」
+            redis.opsForValue().set(SESSION_KICKED_KEY_PREFIX + userId, "1",
+                    Duration.ofSeconds(SESSION_KICKED_TTL_SECONDS));
+        }
+        redis.opsForValue().set(currentKey, currentSessionId, Duration.ofSeconds(SESSION_CURRENT_TTL_SECONDS));
+    }
+
+    /**
+     * 单点登录：判断指定用户是否已被踢下线（存在「被踢」标记）。
+     *
+     * @param userId 用户 ID
+     *
+     * @return true 表示该用户存在被踢标记（旧会话已被新登录会话顶掉）
+     */
+    public static boolean isKicked(String userId) {
+        if (StringUtils.isBlank(userId)) {
+            return false;
+        }
+        StringRedisTemplate redis = CommonBeanFactory.getBean(StringRedisTemplate.class);
+        if (redis == null) {
+            return false;
+        }
+        return Boolean.TRUE.equals(redis.hasKey(SESSION_KICKED_KEY_PREFIX + userId));
+    }
+
+    /**
+     * 单点登录：判断当前请求携带的是否是「已被踢下线」的旧会话凭据。
+     * <p>
+     * /is-login 走 anon 过滤器链，不经过 {@link cn.cordys.common.security.CsrfFilter}，且旧会话已被删除、
+     * Shiro Subject 拿不到 userId。这里从 CSRF token 解密出 userId 再查被踢标记，供登录态校验接口补一次被踢检测。
+     * </p>
+     *
+     * @param request HttpServletRequest
+     *
+     * @return true 表示该请求携带的是已被新登录会话顶掉的旧凭据
+     */
+    public static boolean isKickedRequest(HttpServletRequest request) {
+        if (request == null) {
+            return false;
+        }
+        String csrfToken = request.getHeader(SessionConstants.CSRF_TOKEN);
+        if (StringUtils.isBlank(csrfToken)) {
+            return false;
+        }
+        try {
+            String decrypted = CodingUtils.aesDecrypt(csrfToken, SessionUser.secret, CodingUtils.generateIv());
+            String[] parts = StringUtils.split(StringUtils.trimToNull(decrypted), "|");
+            if (parts != null && parts.length >= 1) {
+                return isKicked(parts[0]);
+            }
+        } catch (Exception e) {
+            // 解密失败按「未踢」处理，避免影响正常未登录流程
+        }
+        return false;
     }
 }

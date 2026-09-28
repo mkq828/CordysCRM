@@ -57,7 +57,12 @@ public enum CrmHttpResultCode implements IResultCode {
     /**
      * 资源未找到
      */
-    NOT_FOUND(100404, "http_result_not_found");
+    NOT_FOUND(100404, "http_result_not_found"),
+
+    /**
+     * 单点登录：账号在其他设备登录被踢下线
+     */
+    KICKED_OUT(100461, "http_result_kicked_out");
 
     private final int code;
     private final String message;

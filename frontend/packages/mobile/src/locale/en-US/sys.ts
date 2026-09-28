@@ -16,6 +16,7 @@ export default {
   'api.responseError': 'Interface returns an error, please try again',
   'api.requestError': 'Request Error',
   'api.errMsg401': 'The user does not have permission (token, user name, password error)!',
+  'api.errMsgKickedOut': 'This account has been logged in on another device. You have been signed out.',
   'api.errMsg403': 'No access rights, please contact the administrator',
   'api.errMsg404': 'Network request error, the resource was not found!',
   'api.errMsg405': 'Network request error, request method not allowed!',
