@@ -287,6 +287,28 @@ interface FileParamItem extends ParamItem {
 // 页面配置返回参数
 export type PageConfigReturns = FileParamItem[];
 
+// 租户订阅信息（套餐 + 当前生效合同），个人中心自助展示
+export interface TenantSubscriptionContract {
+  contractNo?: string; // 合同编号
+  orgName?: string; // 签约主体
+  amount?: number | string; // 合同金额
+  editionName?: string; // 套餐版本名称
+  validityDays?: number; // 订阅时长(天)
+  signType?: string; // 签署方式
+  status?: string; // 合同状态
+  attachmentList?: { id: string; name: string; type?: string; size?: number }[]; // 扫描件
+}
+
+export interface TenantSubscription {
+  version?: string; // 套餐版本编码
+  versionName?: string; // 套餐版本名称
+  status?: string; // 套餐状态 FREE/ACTIVE/EXPIRED
+  expireTime?: number; // 到期时间(毫秒)
+  remainDays?: number; // 剩余天数(宽限期内为负)
+  inGrace?: boolean; // 是否宽限期
+  contract?: TenantSubscriptionContract | null; // 当前生效合同
+}
+
 
 
 

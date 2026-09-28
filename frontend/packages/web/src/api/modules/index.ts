@@ -1,6 +1,7 @@
 import createAxios from '@lib/shared/api/http';
 import useAgentApi from '@lib/shared/api/modules/agent';
 import useAiApi from '@lib/shared/api/modules/ai';
+import useAiQuotaApi from '@lib/shared/api/modules/aiQuota';
 import useClueApi from '@lib/shared/api/modules/clue';
 import useContractApi from '@lib/shared/api/modules/contract';
 import useCustomerApi from '@lib/shared/api/modules/customer';
@@ -15,15 +16,20 @@ import useProductApi from '@lib/shared/api/modules/product';
 import useSysApi from '@lib/shared/api/modules/sys';
 import useLicenseApi from '@lib/shared/api/modules/system/authorizedManagement';
 import useBusinessApi from '@lib/shared/api/modules/system/business';
+import useCityManagerApi from '@lib/shared/api/modules/system/cityManager';
+import useEditionApi from '@lib/shared/api/modules/system/edition';
 import useLoginApi from '@lib/shared/api/modules/system/login';
 import useMessageApi from '@lib/shared/api/modules/system/message';
 import useModuleApi from '@lib/shared/api/modules/system/module';
 import useOrgApi from '@lib/shared/api/modules/system/org';
+import usePlatformAiQuotaApi from '@lib/shared/api/modules/system/platformAiQuota';
 import usePlatformDashboardApi from '@lib/shared/api/modules/system/platformDashboard';
+import usePlatformFinanceApi from '@lib/shared/api/modules/system/platformFinance';
 import useProcessApi from '@lib/shared/api/modules/system/process';
 import useRegisterApi from '@lib/shared/api/modules/system/register';
 import useRoleApi from '@lib/shared/api/modules/system/role';
 import useSuggestionApi from '@lib/shared/api/modules/system/suggestion';
+import useTenantPlanApi from '@lib/shared/api/modules/system/tenant-plan';
 
 import useDiscreteApi from '@/hooks/useDiscreteApi';
 
@@ -43,6 +49,7 @@ const roleApi = useRoleApi(CDR);
 const homeApi = useHomeApi(CDR);
 const loginApi = useLoginApi(CDR);
 const aiApi = useAiApi(CDR);
+const aiQuotaApi = useAiQuotaApi(CDR);
 const agentApi = useAgentApi(CDR);
 const moduleApi = useModuleApi(CDR);
 const followApi = useFollowApi(CDR);
@@ -60,7 +67,12 @@ const processApi = useProcessApi(CDR);
 const registerApi = useRegisterApi(CDR);
 const suggestionApi = useSuggestionApi(CDR);
 const platformDashboardApi = usePlatformDashboardApi(CDR);
+const platformFinanceApi = usePlatformFinanceApi(CDR);
+const platformAiQuotaApi = usePlatformAiQuotaApi(CDR);
 const financeApi = useFinanceApi(CDR);
+const tenantPlanApi = useTenantPlanApi(CDR);
+const editionApi = useEditionApi(CDR);
+const cityManagerApi = useCityManagerApi(CDR);
 
 export const {
   addCustomForm,
@@ -644,6 +656,7 @@ export const {
   savePageConfig,
   testConfigEmail,
   getPersonalInfo,
+  getSubscription,
   getThirdTypeList,
   switchThirdParty,
   updateAuthStatus,
@@ -978,3 +991,73 @@ export const {
 } = registerApi;
 
 export const { financeOverview, financePage, financeVerify, financeRevoke } = financeApi;
+
+export const {
+  pageList: tenantPlanPageList,
+  open: tenantPlanOpen,
+  toggle: tenantPlanToggle,
+  toggleDemo: tenantPlanToggleDemo,
+  getConfig: tenantPlanGetConfig,
+  updateConfig: tenantPlanUpdateConfig,
+} = tenantPlanApi;
+
+export const {
+  pageList: platformContractPageList,
+  get: platformContractGet,
+  orgOptions: platformContractOrgOptions,
+  options: platformContractOptions,
+  add: platformContractAdd,
+  update: platformContractUpdate,
+  remove: platformContractRemove,
+  changeStatus: platformContractChangeStatus,
+  paymentPageList: platformPaymentRecordPageList,
+  paymentAdd: platformPaymentRecordAdd,
+  paymentUpdate: platformPaymentRecordUpdate,
+  paymentRemove: platformPaymentRecordRemove,
+  verify: platformPaymentRecordVerify,
+  revoke: platformPaymentRecordRevoke,
+  invoicePageList: platformInvoicePageList,
+  invoiceAdd: platformInvoiceAdd,
+  invoiceUpdate: platformInvoiceUpdate,
+  invoiceRemove: platformInvoiceRemove,
+  invoice: platformInvoiceInvoice,
+  voidInvoice: platformInvoiceVoid,
+  revenueOverview: platformRevenueOverview,
+  getConfig: platformGetConfig,
+  updateConfig: platformUpdateConfig,
+  bankAccountList: platformBankAccountList,
+  bankAccountSave: platformBankAccountSave,
+} = platformFinanceApi;
+
+export const {
+  listEditions: editionList,
+  listEditionOptions: editionOptions,
+  saveEdition,
+  deleteEdition,
+  listFeatures: editionFeatureList,
+  saveFeature: editionFeatureSave,
+  deleteFeature: editionFeatureDelete,
+  listFeatureIdsByEditionId: editionFeatureIdsByEditionId,
+} = editionApi;
+
+export const {
+  add: cityManagerAdd,
+  pageList: cityManagerPageList,
+  disable: cityManagerDisable,
+  assign: cityManagerAssign,
+  reassign: cityManagerReassign,
+  orgOptions: cityManagerOrgOptions,
+  myOrgs: cityManagerMyOrgs,
+  performanceOverview: cityManagerPerformanceOverview,
+} = cityManagerApi;
+
+export const { overview: aiQuotaOverview, trend: aiQuotaTrend, featureUsage: aiQuotaFeatureUsage } = aiQuotaApi;
+
+export const {
+  cost: platformAiQuotaCost,
+  modelPriceList: platformAiQuotaModelPriceList,
+  modelPriceSave: platformAiQuotaModelPriceSave,
+  getConfig: platformAiQuotaGetConfig,
+  updateConfig: platformAiQuotaUpdateConfig,
+  mockRecord: platformAiQuotaMockRecord,
+} = platformAiQuotaApi;

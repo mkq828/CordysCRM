@@ -790,5 +790,111 @@
         ]
       }
     ]
+  },
+  {
+    "id": "CITY_MANAGER_MANAGEMENT",
+    "name": "permission.city_manager.name",
+    "license": false,
+    "platform": true,
+    "children": [
+      {
+        "id": "CITY_MANAGER_CONTRACT",
+        "name": "permission.city_manager.contract.name",
+        "permissions": [
+          {
+            "id": "CITY_MANAGER_CONTRACT:READ",
+            "license": false
+          },
+          {
+            "id": "CITY_MANAGER_CONTRACT:WRITE",
+            "license": false
+          }
+        ]
+      },
+      {
+        "id": "CITY_MANAGER_PAYMENT",
+        "name": "permission.city_manager.payment.name",
+        "permissions": [
+          {
+            "id": "CITY_MANAGER_PAYMENT:READ",
+            "license": false
+          },
+          {
+            "id": "CITY_MANAGER_PAYMENT:WRITE",
+            "license": false
+          }
+        ]
+      },
+      {
+        "id": "CITY_MANAGER_ORG",
+        "name": "permission.city_manager.org.name",
+        "permissions": [
+          {
+            "id": "CITY_MANAGER_ORG:READ",
+            "license": false
+          },
+          {
+            "id": "CITY_MANAGER_ORG:EDIT",
+            "license": false
+          }
+        ]
+      },
+      {
+        "id": "CITY_MANAGER_DASHBOARD",
+        "name": "permission.city_manager.dashboard.name",
+        "permissions": [
+          {
+            "id": "CITY_MANAGER_DASHBOARD:READ",
+            "license": false
+          }
+        ]
+      },
+      {
+        "id": "CITY_MANAGER_ACCOUNT",
+        "name": "permission.city_manager.account.name",
+        "permissions": [
+          {
+            "id": "CITY_MANAGER:MANAGE",
+            "license": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PLATFORM_FINANCE",
+    "name": "permission.platform_finance.name",
+    "license": false,
+    "platform": true,
+    "children": [
+      {
+        "id": "PLATFORM_FINANCE_BILLING",
+        "name": "permission.platform_finance.billing.name",
+        "permissions": [
+          {
+            "id": "ADMIN_FINANCE:READ",
+            "license": false
+          },
+          {
+            "id": "ADMIN_FINANCE:WRITE",
+            "license": false
+          },
+          {
+            "id": "ADMIN_FINANCE:VERIFY",
+            "license": false
+          }
+        ]
+      },
+      {
+        "id": "PLATFORM_DASHBOARD",
+        "name": "permission.platform_dashboard.name",
+        "permissions": [
+          {
+            "id": "ADMIN_DASHBOARD:READ",
+            "license": false
+          }
+        ]
+      }
+    ]
   }
 ]

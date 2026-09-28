@@ -290,5 +290,37 @@ public class PermissionConstants {
     /*------ start: PLATFORM_DASHBOARD ------*/
     public static final String ADMIN_DASHBOARD_READ = "ADMIN_DASHBOARD:READ";
     /*------ end: PLATFORM_DASHBOARD ------*/
+
+    /*------ start: PAID_USER ------*/
+    public static final String PAID_USER_READ = "PAID_USER:READ";
+    public static final String PAID_USER_UPDATE = "PAID_USER:UPDATE";
+    /*------ end: PAID_USER ------*/
+
+    /*------ start: PLATFORM_FINANCE ------*/
+    // 平台账（收费管理）：未写入角色权限种子，仅 admin 可见/可调（仿 ADMIN_DASHBOARD_READ）
+    public static final String ADMIN_FINANCE_READ = "ADMIN_FINANCE:READ";
+    public static final String ADMIN_FINANCE_WRITE = "ADMIN_FINANCE:WRITE";
+    public static final String ADMIN_FINANCE_VERIFY = "ADMIN_FINANCE:VERIFY";
+    /*------ end: PLATFORM_FINANCE ------*/
+
+    /*------ start: CITY_MANAGER ------*/
+    // 城市经理（平台员工）：ORG_READ/DASHBOARD_READ 由角色种子授予 city_manager；MANAGE 仅 admin 短路（不种子）
+    public static final String CITY_MANAGER_ORG_READ = "CITY_MANAGER_ORG:READ";
+    public static final String CITY_MANAGER_DASHBOARD_READ = "CITY_MANAGER_DASHBOARD:READ";
+    public static final String CITY_MANAGER_MANAGE = "CITY_MANAGER:MANAGE";
+    // 城市经理销售权限（合同/回款/租户资料编辑）：由角色种子授予 city_manager；admin 短路放行。
+    // 独立于 ADMIN_FINANCE_*，避免把发票/核销/全局营收一并放给 city_manager。
+    public static final String CITY_MANAGER_CONTRACT_READ = "CITY_MANAGER_CONTRACT:READ";
+    public static final String CITY_MANAGER_CONTRACT_WRITE = "CITY_MANAGER_CONTRACT:WRITE";
+    public static final String CITY_MANAGER_PAYMENT_READ = "CITY_MANAGER_PAYMENT:READ";
+    public static final String CITY_MANAGER_PAYMENT_WRITE = "CITY_MANAGER_PAYMENT:WRITE";
+    public static final String CITY_MANAGER_ORG_EDIT = "CITY_MANAGER_ORG:EDIT";
+    /*------ end: CITY_MANAGER ------*/
+
+    /*------ start: AI_QUOTA ------*/
+    // AI 额度管理（平台端）：未写入角色权限种子，仅 admin 可见/可调（仿 ADMIN_FINANCE_*）
+    public static final String ADMIN_AI_QUOTA_READ = "ADMIN_AI_QUOTA:READ";
+    public static final String ADMIN_AI_QUOTA_WRITE = "ADMIN_AI_QUOTA:WRITE";
+    /*------ end: AI_QUOTA ------*/
 }
 

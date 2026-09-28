@@ -24,6 +24,8 @@ export interface UserInfo {
   departmentId: string;
   departmentName: string;
   defaultPwd: boolean;
+  planInGrace?: boolean;
+  planExpireTime?: number;
 }
 
 export interface MessageInfo {

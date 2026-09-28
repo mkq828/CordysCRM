@@ -37,6 +37,7 @@ import {
   GetPageConfigUrl,
   GetPersonalFollowUrl,
   GetPersonalUrl,
+  GetSubscriptionUrl,
   GetTenderConfigUrl,
   GetTermCategoryListUrl,
   GetTermDetailUrl,
@@ -97,6 +98,7 @@ import {
   PersonalInfoRequest,
   PersonalPassword,
   SendEmailDTO,
+  TenantSubscription,
 } from '@lib/shared/models/system/business';
 import type {
   AiModelItem,
@@ -242,6 +244,10 @@ export default function useProductApi(CDR: CordysAxios) {
   // 获取个人信息
   function getPersonalInfo() {
     return CDR.get<OrgUserInfo>({ url: GetPersonalUrl });
+  }
+  // 获取当前租户套餐与合同
+  function getSubscription() {
+    return CDR.get<TenantSubscription>({ url: GetSubscriptionUrl });
   }
   // 更新个人信息
   function updatePersonalInfo(data: PersonalInfoRequest) {
@@ -520,6 +526,7 @@ export default function useProductApi(CDR: CordysAxios) {
     switchThirdParty,
     getThirdPartyResource,
     getPersonalInfo,
+    getSubscription,
     updatePersonalInfo,
     sendEmailCode,
     updateUserPassword,

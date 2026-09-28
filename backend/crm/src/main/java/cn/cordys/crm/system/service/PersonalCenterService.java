@@ -19,12 +19,16 @@ import cn.cordys.crm.follow.dto.request.FollowUpPlanPageRequest;
 import cn.cordys.crm.follow.dto.response.FollowUpPlanListResponse;
 import cn.cordys.crm.follow.mapper.ExtFollowUpPlanMapper;
 import cn.cordys.crm.follow.service.FollowUpPlanService;
+import cn.cordys.crm.platform.service.PlatformContractService;
 import cn.cordys.crm.system.constants.NotificationConstants;
 import cn.cordys.crm.system.domain.Module;
+import cn.cordys.crm.system.domain.SysEdition;
+import cn.cordys.crm.system.domain.TenantPlan;
 import cn.cordys.crm.system.domain.User;
 import cn.cordys.crm.system.dto.request.PersonalInfoRequest;
 import cn.cordys.crm.system.dto.request.PersonalPasswordRequest;
 import cn.cordys.crm.system.dto.request.SendEmailDTO;
+import cn.cordys.crm.system.dto.response.TenantSubscriptionResponse;
 import cn.cordys.crm.system.dto.response.UserResponse;
 import cn.cordys.crm.system.mapper.ExtOrganizationUserMapper;
 import cn.cordys.crm.system.mapper.ExtUserMapper;
@@ -36,6 +40,7 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import jakarta.annotation.Resource;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -69,6 +74,12 @@ public class PersonalCenterService {
     private BaseMapper<Module> moduleMapper;
     @Resource
     private ExtOrganizationUserMapper extOrganizationUserMapper;
+    @Resource
+    private TenantPlanService tenantPlanService;
+    @Resource
+    private EditionService editionService;
+    @Resource
+    private PlatformContractService platformContractService;
 
     public UserResponse getUserDetail(String id, String orgId) {
         if (Strings.CS.equals(id, InternalUser.ADMIN.getValue())) {
@@ -76,6 +87,30 @@ public class PersonalCenterService {
         }
         String orgUserIdByUserId = extOrganizationUserMapper.getOrgUserIdByUserId(orgId, id);
         return organizationUserService.getUserDetail(orgUserIdByUserId);
+    }
+
+    /**
+     * 当前租户的套餐与合同（个人中心自助展示）
+     */
+    public TenantSubscriptionResponse getSubscription(String organizationId) {
+        TenantSubscriptionResponse response = new TenantSubscriptionResponse();
+        if (StringUtils.isBlank(organizationId)) {
+            return response;
+        }
+        TenantPlan plan = tenantPlanService.getByOrganizationId(organizationId);
+        if (plan != null) {
+            response.setVersion(plan.getVersion());
+            response.setStatus(plan.getStatus());
+            response.setExpireTime(plan.getExpireTime());
+            response.setInGrace(tenantPlanService.isInGrace(plan));
+            SysEdition edition = editionService.getEditionByCode(plan.getVersion());
+            response.setVersionName(edition == null ? plan.getVersion() : edition.getName());
+            if (plan.getExpireTime() != null) {
+                response.setRemainDays((plan.getExpireTime() - System.currentTimeMillis()) / TimeUnit.DAYS.toMillis(1));
+            }
+        }
+        response.setContract(platformContractService.getActiveByOrganizationId(organizationId));
+        return response;
     }
 
     /**

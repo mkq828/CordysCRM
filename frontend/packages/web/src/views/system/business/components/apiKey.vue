@@ -164,7 +164,7 @@
           :label="t('system.personal.timeSetting')"
           :rule="[{ required: true, message: t('common.notNull', { value: `${t('system.personal.expiredTime')}` }) }]"
         >
-          <n-date-picker
+          <CrmDatePicker
             v-model:value="timeForm.time"
             class="w-[240px]"
             type="datetime"
@@ -191,7 +191,6 @@
   import {
     FormInst,
     NButton,
-    NDatePicker,
     NForm,
     NFormItem,
     NInput,
@@ -208,6 +207,7 @@
   import { ApiKeyItem, DefaultTimeForm } from '@lib/shared/models/system/business';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
+  import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
   import CrmModal from '@/components/pure/crm-modal/index.vue';
   import CrmTag from '@/components/pure/crm-tag/index.vue';
 

@@ -204,6 +204,15 @@ public class NotificationConstants {
 
         @Schema(description = "message.follow_up_record_comment_mentioned")
         String CUSTOMER_FOLLOW_UP_RECORD_COMMENT_MENTIONED = "CUSTOMER_FOLLOW_UP_RECORD_COMMENT_MENTIONED";
+        //企业注册申请（通知平台管理员审核）
+        @Schema(description = "message.enterprise_register_apply")
+        String ENTERPRISE_REGISTER_APPLY = "ENTERPRISE_REGISTER_APPLY";
+        //租户套餐到期提醒（通知平台管理员）
+        @Schema(description = "message.plan_expire_remind")
+        String PLAN_EXPIRE_REMIND = "PLAN_EXPIRE_REMIND";
+        //租户AI单日成本超阈值熔断（通知平台管理员）
+        @Schema(description = "message.ai_quota_break")
+        String AI_QUOTA_BREAK = "AI_QUOTA_BREAK";
     }
 
     public interface RelatedUser {
@@ -392,6 +401,18 @@ public class NotificationConstants {
 
         @Schema(description = "message.follow_up_record_comment_mentioned_text")
         String CUSTOMER_FOLLOW_UP_RECORD_COMMENT_MENTIONED_TEXT = "CUSTOMER_FOLLOW_UP_RECORD_COMMENT_MENTIONED_TEXT";
+
+        //企业「${name}」提交了注册申请，请及时审核。
+        @Schema(description = "message.enterprise_register_apply_text")
+        String ENTERPRISE_REGISTER_APPLY_TEXT = "ENTERPRISE_REGISTER_APPLY_TEXT";
+
+        //以下租户即将到期，请及时跟进续费：${name}
+        @Schema(description = "message.plan_expire_remind_text")
+        String PLAN_EXPIRE_REMIND_TEXT = "PLAN_EXPIRE_REMIND_TEXT";
+
+        //租户「${name}」单日 AI 成本已超阈值，已触发熔断，请关注。
+        @Schema(description = "message.ai_quota_break_text")
+        String AI_QUOTA_BREAK_TEXT = "AI_QUOTA_BREAK_TEXT";
     }
 
 

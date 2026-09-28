@@ -90,4 +90,10 @@ public class UserDTO implements java.io.Serializable {
 
     @Schema(description = "是否是默认密码")
     private Boolean defaultPwd = false;
+
+    @Schema(description = "套餐是否处于宽限期")
+    private Boolean planInGrace = false;
+
+    @Schema(description = "套餐到期时间(宽限期提示用)")
+    private Long planExpireTime;
 }

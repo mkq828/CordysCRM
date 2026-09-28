@@ -23,6 +23,7 @@ export const GetTenderConfigUrl = '/tender/application/config'; // 招投标-获
 
 // 个人中心
 export const GetPersonalUrl = '/personal/center/info';
+export const GetSubscriptionUrl = '/personal/center/subscription'; // 当前租户套餐与合同
 export const UpdatePersonalUrl = '/personal/center/update';
 export const SendEmailCodeUrl = '/personal/center/mail/code/send';
 export const UpdateUserPasswordUrl = '/personal/center/info/reset';

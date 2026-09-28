@@ -164,4 +164,12 @@ public class LogModule {
     public static final String AGENT_MODEL_CONFIG = "SYSTEM_BUSINESS_AGENT_MODEL";
     public static final String AGENT_TERM_CONFIG = "SYSTEM_BUSINESS_AGENT_TERM";
     public static final String AGENT_TASK_CONFIG = "SYSTEM_BUSINESS_AGENT_TASK";
+    /**
+     * 版本与套餐配置
+     */
+    public static final String SYSTEM_EDITION = "SYSTEM_EDITION";
+    /**
+     * 城市经理
+     */
+    public static final String CITY_MANAGER = "SYSTEM_CITY_MANAGER";
 }

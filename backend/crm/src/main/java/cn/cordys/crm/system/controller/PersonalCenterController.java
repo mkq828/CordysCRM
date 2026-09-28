@@ -7,6 +7,7 @@ import cn.cordys.crm.follow.dto.response.FollowUpPlanListResponse;
 import cn.cordys.crm.system.dto.request.PersonalInfoRequest;
 import cn.cordys.crm.system.dto.request.PersonalPasswordRequest;
 import cn.cordys.crm.system.dto.request.SendEmailDTO;
+import cn.cordys.crm.system.dto.response.TenantSubscriptionResponse;
 import cn.cordys.crm.system.dto.response.UserResponse;
 import cn.cordys.crm.system.service.PersonalCenterService;
 import cn.cordys.security.SessionUtils;
@@ -32,6 +33,13 @@ public class PersonalCenterController {
     @Operation(summary = "当前用户详情")
     public UserResponse getUserDetail() {
         return personalCenterService.getUserDetail(SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
+    }
+
+
+    @GetMapping("/subscription")
+    @Operation(summary = "当前租户套餐与合同")
+    public TenantSubscriptionResponse getSubscription() {
+        return personalCenterService.getSubscription(OrganizationContext.getOrganizationId());
     }
 
 

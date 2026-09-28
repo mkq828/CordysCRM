@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.cordys.crm.system.mapper.ExtTenantPlanMapper">
+
+    <select id="pageList" resultType="cn.cordys.crm.system.dto.response.TenantPlanResponse">
+        select tp.id,
+               tp.organization_id,
+               tp.version,
+               tp.status,
+               tp.expire_time,
+               tp.remark,
+               tp.create_time,
+               tp.update_time,
+               o.name as org_name,
+               o.org_type,
+               o.is_demo as demo,
+               (select u.phone
+                from sys_user u
+                where u.last_organization_id = tp.organization_id
+                limit 1) as phone,
+               (select exists(select 1
+                              from sys_organization_user ou
+                              where ou.user_id = (select u2.id
+                                                  from sys_user u2
+                                                  where u2.last_organization_id = tp.organization_id
+                                                  limit 1)
+                                and ou.enable = 1)) as enabled,
+               (select max(ll.create_time)
+                from sys_login_log ll
+                         join sys_user u on u.id = ll.operator
+                where u.last_organization_id = tp.organization_id) as last_login_time
+        from tenant_plan tp
+                 join sys_organization o on o.id = tp.organization_id
+        <where>
+            <if test="request.version != null and request.version != ''">
+                and tp.version = #{request.version}
+            </if>
+            <choose>
+                <when test="request.status != null and request.status != ''">
+                    and tp.status = #{request.status}
+                </when>
+                <otherwise>
+                    and tp.status in ('ACTIVE', 'EXPIRED')
+                </otherwise>
+            </choose>
+            <if test="request.keyword != null and request.keyword != ''">
+                and (o.name like concat('%', #{request.keyword}, '%')
+                    or exists (select 1
+                               from sys_user u2
+                               where u2.last_organization_id = tp.organization_id
+                                 and u2.phone like concat('%', #{request.keyword}, '%')))
+            </if>
+        </where>
+        order by tp.expire_time asc
+    </select>
+
+</mapper>

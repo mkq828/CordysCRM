@@ -12,6 +12,100 @@
       <CrmCard no-content-padding hide-footer auto-height class="mb-[16px]">
         <CrmTab v-model:active-tab="activeTab" no-content :tab-list="tabList" type="line" @change="searchData()" />
       </CrmCard>
+      <!-- 版本与授权（租户自助查看，admin 无组织不展示） -->
+      <CrmCard
+        v-if="activeTab === PersonalEnum.INFO && !userStore.isAdmin"
+        hide-footer
+        :special-height="64"
+        class="mb-[16px]"
+      >
+        <div class="flex font-medium text-[var(--text-n1)]">
+          <n-p>{{ t('system.personal.subscription') }}</n-p>
+        </div>
+        <div
+          class="mt-[16px] grid w-full grid-cols-4 gap-[8px] rounded-[var(--border-radius-small)] bg-[var(--text-n9)] p-[24px]"
+        >
+          <div class="flex flex-col gap-[4px]">
+            <n-p class="m-[0] text-[var(--text-n4)]">{{ t('system.personal.subscription.version') }}</n-p>
+            <n-p class="m-[0] font-medium text-[var(--text-n1)]">{{ subscription.versionName || '-' }}</n-p>
+          </div>
+          <div class="flex flex-col gap-[4px]">
+            <n-p class="m-[0] text-[var(--text-n4)]">{{ t('system.personal.subscription.status') }}</n-p>
+            <n-p class="m-[0]">
+              <n-tag :type="subscriptionStatusTag" size="small" :bordered="false">{{ subscriptionStatusLabel }}</n-tag>
+            </n-p>
+          </div>
+          <div class="flex flex-col gap-[4px]">
+            <n-p class="m-[0] text-[var(--text-n4)]">{{ t('system.personal.subscription.expireTime') }}</n-p>
+            <n-p class="m-[0] font-medium text-[var(--text-n1)]">{{ formatExpireTime }}</n-p>
+          </div>
+          <div class="flex flex-col gap-[4px]">
+            <n-p class="m-[0] text-[var(--text-n4)]">{{ t('system.personal.subscription.remainDays') }}</n-p>
+            <n-p class="m-[0] font-medium text-[var(--text-n1)]">{{ remainDaysLabel }}</n-p>
+          </div>
+        </div>
+
+        <template v-if="subscription.contract">
+          <div class="mt-[16px] flex font-medium text-[var(--text-n1)]">
+            <n-p>{{ t('system.personal.contract') }}</n-p>
+          </div>
+          <div
+            class="mt-[8px] grid w-full grid-cols-4 gap-[8px] rounded-[var(--border-radius-small)] bg-[var(--text-n9)] p-[24px]"
+          >
+            <div class="flex flex-col gap-[4px]">
+              <n-p class="m-[0] text-[var(--text-n4)]">{{ t('system.personal.contract.contractNo') }}</n-p>
+              <n-p class="m-[0] font-medium text-[var(--text-n1)]">{{ subscription.contract.contractNo || '-' }}</n-p>
+            </div>
+            <div class="flex flex-col gap-[4px]">
+              <n-p class="m-[0] text-[var(--text-n4)]">{{ t('system.personal.contract.orgName') }}</n-p>
+              <n-p class="m-[0] font-medium text-[var(--text-n1)]">{{ subscription.contract.orgName || '-' }}</n-p>
+            </div>
+            <div class="flex flex-col gap-[4px]">
+              <n-p class="m-[0] text-[var(--text-n4)]">{{ t('system.personal.contract.amount') }}</n-p>
+              <n-p class="m-[0] font-medium text-[var(--text-n1)]">{{ fmtMoney(subscription.contract.amount) }}</n-p>
+            </div>
+            <div class="flex flex-col gap-[4px]">
+              <n-p class="m-[0] text-[var(--text-n4)]">{{ t('system.personal.contract.validityDays') }}</n-p>
+              <n-p class="m-[0] font-medium text-[var(--text-n1)]">{{ validityDaysLabel }}</n-p>
+            </div>
+            <div class="flex flex-col gap-[4px]">
+              <n-p class="m-[0] text-[var(--text-n4)]">{{ t('system.personal.contract.signType') }}</n-p>
+              <n-p class="m-[0] font-medium text-[var(--text-n1)]">{{ signTypeLabel }}</n-p>
+            </div>
+            <div class="flex flex-col gap-[4px]">
+              <n-p class="m-[0] text-[var(--text-n4)]">{{ t('system.personal.contract.status') }}</n-p>
+              <n-p class="m-[0] font-medium text-[var(--text-n1)]">{{ contractStatusLabel }}</n-p>
+            </div>
+          </div>
+          <div v-if="subscription.contract.attachmentList?.length" class="mt-[8px] flex items-start gap-[12px]">
+            <span class="shrink-0 pt-[6px] text-[var(--text-n4)]">{{ t('system.personal.contract.attachment') }}</span>
+            <div class="flex flex-wrap gap-[8px]">
+              <div
+                v-for="att in subscription.contract.attachmentList"
+                :key="att.id"
+                class="flex items-center gap-[8px]"
+              >
+                <n-image
+                  v-if="isImage(att.type)"
+                  :src="attachmentUrl(att.id)"
+                  :width="48"
+                  :height="48"
+                  object-fit="cover"
+                  class="rounded-[4px]"
+                  preview-disabled
+                  @click="previewAttachment(att.id)"
+                />
+                <div v-else class="text-[13px] text-[var(--text-n2)]">{{ att.name }}</div>
+                <n-button size="tiny" text type="primary" @click="downloadAttachmentById(att.id, att.name)">
+                  {{ t('common.download') }}
+                </n-button>
+              </div>
+            </div>
+          </div>
+        </template>
+        <div v-else class="mt-[8px] text-[13px] text-[var(--text-n4)]">{{ t('system.personal.noContract') }}</div>
+      </CrmCard>
+      <n-image-preview v-model:show="preview.show" :src="preview.src" />
       <CrmCard v-if="activeTab === PersonalEnum.INFO" hide-footer :special-height="64">
         <div class="flex font-medium text-[var(--text-n1)]">
           <n-p>{{ t('common.baseInfo') }}</n-p>
@@ -97,11 +191,13 @@
 
 <script setup lang="ts">
   import { ref } from 'vue';
-  import { NButton, NP, NScrollbar, NTag, TabPaneProps } from 'naive-ui';
+  import { NButton, NImage, NImagePreview, NP, NScrollbar, NTag, TabPaneProps } from 'naive-ui';
+  import dayjs from 'dayjs';
 
+  import { PreviewAttachmentUrl } from '@lib/shared/api/requrls/system/module';
   import { PersonalEnum } from '@lib/shared/enums/systemEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
-  import { PersonalInfoRequest } from '@lib/shared/models/system/business';
+  import { PersonalInfoRequest, TenantSubscription } from '@lib/shared/models/system/business';
   import { OrgUserInfo } from '@lib/shared/models/system/org';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
@@ -114,7 +210,7 @@
   import EditPasswordModal from '@/views/system/business/components/editPasswordModal.vue';
   import EditPersonalInfoModal from '@/views/system/business/components/editPersonalInfoModal.vue';
 
-  import { getPersonalInfo } from '@/api/modules';
+  import { downloadAttachment, getPersonalInfo, getSubscription } from '@/api/modules';
   import { defaultUserInfo } from '@/config/business';
   import useModal from '@/hooks/useModal.js';
   import { useUserStore } from '@/store';
@@ -137,6 +233,92 @@
 
   const personalInfo = ref<OrgUserInfo>({
     ...defaultUserInfo,
+  });
+
+  // 租户套餐与合同（版本与授权）
+  const subscription = ref<TenantSubscription>({});
+  const preview = reactive<{ show: boolean; src: string }>({ show: false, src: '' });
+
+  async function loadSubscription() {
+    if (userStore.isAdmin) return;
+    try {
+      subscription.value = (await getSubscription()) || {};
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
+  }
+
+  function fmtMoney(v?: number | string) {
+    const n = Number(v ?? 0);
+    return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function isImage(type?: string) {
+    return /(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(type || '');
+  }
+  function attachmentUrl(id: string) {
+    return `${PreviewAttachmentUrl}/${id}?userId=${userStore.userInfo.id}`;
+  }
+  function previewAttachment(id: string) {
+    preview.src = attachmentUrl(id);
+    preview.show = true;
+  }
+  async function downloadAttachmentById(id: string, name: string) {
+    try {
+      const res = await downloadAttachment(id);
+      const url = URL.createObjectURL(new Blob([res], { type: 'application/octet-stream' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
+  }
+
+  const subscriptionStatusLabel = computed(() => {
+    if (subscription.value.inGrace) return t('system.personal.subscription.inGrace');
+    const s = subscription.value.status;
+    return s ? t(`system.personal.subscription.status.${s}`) : '-';
+  });
+  const subscriptionStatusTag = computed(() => {
+    if (subscription.value.inGrace) return 'warning';
+    switch (subscription.value.status) {
+      case 'ACTIVE':
+        return 'success';
+      case 'FREE':
+        return 'info';
+      case 'EXPIRED':
+        return 'error';
+      default:
+        return 'default';
+    }
+  });
+  const formatExpireTime = computed(() => {
+    const ts = subscription.value.expireTime;
+    return ts ? dayjs(ts).format('YYYY-MM-DD') : '-';
+  });
+  const remainDaysLabel = computed(() => {
+    const d = subscription.value.remainDays;
+    if (d == null) return '-';
+    if (d >= 0) return `${d}${t('system.personal.subscription.day')}`;
+    return `${t('system.personal.subscription.inGrace')}${-d}${t('system.personal.subscription.day')}`;
+  });
+  const validityDaysLabel = computed(() => {
+    const d = subscription.value.contract?.validityDays;
+    return d == null ? '-' : `${d}${t('system.personal.subscription.day')}`;
+  });
+  const signTypeLabel = computed(() => {
+    const s = subscription.value.contract?.signType;
+    return s ? t(`system.personal.contract.signType.${s}`) : '-';
+  });
+  const contractStatusLabel = computed(() => {
+    const s = subscription.value.contract?.status;
+    return s ? t(`system.personal.contract.status.${s}`) : '-';
   });
 
   const currentInfo = ref<PersonalInfoRequest>({
@@ -173,6 +355,7 @@
   async function searchData() {
     if (activeTab.value === PersonalEnum.INFO) {
       personalInfo.value = await getPersonalInfo();
+      loadSubscription();
     }
   }
   function edit() {

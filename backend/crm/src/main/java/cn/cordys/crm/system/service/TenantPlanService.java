@@ -1,0 +1,430 @@
+package cn.cordys.crm.system.service;
+
+import cn.cordys.common.constants.InternalRole;
+import cn.cordys.common.exception.GenericException;
+import cn.cordys.common.uid.IDGenerator;
+import cn.cordys.common.util.Translator;
+import cn.cordys.crm.system.constants.RegisterType;
+import cn.cordys.crm.system.constants.TenantPlanStatus;
+import cn.cordys.crm.system.domain.Organization;
+import cn.cordys.crm.system.domain.OrganizationUser;
+import cn.cordys.crm.system.domain.Parameter;
+import cn.cordys.crm.system.domain.SysEdition;
+import cn.cordys.crm.system.domain.TenantPlan;
+import cn.cordys.crm.system.domain.User;
+import cn.cordys.crm.system.domain.UserRole;
+import cn.cordys.crm.system.dto.request.TenantPlanConfigRequest;
+import cn.cordys.crm.system.dto.request.TenantPlanOpenRequest;
+import cn.cordys.crm.system.dto.request.TenantPlanPageRequest;
+import cn.cordys.crm.system.dto.request.TenantPlanToggleRequest;
+import cn.cordys.crm.system.dto.request.TenantPlanUpgradeRequest;
+import cn.cordys.crm.system.dto.response.TenantPlanConfigResponse;
+import cn.cordys.crm.system.dto.response.TenantPlanResponse;
+import cn.cordys.crm.system.mapper.ExtTenantPlanMapper;
+import cn.cordys.mybatis.BaseMapper;
+import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
+import jakarta.annotation.Resource;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * 租户套餐服务（付费用户管理）
+ * <p>
+ * 负责试用期初始化、套餐开通/续费、到期判断与全局配置。
+ * 版本从 {@link RegisterType} 枚举改为读 {@link SysEdition}（可配置），开通时写入版本快照。
+ * </p>
+ */
+@Service
+public class TenantPlanService {
+
+    private static final String PARAM_FREE_TRIAL_DAYS = "register.freeTrialDays";
+    private static final String PARAM_EXPIRE_REMIND_DAYS = "register.expireRemindDays";
+    private static final String PARAM_GRACE_DAYS = "register.graceDays";
+    private static final int DEFAULT_FREE_TRIAL_DAYS = 180;
+    private static final String DEFAULT_EXPIRE_REMIND_DAYS = "30,7";
+    private static final int DEFAULT_GRACE_DAYS = 3;
+    private static final int DEFAULT_VALIDITY_DAYS = 365;
+    private static final String DEFAULT_TRIAL_EDITION = "BASIC";
+    private static final long DAY_MILLIS = 24L * 60 * 60 * 1000;
+
+    @Resource
+    private BaseMapper<TenantPlan> tenantPlanMapper;
+
+    @Resource
+    private ExtTenantPlanMapper extTenantPlanMapper;
+
+    @Resource
+    private BaseMapper<Parameter> parameterMapper;
+
+    @Resource
+    private BaseMapper<User> userMapper;
+
+    @Resource
+    private BaseMapper<UserRole> userRoleMapper;
+
+    @Resource
+    private BaseMapper<OrganizationUser> organizationUserMapper;
+
+    @Resource
+    private BaseMapper<Organization> organizationMapper;
+
+    @Resource
+    private EditionService editionService;
+
+    /**
+     * 初始化免费试用套餐（租户开通时调用，试用 = 基础版）
+     */
+    public void initFreeTrial(String organizationId, String operatorId) {
+        long now = System.currentTimeMillis();
+        TenantPlan plan = new TenantPlan();
+        plan.setId(IDGenerator.nextStr());
+        plan.setOrganizationId(organizationId);
+        plan.setVersion(DEFAULT_TRIAL_EDITION);
+        plan.setStatus(TenantPlanStatus.FREE.getValue());
+        plan.setExpireTime(now + getFreeTrialDays() * DAY_MILLIS);
+        plan.setCreateTime(now);
+        plan.setUpdateTime(now);
+        plan.setCreateUser(operatorId);
+        plan.setUpdateUser(operatorId);
+        tenantPlanMapper.insert(plan);
+    }
+
+    /**
+     * 分页查询租户套餐（含剩余天数）
+     */
+    public List<TenantPlanResponse> pageList(TenantPlanPageRequest request) {
+        List<TenantPlanResponse> list = extTenantPlanMapper.pageList(request);
+        long now = System.currentTimeMillis();
+        for (TenantPlanResponse item : list) {
+            if (item.getExpireTime() != null) {
+                item.setRemainingDays((long) Math.ceil((item.getExpireTime() - now) / (double) DAY_MILLIS));
+            }
+        }
+        return list;
+    }
+
+    /**
+     * 开通/续费套餐（admin 手动）
+     * <p>
+     * 版本按编码读 {@link SysEdition}，到期时间缺省按版本有效期计算；同时写入版本快照。
+     * </p>
+     */
+    public void open(TenantPlanOpenRequest request, String operatorId) {
+        TenantPlan plan = tenantPlanMapper.selectByPrimaryKey(request.getId());
+        if (plan == null) {
+            throw new GenericException(Translator.get("tenant.plan.not_found"));
+        }
+        SysEdition edition = editionService.getEditionByCode(request.getVersion());
+        if (edition == null) {
+            throw new GenericException(Translator.get("edition.not_found"));
+        }
+        long now = System.currentTimeMillis();
+        String oldVersion = plan.getVersion();
+        Long oldExpire = plan.getExpireTime();
+        plan.setVersion(edition.getCode());
+        plan.setStatus(TenantPlanStatus.ACTIVE.getValue());
+        // 续费顺延：未过期从原到期日顺延，已过期/过宽限期则从当天重算
+        long expireTime = request.getExpireTime() != null
+                ? request.getExpireTime()
+                : (oldExpire != null && oldExpire > now ? oldExpire : now) + (long) getValidityDays(edition) * DAY_MILLIS;
+        plan.setExpireTime(expireTime);
+        plan.setRemark(StringUtils.trim(request.getRemark()));
+        plan.setUpdateTime(now);
+        plan.setUpdateUser(operatorId);
+        tenantPlanMapper.updateById(plan);
+
+        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime, null, operatorId);
+
+        if (!edition.getCode().equals(oldVersion)) {
+            syncAdminRole(plan.getOrganizationId(), operatorId);
+        }
+    }
+
+    /**
+     * 升级套餐：切换目标版本（版本编码读 {@link SysEdition}）
+     */
+    public void upgrade(TenantPlanUpgradeRequest request, String operatorId) {
+        TenantPlan plan = tenantPlanMapper.selectByPrimaryKey(request.getId());
+        if (plan == null) {
+            throw new GenericException(Translator.get("tenant.plan.not_found"));
+        }
+        SysEdition edition = editionService.getEditionByCode(request.getEditionCode());
+        if (edition == null) {
+            throw new GenericException(Translator.get("edition.not_found"));
+        }
+        long now = System.currentTimeMillis();
+        plan.setVersion(edition.getCode());
+        plan.setStatus(TenantPlanStatus.ACTIVE.getValue());
+        long expireTime = plan.getExpireTime() != null
+                ? plan.getExpireTime()
+                : now + (long) getValidityDays(edition) * DAY_MILLIS;
+        plan.setUpdateTime(now);
+        plan.setUpdateUser(operatorId);
+        tenantPlanMapper.updateById(plan);
+
+        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime, null, operatorId);
+        syncAdminRole(plan.getOrganizationId(), operatorId);
+    }
+
+    /**
+     * 按组织开通/续费企业版（平台回款核销后自动调用）
+     * <p>
+     * 与 {@link #open} 复用同一套逻辑：按编码读 {@link SysEdition}、到期时间顺延（未过期从原到期日续、否则从当天起算）、
+     * 写版本快照、同步管理员角色。区别是这里按 organization_id 定位租户，无套餐记录时自动建档。
+     * </p>
+     */
+    public void activateByOrganization(String organizationId, String editionCode, Integer validityDays, String operatorId) {
+        SysEdition edition = editionService.getEditionByCode(editionCode);
+        if (edition == null) {
+            throw new GenericException(Translator.get("edition.not_found"));
+        }
+        long now = System.currentTimeMillis();
+        TenantPlan plan = getByOrganizationId(organizationId);
+        boolean isNew = plan == null;
+        if (plan == null) {
+            plan = new TenantPlan();
+            plan.setId(IDGenerator.nextStr());
+            plan.setOrganizationId(organizationId);
+            plan.setCreateTime(now);
+            plan.setCreateUser(operatorId);
+        }
+        String oldVersion = plan.getVersion();
+        Long oldExpire = plan.getExpireTime();
+        plan.setVersion(edition.getCode());
+        plan.setStatus(TenantPlanStatus.ACTIVE.getValue());
+        int days = validityDays != null ? validityDays : getValidityDays(edition);
+        plan.setExpireTime((oldExpire != null && oldExpire > now ? oldExpire : now) + (long) days * DAY_MILLIS);
+        plan.setUpdateTime(now);
+        plan.setUpdateUser(operatorId);
+        if (isNew) {
+            tenantPlanMapper.insert(plan);
+        } else {
+            tenantPlanMapper.updateById(plan);
+        }
+
+        editionService.writeSnapshot(organizationId, edition.getCode(), plan.getExpireTime(), null, operatorId);
+
+        if (!edition.getCode().equals(oldVersion)) {
+            syncAdminRole(organizationId, operatorId);
+        }
+    }
+
+    /**
+     * 付费租户账号启用/禁用：控制管理员用户的 sys_organization_user.enable（登录拦截见 UserLoginService.checkUserStatus）
+     */
+    public void toggle(TenantPlanToggleRequest request, String operatorId) {
+        setAdminAccountsEnabled(request.getOrganizationId(), request.getEnabled(), operatorId);
+    }
+
+    /**
+     * 付费租户演示标记：置 sys_organization.is_demo。
+     * is_demo=1 的租户不计入全局营收看板与城市经理业绩看板（演示数据不进账）。
+     */
+    public void toggleDemo(String organizationId, Boolean demo, String operatorId) {
+        Organization organization = organizationMapper.selectByPrimaryKey(organizationId);
+        if (organization == null) {
+            throw new GenericException(Translator.get("organization.not.exist"));
+        }
+        organization.setDemo(demo);
+        organization.setUpdateTime(System.currentTimeMillis());
+        organization.setUpdateUser(operatorId);
+        organizationMapper.updateById(organization);
+    }
+
+    /**
+     * 到期自动禁用租户管理员账号（定时任务调用）
+     */
+    public void disableTenantAccounts(String organizationId, String operatorId) {
+        setAdminAccountsEnabled(organizationId, false, operatorId);
+    }
+
+    /**
+     * 控制租户管理员账号启用/禁用：改 sys_organization_user.enable（登录拦截见 UserLoginService.checkUserStatus）
+     */
+    private void setAdminAccountsEnabled(String organizationId, boolean enabled, String operatorId) {
+        User adminUser = getAdminUser(organizationId);
+        if (adminUser == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        LambdaQueryWrapper<OrganizationUser> queryWrapper = new LambdaQueryWrapper<OrganizationUser>()
+                .eq(OrganizationUser::getUserId, adminUser.getId());
+        List<OrganizationUser> orgUsers = organizationUserMapper.selectListByLambda(queryWrapper);
+        for (OrganizationUser orgUser : orgUsers) {
+            orgUser.setEnable(enabled);
+            orgUser.setUpdateTime(now);
+            orgUser.setUpdateUser(operatorId);
+            organizationUserMapper.updateById(orgUser);
+        }
+    }
+
+    /**
+     * 定位租户管理员用户（sys_user.last_organization_id = 组织ID）
+     */
+    private User getAdminUser(String organizationId) {
+        List<User> users = userMapper.selectListByLambda(new LambdaQueryWrapper<User>()
+                .eq(User::getLastOrganizationId, organizationId));
+        return users.isEmpty() ? null : users.getFirst();
+    }
+
+    /**
+     * 同步管理员角色：按组织类型（企业 → org_admin，个人 → sales_staff），与版本解耦
+     */
+    private void syncAdminRole(String organizationId, String operatorId) {
+        User adminUser = getAdminUser(organizationId);
+        if (adminUser == null) {
+            return;
+        }
+        Organization organization = organizationMapper.selectByPrimaryKey(organizationId);
+        if (organization == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        userRoleMapper.deleteByLambda(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, adminUser.getId()));
+        String roleId = RegisterType.isEnterprise(organization.getOrgType())
+                ? InternalRole.ORG_ADMIN.getValue()
+                : InternalRole.SALES_STAFF.getValue();
+        UserRole userRole = new UserRole();
+        userRole.setId(IDGenerator.nextStr());
+        userRole.setUserId(adminUser.getId());
+        userRole.setRoleId(roleId);
+        userRole.setCreateTime(now);
+        userRole.setUpdateTime(now);
+        userRole.setCreateUser(operatorId);
+        userRole.setUpdateUser(operatorId);
+        userRoleMapper.insert(userRole);
+    }
+
+    /**
+     * 按组织查询套餐（无则返回 null）
+     */
+    public TenantPlan getByOrganizationId(String organizationId) {
+        List<TenantPlan> plans = tenantPlanMapper.selectListByLambda(new LambdaQueryWrapper<TenantPlan>()
+                .eq(TenantPlan::getOrganizationId, organizationId));
+        return plans.isEmpty() ? null : plans.getFirst();
+    }
+
+    /**
+     * 套餐是否已到期（含宽限期，过宽限期才算硬到期）
+     */
+    public boolean isExpired(TenantPlan plan) {
+        if (plan == null || plan.getExpireTime() == null) {
+            return false;
+        }
+        return plan.getExpireTime() + (long) getGraceDays() * DAY_MILLIS <= System.currentTimeMillis();
+    }
+
+    /**
+     * 套餐是否处于宽限期（到期后、硬到期前）
+     */
+    public boolean isInGrace(TenantPlan plan) {
+        if (plan == null || plan.getExpireTime() == null) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        return plan.getExpireTime() <= now && now < plan.getExpireTime() + (long) getGraceDays() * DAY_MILLIS;
+    }
+
+    /**
+     * 获取全局配置
+     */
+    public TenantPlanConfigResponse getConfig() {
+        TenantPlanConfigResponse response = new TenantPlanConfigResponse();
+        response.setFreeTrialDays(getFreeTrialDays());
+        String remindDays = getParam(PARAM_EXPIRE_REMIND_DAYS);
+        response.setExpireRemindDays(StringUtils.isBlank(remindDays) ? DEFAULT_EXPIRE_REMIND_DAYS : remindDays);
+        response.setGraceDays(getGraceDays());
+        return response;
+    }
+
+    /**
+     * 更新全局配置
+     */
+    public void updateConfig(TenantPlanConfigRequest request) {
+        setParam(PARAM_FREE_TRIAL_DAYS, String.valueOf(request.getFreeTrialDays()));
+        if (StringUtils.isNotBlank(request.getExpireRemindDays())) {
+            setParam(PARAM_EXPIRE_REMIND_DAYS, StringUtils.trim(request.getExpireRemindDays()));
+        }
+        if (request.getGraceDays() != null) {
+            setParam(PARAM_GRACE_DAYS, String.valueOf(request.getGraceDays()));
+        }
+    }
+
+    /**
+     * 免费试用天数
+     */
+    public int getFreeTrialDays() {
+        String value = getParam(PARAM_FREE_TRIAL_DAYS);
+        if (StringUtils.isBlank(value)) {
+            return DEFAULT_FREE_TRIAL_DAYS;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return DEFAULT_FREE_TRIAL_DAYS;
+        }
+    }
+
+    /**
+     * 到期宽限天数（缺省 3）
+     */
+    public int getGraceDays() {
+        String value = getParam(PARAM_GRACE_DAYS);
+        if (StringUtils.isBlank(value)) {
+            return DEFAULT_GRACE_DAYS;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return DEFAULT_GRACE_DAYS;
+        }
+    }
+
+    /**
+     * 到期提醒天数列表（如 [30, 7]）
+     */
+    public List<Integer> getExpireRemindDays() {
+        String value = getParam(PARAM_EXPIRE_REMIND_DAYS);
+        if (StringUtils.isBlank(value)) {
+            value = DEFAULT_EXPIRE_REMIND_DAYS;
+        }
+        List<Integer> days = new ArrayList<>();
+        Arrays.stream(value.split(","))
+                .map(String::trim)
+                .filter(StringUtils::isNotBlank)
+                .forEach(day -> {
+                    try {
+                        days.add(Integer.parseInt(day));
+                    } catch (NumberFormatException ignored) {
+                        // 忽略非法配置项
+                    }
+                });
+        return days;
+    }
+
+    /**
+     * 版本有效期天数（缺省 365）
+     */
+    private int getValidityDays(SysEdition edition) {
+        return edition.getValidityDays() == null ? DEFAULT_VALIDITY_DAYS : edition.getValidityDays();
+    }
+
+    private String getParam(String key) {
+        Parameter parameter = parameterMapper.selectByPrimaryKey(key);
+        return parameter == null ? null : parameter.getParamValue();
+    }
+
+    private void setParam(String key, String value) {
+        parameterMapper.deleteByPrimaryKey(key);
+        Parameter parameter = new Parameter();
+        parameter.setParamKey(key);
+        parameter.setParamValue(value);
+        parameter.setType("text");
+        parameterMapper.insert(parameter);
+    }
+}

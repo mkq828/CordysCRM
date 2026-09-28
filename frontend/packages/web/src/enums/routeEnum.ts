@@ -12,6 +12,8 @@ export enum SystemRouteEnum {
   SYSTEM_PROCESS_WORKFLOW = 'systemProcessWorkflow',
   SYSTEM_REGISTER_AUDIT = 'systemRegisterAudit',
   SYSTEM_BUG_REPORT = 'systemBugReport',
+  SYSTEM_PAID_USER = 'systemPaidUser',
+  SYSTEM_EDITION = 'systemEdition',
 }
 
 export enum OpportunityRouteEnum {
@@ -91,6 +93,20 @@ export enum FinanceRouteEnum {
   FINANCE_INDEX = 'financeIndex',
 }
 
+export enum PlatformFinanceRouteEnum {
+  PLATFORM_FINANCE = 'platformFinance',
+  PLATFORM_FINANCE_CONTRACT = 'platformFinanceContract',
+  PLATFORM_FINANCE_PAYMENT_RECORD = 'platformFinancePaymentRecord',
+  PLATFORM_FINANCE_INVOICE = 'platformFinanceInvoice',
+  PLATFORM_FINANCE_REVENUE = 'platformFinanceRevenue',
+}
+
+export enum CityManagerRouteEnum {
+  CITY_MANAGER = 'cityManager',
+  CITY_MANAGER_ACCOUNT = 'cityManagerAccount',
+  CITY_MANAGER_DASHBOARD = 'cityManagerDashboard',
+}
+
 export enum FullPageEnum {
   FULL_PAGE = 'fullPage',
   FULL_PAGE_DASHBOARD = 'fullPageDashboard',
@@ -109,6 +125,16 @@ export enum SuggestionRouteEnum {
   SUGGESTION_DETAIL = 'suggestionDetail',
 }
 
+export enum AiQuotaRouteEnum {
+  AI_QUOTA = 'aiQuota',
+  AI_QUOTA_INDEX = 'aiQuotaIndex',
+}
+
+export enum PlatformAiQuotaRouteEnum {
+  PLATFORM_AI_QUOTA = 'platformAiQuota',
+  PLATFORM_AI_QUOTA_INDEX = 'platformAiQuotaIndex',
+}
+
 export const AppRouteEnum = {
   ...SystemRouteEnum,
   ...OpportunityRouteEnum,
@@ -122,6 +148,11 @@ export const AppRouteEnum = {
   ...ContractRouteEnum,
   ...OrderRouteEnum,
   ...TenderRouteEnum,
+  ...FinanceRouteEnum,
+  ...PlatformFinanceRouteEnum,
+  ...CityManagerRouteEnum,
   ...CustomFormRouteEnum,
   ...SuggestionRouteEnum,
+  ...AiQuotaRouteEnum,
+  ...PlatformAiQuotaRouteEnum,
 };
