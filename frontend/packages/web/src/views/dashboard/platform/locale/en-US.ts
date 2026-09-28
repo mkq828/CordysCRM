@@ -6,6 +6,7 @@ export default {
   'dashboard.platform.personalTenant': 'Personal',
   'dashboard.platform.activeTenant': 'Active Tenants',
   'dashboard.platform.totalAccount': 'Accounts',
+  'dashboard.platform.totalClue': 'Leads',
   'dashboard.platform.totalCustomer': 'Customers',
   'dashboard.platform.totalOpportunity': 'Opportunities',
   'dashboard.platform.totalOrder': 'Orders',

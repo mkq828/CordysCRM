@@ -6,6 +6,7 @@ export default {
   'dashboard.platform.personalTenant': '个人租户',
   'dashboard.platform.activeTenant': '活跃租户',
   'dashboard.platform.totalAccount': '账号总数',
+  'dashboard.platform.totalClue': '线索总数',
   'dashboard.platform.totalCustomer': '客户总数',
   'dashboard.platform.totalOpportunity': '商机总数',
   'dashboard.platform.totalOrder': '订单总数',

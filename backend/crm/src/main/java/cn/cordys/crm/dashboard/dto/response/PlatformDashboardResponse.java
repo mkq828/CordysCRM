@@ -27,6 +27,9 @@ public class PlatformDashboardResponse {
     @Schema(description = "总账号数")
     private long totalAccount;
 
+    @Schema(description = "总线索数")
+    private long totalClue;
+
     @Schema(description = "总客户数")
     private long totalCustomer;
 

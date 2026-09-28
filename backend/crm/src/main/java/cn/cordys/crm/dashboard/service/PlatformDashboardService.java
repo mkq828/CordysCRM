@@ -80,6 +80,7 @@ public class PlatformDashboardService {
         long personal = 0;
         long activeTenant = 0;
         long totalAccount = 0;
+        long totalClue = 0;
         long totalCustomer = 0;
         long totalOpportunity = 0;
         long totalOrder = 0;
@@ -125,6 +126,7 @@ public class PlatformDashboardService {
                 activeTenant++;
             }
             totalAccount += row.getAccountCount();
+            totalClue += row.getClueCount();
             totalCustomer += row.getCustomerCount();
             totalOpportunity += row.getOpportunityCount();
             totalOrder += row.getOrderCount();
@@ -149,6 +151,7 @@ public class PlatformDashboardService {
         response.setPersonalTenant(personal);
         response.setActiveTenant(activeTenant);
         response.setTotalAccount(totalAccount);
+        response.setTotalClue(totalClue);
         response.setTotalCustomer(totalCustomer);
         response.setTotalOpportunity(totalOpportunity);
         response.setTotalOrder(totalOrder);

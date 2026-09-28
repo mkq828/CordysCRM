@@ -25,6 +25,7 @@ export interface PlatformDashboardResponse {
   personalTenant: number;
   activeTenant: number;
   totalAccount: number;
+  totalClue: number;
   totalCustomer: number;
   totalOpportunity: number;
   totalOrder: number;

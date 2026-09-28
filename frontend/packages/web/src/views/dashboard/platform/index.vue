@@ -38,7 +38,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in tableRows" :key="row.organizationId">
+                <tr v-for="row in pagedTableRows" :key="row.organizationId">
                   <td v-for="col in columns" :key="col.key" :class="{ 'pd-col--right': col.align === 'right' }">
                     <span v-if="col.key === 'active'" class="pd-active" :class="{ 'pd-active--on': row.active }">
                       {{ row.active ? t('dashboard.platform.active.yes') : t('dashboard.platform.active.no') }}
@@ -52,6 +52,9 @@
               </tbody>
             </table>
           </div>
+          <div v-if="tableRows.length" class="pd-table-pagination">
+            <n-pagination v-model:page="currentPage" :page-count="pageCount" />
+          </div>
         </div>
       </div>
     </n-spin>
@@ -60,7 +63,7 @@
 
 <script setup lang="ts">
   import { useRouter } from 'vue-router';
-  import { NButton, NSpin } from 'naive-ui';
+  import { NButton, NPagination, NSpin } from 'naive-ui';
   import dayjs from 'dayjs';
   import type { EChartsOption } from 'echarts';
   import { BarChart, PieChart } from 'echarts/charts';
@@ -116,6 +119,7 @@
       { key: 'personalTenant', value: fmtCount(d?.personalTenant) },
       { key: 'activeTenant', value: fmtCount(d?.activeTenant) },
       { key: 'totalAccount', value: fmtCount(d?.totalAccount) },
+      { key: 'totalClue', value: fmtCount(d?.totalClue) },
       { key: 'totalCustomer', value: fmtCount(d?.totalCustomer) },
       { key: 'totalOpportunity', value: fmtCount(d?.totalOpportunity) },
       { key: 'totalOrder', value: fmtCount(d?.totalOrder) },
@@ -192,6 +196,15 @@
         : t('dashboard.platform.neverLogin'),
       active: !!row.active,
     }));
+  });
+
+  // 租户明细分页（每页 10 条）
+  const tenantPageSize = 10;
+  const currentPage = ref(1);
+  const pageCount = computed(() => Math.ceil(tableRows.value.length / tenantPageSize));
+  const pagedTableRows = computed(() => {
+    const start = (currentPage.value - 1) * tenantPageSize;
+    return tableRows.value.slice(start, start + tenantPageSize);
   });
 
   function pieOption(): EChartsOption {
@@ -297,6 +310,7 @@
     loading.value = true;
     try {
       data.value = await getPlatformDashboard();
+      currentPage.value = 1;
       loadedAt.value = dayjs().format('YYYY-MM-DD HH:mm:ss');
       await nextTick();
       renderCharts();
@@ -325,9 +339,10 @@
 
 <style lang="less" scoped>
   .platform-dashboard {
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: 20px 24px;
-    min-height: calc(100vh - 96px);
+    height: calc(100vh - 96px);
     border-radius: 12px;
     color: #e6ecf5;
     background: linear-gradient(160deg, #0b1a33 0%, #10233f 55%, #0d1b33 100%);
@@ -435,6 +450,12 @@
           color: #8ea0bd;
         }
       }
+    }
+    .pd-table-pagination {
+      display: flex;
+      justify-content: flex-end;
+      padding: 12px 20px;
+      border-top: 1px solid rgb(142 160 189 / 15%);
     }
     .pd-active {
       color: #8ea0bd;
