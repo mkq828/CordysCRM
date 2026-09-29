@@ -312,6 +312,8 @@
   const Message = useMessage();
   const { openModal } = useModal();
 
+  const DAY_MILLIS = 24 * 60 * 60 * 1000;
+
   const keyword = ref('');
   const queryVersion = ref<TenantPlanVersion | ''>('');
   const queryStatus = ref<TenantPlanStatus | ''>('');
@@ -393,11 +395,20 @@
     remark: '',
   });
 
+  // 续费默认到期时间：未过期从原到期日顺延一个有效期，已过期则从当天起算（与后端 open 顺延逻辑一致）
+  function defaultRenewExpireTime(row: TenantPlanItem): number {
+    const edition = editionsRef.value.find((e) => e.code === row.version);
+    const days = edition?.validityDays ?? 365;
+    const now = Date.now();
+    const base = row.expireTime && row.expireTime > now ? row.expireTime : now;
+    return base + days * DAY_MILLIS;
+  }
+
   function openRenew(row: TenantPlanItem) {
     openForm.value = {
       id: row.id,
       version: row.version,
-      expireTime: row.expireTime ?? null,
+      expireTime: defaultRenewExpireTime(row),
       remark: row.remark || '',
     };
     showOpen.value = true;
