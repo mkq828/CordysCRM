@@ -48,10 +48,10 @@ public class CsrfFilter extends AnonymousFilter {
         // 如果用户未认证，返回认证无效状态
         if (!SecurityUtils.getSubject().isAuthenticated()) {
             HttpServletResponse httpResponse = (HttpServletResponse) response;
-            // 单点登录：旧会话被新登录踢掉后，残留请求走到这里。从 CSRF token 解密出 userId，
-            // 若该用户存在被踢标记，则直接返回 401 + code 100461，前端弹「该账号已在其他设备登录」。
-            String kickedUserId = decryptCsrfUserId(httpServletRequest);
-            if (kickedUserId != null && SessionUtils.isKicked(kickedUserId)) {
+            // 单点登录：旧会话被新登录踢掉后，残留请求走到这里。从 CSRF token 解密出 sessionId，
+            // 若该会话存在被踢标记，则直接返回 401 + code 100461，前端弹「该账号已在其他设备登录」。
+            String kickedSessionId = decryptCsrfSessionId(httpServletRequest);
+            if (kickedSessionId != null && SessionUtils.isKicked(kickedSessionId)) {
                 writeKickedResponse(httpResponse);
                 return false;
             }
@@ -151,14 +151,14 @@ public class CsrfFilter extends AnonymousFilter {
     }
 
     /**
-     * 从 CSRF token 解密出 userId（用于单点登录被踢检测）。
+     * 从 CSRF token 解密出 sessionId（用于单点登录被踢检测）。
      * 解密失败（匿名请求、非法 token）时静默返回 null，避免影响正常未认证流程。
      *
      * @param request HttpServletRequest
      *
-     * @return userId，无法解析时返回 null
+     * @return sessionId，无法解析时返回 null
      */
-    private String decryptCsrfUserId(HttpServletRequest request) {
+    private String decryptCsrfSessionId(HttpServletRequest request) {
         String csrfToken = request.getHeader(SessionConstants.CSRF_TOKEN);
         if (StringUtils.isBlank(csrfToken)) {
             return null;
@@ -166,8 +166,8 @@ public class CsrfFilter extends AnonymousFilter {
         try {
             String decrypted = CodingUtils.aesDecrypt(csrfToken, SessionUser.secret, CodingUtils.generateIv());
             String[] parts = StringUtils.split(StringUtils.trimToNull(decrypted), "|");
-            if (parts != null && parts.length >= 1) {
-                return parts[0];
+            if (parts != null && parts.length >= 3) {
+                return parts[2];
             }
             return null;
         } catch (Exception e) {
