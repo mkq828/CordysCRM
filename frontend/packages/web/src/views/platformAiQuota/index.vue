@@ -20,7 +20,7 @@
                 <div class="paq-kpi-value">{{ kpi.value }}</div>
               </div>
             </div>
-            <div class="mt-[4px] text-[12px] text-[#8a94a6]">{{ t('platformAiQuota.costEstimated') }}</div>
+            <div class="mt-[4px] text-xs text-orange-500">{{ t('platformAiQuota.costEstimated') }}</div>
 
             <CrmCard hide-footer class="!mt-[16px]">
               <template #title>{{ t('platformAiQuota.costTrend') }}</template>
@@ -66,26 +66,32 @@
             <div class="config-row">
               <span class="config-label">{{ t('platformAiQuota.tokensPerCall') }}</span>
               <n-input-number v-model:value="config.tokensPerCall" :min="1" class="!w-[200px]" />
+              <span class="config-hint">{{ t('platformAiQuota.tokensPerCallHint') }}</span>
             </div>
             <div class="config-row">
               <span class="config-label">{{ t('platformAiQuota.softLimitPercent') }}</span>
               <n-input-number v-model:value="config.softLimitPercent" :min="100" :max="200" class="!w-[200px]" />
+              <span class="config-hint">{{ t('platformAiQuota.softLimitPercentHint') }}</span>
             </div>
             <div class="config-row">
               <span class="config-label">{{ t('platformAiQuota.trialQuota') }}</span>
               <n-input-number v-model:value="config.trialQuota" :min="0" class="!w-[200px]" />
+              <span class="config-hint">{{ t('platformAiQuota.trialQuotaHint') }}</span>
             </div>
             <div class="config-row">
               <span class="config-label">{{ t('platformAiQuota.minuteCallLimit') }}</span>
               <n-input-number v-model:value="config.minuteCallLimit" :min="1" class="!w-[200px]" />
+              <span class="config-hint">{{ t('platformAiQuota.minuteCallLimitHint') }}</span>
             </div>
             <div class="config-row">
               <span class="config-label">{{ t('platformAiQuota.dailyCallLimit') }}</span>
               <n-input-number v-model:value="config.dailyCallLimit" :min="1" class="!w-[200px]" />
+              <span class="config-hint">{{ t('platformAiQuota.dailyCallLimitHint') }}</span>
             </div>
             <div class="config-row">
               <span class="config-label">{{ t('platformAiQuota.dailyCostThreshold') }}</span>
               <n-input-number v-model:value="config.dailyCostThreshold" :min="0" :step="10" class="!w-[200px]" />
+              <span class="config-hint">{{ t('platformAiQuota.dailyCostThresholdHint') }}</span>
             </div>
             <div class="flex justify-end gap-[8px]">
               <n-button @click="loadConfig">{{ t('platformAiQuota.reset') }}</n-button>
@@ -101,13 +107,13 @@
       <n-tab-pane name="mock" :tab="t('platformAiQuota.mockTab')">
         <CrmCard hide-footer class="!max-w-[720px]">
           <template #title>{{ t('platformAiQuota.mockTitle') }}</template>
-          <div class="mb-[12px] text-[12px] text-[#8a94a6]">{{ t('platformAiQuota.mockHint') }}</div>
+          <div class="mb-[12px] text-xs text-orange-500">{{ t('platformAiQuota.mockHint') }}</div>
           <div class="flex flex-col gap-[12px]">
             <div class="config-row">
               <span class="config-label">{{ t('platformAiQuota.mockOrg') }}</span>
               <n-input
                 v-model:value="mock.organizationId"
-                class="!w-[260px]"
+                class="!w-[400px]"
                 :placeholder="t('platformAiQuota.mockOrgPh')"
               />
             </div>
@@ -115,7 +121,7 @@
               <span class="config-label">{{ t('platformAiQuota.mockFeature') }}</span>
               <n-select
                 v-model:value="mock.featureCode"
-                class="!w-[260px]"
+                class="!w-[400px]"
                 :options="featureCodeOptions"
                 :placeholder="t('platformAiQuota.mockFeaturePh')"
               />
@@ -124,17 +130,17 @@
               <span class="config-label">{{ t('platformAiQuota.mockModel') }}</span>
               <n-input
                 v-model:value="mock.modelCode"
-                class="!w-[260px]"
+                class="!w-[400px]"
                 :placeholder="t('platformAiQuota.mockModelPh')"
               />
             </div>
             <div class="config-row">
               <span class="config-label">{{ t('platformAiQuota.mockInput') }}</span>
-              <n-input-number v-model:value="mock.inputTokens" :min="0" class="!w-[260px]" />
+              <n-input-number v-model:value="mock.inputTokens" :min="0" class="!w-[400px]" />
             </div>
             <div class="config-row">
               <span class="config-label">{{ t('platformAiQuota.mockOutput') }}</span>
-              <n-input-number v-model:value="mock.outputTokens" :min="0" class="!w-[260px]" />
+              <n-input-number v-model:value="mock.outputTokens" :min="0" class="!w-[400px]" />
             </div>
             <div class="flex items-center justify-end gap-[8px]">
               <n-button type="primary" :loading="mock.loading" @click="submitMock">
@@ -142,13 +148,45 @@
               </n-button>
             </div>
             <n-alert v-if="mock.result" type="info" :bordered="false">
-              <div>{{ t('platformAiQuota.mockStatus') }}：{{ mock.result.status }}</div>
+              <div>{{ t('platformAiQuota.mockStatus') }}：{{ statusLabel(mock.result.status) }}</div>
               <div>{{ t('platformAiQuota.mockCostCalls') }}：{{ fmtCalls(mock.result.costCalls) }}</div>
               <div>{{ t('platformAiQuota.mockUsedCalls') }}：{{ fmtCalls(mock.result.usedCalls) }}</div>
               <div>{{ t('platformAiQuota.mockQuota') }}：{{ fmtCalls(mock.result.quota) }}</div>
             </n-alert>
           </div>
         </CrmCard>
+      </n-tab-pane>
+
+      <!-- 租户额度 -->
+      <n-tab-pane name="tenantQuota" :tab="t('platformAiQuota.tenantQuotaTab')">
+        <div class="flex flex-col gap-[12px]">
+          <div class="flex items-center gap-[8px]">
+            <n-input
+              v-model:value="tenantKeyword"
+              class="!w-[320px]"
+              :placeholder="t('platformAiQuota.tenantKeywordPh')"
+              clearable
+              @keydown.enter="loadTenantQuotas"
+            />
+            <n-button type="primary" size="small" @click="loadTenantQuotas">
+              {{ t('platformAiQuota.search') }}
+            </n-button>
+            <n-button size="small" @click="resetTenantSearch">{{ t('platformAiQuota.reset') }}</n-button>
+            <div class="flex-1" />
+            <n-button quaternary size="small" @click="loadTenantQuotas">
+              {{ t('platformAiQuota.refresh') }}
+            </n-button>
+          </div>
+          <div class="text-xs text-orange-500">{{ t('platformAiQuota.tenantQuotaHint') }}</div>
+          <n-data-table
+            :columns="tenantQuotaColumns"
+            :data="tenantQuotaRows"
+            :bordered="false"
+            :loading="tenantQuotaLoading"
+            :scroll-x="1200"
+            size="small"
+          />
+        </div>
       </n-tab-pane>
     </n-tabs>
 
@@ -176,6 +214,31 @@
         <div class="flex justify-end gap-[8px]">
           <n-button @click="priceModal.show = false">{{ t('platformAiQuota.cancel') }}</n-button>
           <n-button type="primary" :loading="priceModal.loading" @click="submitPrice">
+            {{ t('platformAiQuota.save') }}
+          </n-button>
+        </div>
+      </template>
+    </n-modal>
+
+    <!-- 按租户调额弹窗 -->
+    <n-modal
+      v-model:show="quotaModal.show"
+      preset="card"
+      :title="t('platformAiQuota.tenantQuotaModalTitle')"
+      class="!w-[480px]"
+    >
+      <div class="flex flex-col gap-[12px]">
+        <div class="text-[13px] text-[#4b5563]">{{ quotaModal.orgName }}</div>
+        <div class="config-row">
+          <span class="config-label">{{ t('platformAiQuota.tenantQuotaField') }}</span>
+          <n-input-number v-model:value="quotaModal.quota" :min="0" :precision="0" class="!w-[260px]" />
+        </div>
+        <div class="text-xs text-orange-500">{{ t('platformAiQuota.tenantQuotaHint') }}</div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-[8px]">
+          <n-button @click="quotaModal.show = false">{{ t('platformAiQuota.cancel') }}</n-button>
+          <n-button type="primary" :loading="quotaModal.loading" @click="submitQuota">
             {{ t('platformAiQuota.save') }}
           </n-button>
         </div>
@@ -214,6 +277,7 @@
     AiModelPrice,
     AiQuotaConfig,
     AiQuotaRecordResult,
+    AiTenantQuotaRow,
   } from '@lib/shared/models/system/platformAiQuota';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
@@ -224,6 +288,9 @@
     platformAiQuotaMockRecord,
     platformAiQuotaModelPriceList,
     platformAiQuotaModelPriceSave,
+    platformAiQuotaTenantList,
+    platformAiQuotaTenantQuotaReset,
+    platformAiQuotaTenantQuotaSave,
     platformAiQuotaUpdateConfig,
   } from '@/api/modules';
 
@@ -249,6 +316,10 @@
 
   function fmtCalls(value?: number | string) {
     return Number(value ?? 0).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+  }
+
+  function statusLabel(status?: string) {
+    return status ? t(`platformAiQuota.status.${status}`) : '';
   }
 
   function fmtTokens(value?: number | string) {
@@ -477,7 +548,7 @@
     'ai_employee',
     'ai_kb',
     'digital_human',
-  ].map((code) => ({ label: code, value: code }));
+  ].map((code) => ({ label: `${code} · ${t(`platformAiQuota.feature.${code}`)}`, value: code }));
 
   async function submitMock() {
     if (!mock.organizationId || !mock.featureCode || !mock.modelCode) {
@@ -498,11 +569,103 @@
     }
   }
 
+  // ==================== 租户额度（按租户调额） ====================
+  const tenantQuotaLoading = ref(false);
+  const tenantKeyword = ref('');
+  const tenantQuotaRows = ref<AiTenantQuotaRow[]>([]);
+
+  const quotaModal = reactive<{
+    show: boolean;
+    loading: boolean;
+    organizationId: string;
+    orgName: string;
+    quota: number;
+  }>({ show: false, loading: false, organizationId: '', orgName: '', quota: 20 });
+
+  async function loadTenantQuotas() {
+    tenantQuotaLoading.value = true;
+    try {
+      tenantQuotaRows.value = await platformAiQuotaTenantList({ keyword: tenantKeyword.value || undefined });
+    } finally {
+      tenantQuotaLoading.value = false;
+    }
+  }
+
+  function resetTenantSearch() {
+    tenantKeyword.value = '';
+    loadTenantQuotas();
+  }
+
+  function openQuotaModal(row: AiTenantQuotaRow) {
+    quotaModal.organizationId = row.organizationId;
+    quotaModal.orgName = row.organizationName;
+    quotaModal.quota = row.overrideQuota != null ? row.overrideQuota : row.effectiveQuota;
+    quotaModal.show = true;
+  }
+
+  async function submitQuota() {
+    quotaModal.loading = true;
+    try {
+      await platformAiQuotaTenantQuotaSave({
+        organizationId: quotaModal.organizationId,
+        quota: quotaModal.quota,
+      });
+      Message.success(t('platformAiQuota.saveSuccess'));
+      quotaModal.show = false;
+      await loadTenantQuotas();
+    } finally {
+      quotaModal.loading = false;
+    }
+  }
+
+  async function resetTenantQuota(row: AiTenantQuotaRow) {
+    await platformAiQuotaTenantQuotaReset({ organizationId: row.organizationId });
+    Message.success(t('platformAiQuota.saveSuccess'));
+    await loadTenantQuotas();
+  }
+
+  const tenantQuotaColumns = computed<DataTableColumns<AiTenantQuotaRow>>(() => [
+    { title: t('platformAiQuota.orgName'), key: 'organizationName', width: 180, fixed: 'left' },
+    { title: t('platformAiQuota.version'), key: 'editionName', render: (row) => row.editionName || '-' },
+    { title: t('platformAiQuota.snapshotQuota'), key: 'snapshotQuota', render: (row) => row.snapshotQuota ?? '-' },
+    { title: t('platformAiQuota.overrideQuota'), key: 'overrideQuota', render: (row) => row.overrideQuota ?? '-' },
+    { title: t('platformAiQuota.usedThisMonth'), key: 'usedCalls', render: (row) => fmtCalls(row.usedCalls) },
+    {
+      title: t('platformAiQuota.effectiveQuota'),
+      key: 'effectiveQuota',
+      render: (row) => fmtCalls(row.effectiveQuota),
+    },
+    { title: t('platformAiQuota.remaining'), key: 'remainingCalls', render: (row) => fmtCalls(row.remainingCalls) },
+    { title: t('platformAiQuota.status'), key: 'status', render: (row) => statusLabel(row.status) },
+    {
+      title: t('platformAiQuota.action'),
+      key: 'action',
+      width: 180,
+      fixed: 'right',
+      render: (row) =>
+        h('div', { style: 'display:flex;gap:8px;align-items:center;' }, [
+          h(
+            NButton,
+            { size: 'tiny', quaternary: true, type: 'primary', onClick: () => openQuotaModal(row) },
+            { default: () => t('platformAiQuota.adjust') }
+          ),
+          row.overrideQuota != null
+            ? h(
+                NButton,
+                { size: 'tiny', quaternary: true, type: 'error', onClick: () => resetTenantQuota(row) },
+                { default: () => t('platformAiQuota.restoreDefault') }
+              )
+            : null,
+        ]),
+    },
+  ]);
+
   onMounted(() => {
     window.addEventListener('resize', onResize);
     loadCost();
     loadPrices();
     loadConfig();
+    loadTenantQuotas();
   });
 
   onBeforeUnmount(() => {
@@ -547,6 +710,12 @@
       text-align: right;
       color: #4b5563;
       flex-shrink: 0;
+    }
+    .config-hint {
+      flex: 1;
+      font-size: 12px;
+      color: #f97316;
+      line-height: 1.5;
     }
   }
 </style>

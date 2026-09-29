@@ -1060,4 +1060,7 @@ export const {
   getConfig: platformAiQuotaGetConfig,
   updateConfig: platformAiQuotaUpdateConfig,
   mockRecord: platformAiQuotaMockRecord,
+  tenantList: platformAiQuotaTenantList,
+  tenantQuotaSave: platformAiQuotaTenantQuotaSave,
+  tenantQuotaReset: platformAiQuotaTenantQuotaReset,
 } = platformAiQuotaApi;

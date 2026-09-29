@@ -5,6 +5,9 @@ import {
   platformAiQuotaMockRecordUrl,
   platformAiQuotaModelPriceListUrl,
   platformAiQuotaModelPriceSaveUrl,
+  platformAiQuotaTenantListUrl,
+  platformAiQuotaTenantQuotaResetUrl,
+  platformAiQuotaTenantQuotaSaveUrl,
 } from '@lib/shared/api/requrls/system/platformAiQuota';
 import type {
   AdminAiCostOverview,
@@ -15,6 +18,10 @@ import type {
   AiQuotaConfigParams,
   AiMockRecordParams,
   AiQuotaRecordResult,
+  AiTenantQuotaListParams,
+  AiTenantQuotaResetParams,
+  AiTenantQuotaRow,
+  AiTenantQuotaSaveParams,
 } from '@lib/shared/models/system/platformAiQuota';
 
 export default function usePlatformAiQuotaApi(CDR: CordysAxios) {
@@ -44,6 +51,17 @@ export default function usePlatformAiQuotaApi(CDR: CordysAxios) {
     return CDR.post<AiQuotaRecordResult>({ url: platformAiQuotaMockRecordUrl, data });
   }
 
+  // 租户额度
+  function tenantList(data: AiTenantQuotaListParams) {
+    return CDR.post<AiTenantQuotaRow[]>({ url: platformAiQuotaTenantListUrl, data });
+  }
+  function tenantQuotaSave(data: AiTenantQuotaSaveParams) {
+    return CDR.post({ url: platformAiQuotaTenantQuotaSaveUrl, data });
+  }
+  function tenantQuotaReset(data: AiTenantQuotaResetParams) {
+    return CDR.post({ url: platformAiQuotaTenantQuotaResetUrl, data });
+  }
+
   return {
     cost,
     modelPriceList,
@@ -51,5 +69,8 @@ export default function usePlatformAiQuotaApi(CDR: CordysAxios) {
     getConfig,
     updateConfig,
     mockRecord,
+    tenantList,
+    tenantQuotaSave,
+    tenantQuotaReset,
   };
 }

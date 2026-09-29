@@ -88,3 +88,35 @@ export interface AiQuotaRecordResult {
   usedCalls: number | string;
   quota: number;
 }
+
+// 租户额度行
+export interface AiTenantQuotaRow {
+  organizationId: string;
+  organizationName: string;
+  orgType: string;
+  editionCode: string | null;
+  editionName: string | null;
+  expireTime: number | null;
+  snapshotQuota: number | null;
+  overrideQuota: number | null;
+  effectiveQuota: number;
+  usedCalls: number | string;
+  remainingCalls: number | string;
+  status: string;
+}
+
+// 租户额度列表参数
+export interface AiTenantQuotaListParams {
+  keyword?: string;
+}
+
+// 按租户调额参数
+export interface AiTenantQuotaSaveParams {
+  organizationId: string;
+  quota: number;
+}
+
+// 恢复默认额度参数
+export interface AiTenantQuotaResetParams {
+  organizationId: string;
+}

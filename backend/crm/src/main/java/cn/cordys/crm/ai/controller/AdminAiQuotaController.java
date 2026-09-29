@@ -6,10 +6,14 @@ import cn.cordys.crm.ai.dto.request.AdminAiCostRequest;
 import cn.cordys.crm.ai.dto.request.AiMockRecordRequest;
 import cn.cordys.crm.ai.dto.request.AiModelPriceSaveRequest;
 import cn.cordys.crm.ai.dto.request.AiQuotaConfigRequest;
+import cn.cordys.crm.ai.dto.request.AiTenantQuotaListRequest;
+import cn.cordys.crm.ai.dto.request.AiTenantQuotaResetRequest;
+import cn.cordys.crm.ai.dto.request.AiTenantQuotaSaveRequest;
 import cn.cordys.crm.ai.dto.response.AdminAiCostResponse;
 import cn.cordys.crm.ai.dto.response.AiModelPriceResponse;
 import cn.cordys.crm.ai.dto.response.AiQuotaConfigResponse;
 import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
+import cn.cordys.crm.ai.dto.response.AiTenantQuotaRow;
 import cn.cordys.crm.ai.service.AiQuotaService;
 import cn.cordys.security.SessionUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -80,5 +84,26 @@ public class AdminAiQuotaController {
     public AiQuotaRecordResult mockRecord(@Validated @RequestBody AiMockRecordRequest request) {
         return aiQuotaService.record(request.getOrganizationId(), request.getFeatureCode(),
                 request.getModelCode(), request.getInputTokens(), request.getOutputTokens());
+    }
+
+    @PostMapping("/tenant/list")
+    @CsPermission(PermissionConstants.ADMIN_AI_QUOTA_READ)
+    @Operation(summary = "AI 额度-租户额度列表")
+    public List<AiTenantQuotaRow> tenantList(@RequestBody AiTenantQuotaListRequest request) {
+        return aiQuotaService.listTenantQuotas(request.getKeyword());
+    }
+
+    @PostMapping("/tenant/quota/save")
+    @CsPermission(PermissionConstants.ADMIN_AI_QUOTA_WRITE)
+    @Operation(summary = "AI 额度-按租户调额")
+    public void tenantQuotaSave(@Validated @RequestBody AiTenantQuotaSaveRequest request) {
+        aiQuotaService.saveOverride(request.getOrganizationId(), request.getQuota(), SessionUtils.getUserId());
+    }
+
+    @PostMapping("/tenant/quota/reset")
+    @CsPermission(PermissionConstants.ADMIN_AI_QUOTA_WRITE)
+    @Operation(summary = "AI 额度-恢复默认额度")
+    public void tenantQuotaReset(@Validated @RequestBody AiTenantQuotaResetRequest request) {
+        aiQuotaService.resetOverride(request.getOrganizationId());
     }
 }

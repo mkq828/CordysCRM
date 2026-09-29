@@ -8,6 +8,7 @@ import cn.cordys.common.util.Translator;
 import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.ai.constant.AiQuotaConstant;
 import cn.cordys.crm.ai.domain.AiModelPrice;
+import cn.cordys.crm.ai.domain.AiQuotaOverride;
 import cn.cordys.crm.ai.domain.AiQuotaUsage;
 import cn.cordys.crm.ai.domain.AiUsageRecord;
 import cn.cordys.crm.ai.dto.request.AdminAiCostRequest;
@@ -21,6 +22,7 @@ import cn.cordys.crm.ai.dto.response.AiModelPriceResponse;
 import cn.cordys.crm.ai.dto.response.AiQuotaConfigResponse;
 import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
 import cn.cordys.crm.ai.dto.response.AiQuotaTrendPoint;
+import cn.cordys.crm.ai.dto.response.AiTenantQuotaRow;
 import cn.cordys.crm.ai.dto.response.TenantQuotaOverviewResponse;
 import cn.cordys.crm.system.constants.NotificationConstants;
 import cn.cordys.crm.system.domain.Organization;
@@ -30,6 +32,7 @@ import cn.cordys.crm.system.domain.TenantEdition;
 import cn.cordys.crm.system.notice.CommonNoticeSendService;
 import cn.cordys.crm.system.service.EditionService;
 import cn.cordys.mybatis.BaseMapper;
+import cn.cordys.mybatis.DataAccessLayer;
 import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -84,6 +87,8 @@ public class AiQuotaService {
     private BaseMapper<AiUsageRecord> usageRecordMapper;
     @Resource
     private BaseMapper<AiQuotaUsage> quotaUsageMapper;
+    @Resource
+    private BaseMapper<AiQuotaOverride> overrideMapper;
     @Resource
     private BaseMapper<AiModelPrice> modelPriceMapper;
     @Resource
@@ -363,14 +368,116 @@ public class AiQuotaService {
     // ==================== 配额/配置读取 ====================
 
     /**
-     * 租户本月配额：优先 tenant_edition 快照，试用（无快照）回退 ai.quota.trialQuota。
+     * 租户本月配额：优先手动覆盖，其次 tenant_edition 快照，最后回退 ai.quota.trialQuota。
+     * 覆盖值 0 表示停用 AI，同样生效。
      */
     public int getMonthlyQuota(String organizationId) {
+        AiQuotaOverride override = getOverride(organizationId);
+        if (override != null) {
+            return override.getQuota();
+        }
         TenantEdition edition = editionService.getByOrganizationId(organizationId);
         if (edition != null && edition.getAiMonthlyQuota() != null && edition.getAiMonthlyQuota() > 0) {
             return edition.getAiMonthlyQuota();
         }
         return getTrialQuota();
+    }
+
+    // ==================== 租户额度覆盖（admin 按租户调额） ====================
+
+    /**
+     * 列出所有租户（排除平台组织）的当前 AI 额度情况，供 admin 按租户调额。
+     */
+    public List<AiTenantQuotaRow> listTenantQuotas(String keyword) {
+        Map<String, Integer> overrideMap = new HashMap<>();
+        for (AiQuotaOverride o : overrideMapper.selectAll(null)) {
+            overrideMap.put(o.getOrganizationId(), o.getQuota());
+        }
+        String kw = StringUtils.isBlank(keyword) ? null : keyword.trim();
+        return DataAccessLayer.with(Organization.class)
+                .selectListByLambda(new LambdaQueryWrapper<Organization>()
+                        .orderByDesc(Organization::getCreateTime)).stream()
+                .filter(o -> !OrganizationContext.DEFAULT_ORGANIZATION_ID.equals(o.getId()))
+                .filter(o -> kw == null
+                        || (o.getName() != null && o.getName().contains(kw))
+                        || (o.getId() != null && o.getId().contains(kw)))
+                .map(o -> {
+                    AiTenantQuotaRow row = new AiTenantQuotaRow();
+                    row.setOrganizationId(o.getId());
+                    row.setOrganizationName(o.getName());
+                    row.setOrgType(o.getOrgType());
+                    Integer override = overrideMap.get(o.getId());
+                    row.setOverrideQuota(override);
+                    TenantEdition edition = editionService.getByOrganizationId(o.getId());
+                    Integer snapshot = null;
+                    if (edition != null) {
+                        snapshot = edition.getAiMonthlyQuota();
+                        row.setEditionCode(edition.getEditionCode());
+                        row.setEditionName(edition.getEditionName());
+                        row.setExpireTime(edition.getExpireTime());
+                    }
+                    row.setSnapshotQuota(snapshot);
+                    int effective;
+                    if (override != null) {
+                        effective = override;
+                    } else if (snapshot != null && snapshot > 0) {
+                        effective = snapshot;
+                    } else {
+                        effective = getTrialQuota();
+                    }
+                    row.setEffectiveQuota(effective);
+                    BigDecimal used = getUsedCalls(o.getId());
+                    row.setUsedCalls(used);
+                    BigDecimal remaining = BigDecimal.valueOf(effective).subtract(used);
+                    row.setRemainingCalls(remaining.signum() < 0 ? BigDecimal.ZERO : remaining);
+                    BigDecimal quota = BigDecimal.valueOf(effective);
+                    BigDecimal softLimit = quota.multiply(BigDecimal.valueOf(getSoftLimitPercent()))
+                            .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+                    row.setStatus(used.compareTo(softLimit) > 0 ? STATUS_HARD_LIMITED
+                            : (used.compareTo(quota) > 0 ? STATUS_SOFT_LIMITED : STATUS_NORMAL));
+                    return row;
+                })
+                .toList();
+    }
+
+    /**
+     * 保存覆盖（有则更新，无则新增），quota=0 表示停用 AI。
+     */
+    public void saveOverride(String organizationId, int quota, String operatorId) {
+        long now = System.currentTimeMillis();
+        AiQuotaOverride override = getOverride(organizationId);
+        if (override == null) {
+            override = new AiQuotaOverride();
+            override.setId(IDGenerator.nextStr());
+            override.setOrganizationId(organizationId);
+            override.setQuota(quota);
+            override.setCreateTime(now);
+            override.setCreateUser(operatorId);
+            override.setUpdateTime(now);
+            override.setUpdateUser(operatorId);
+            overrideMapper.insert(override);
+        } else {
+            override.setQuota(quota);
+            override.setUpdateTime(now);
+            override.setUpdateUser(operatorId);
+            overrideMapper.updateById(override);
+        }
+    }
+
+    /**
+     * 删除覆盖，恢复默认（套餐快照/试用配额）。
+     */
+    public void resetOverride(String organizationId) {
+        AiQuotaOverride override = getOverride(organizationId);
+        if (override != null) {
+            overrideMapper.deleteByPrimaryKey(override.getId());
+        }
+    }
+
+    private AiQuotaOverride getOverride(String organizationId) {
+        List<AiQuotaOverride> list = overrideMapper.selectListByLambda(new LambdaQueryWrapper<AiQuotaOverride>()
+                .eq(AiQuotaOverride::getOrganizationId, organizationId));
+        return list.isEmpty() ? null : list.getFirst();
     }
 
     public long getTokensPerCall() {
