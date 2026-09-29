@@ -20,8 +20,17 @@ public class TenantPlanHistoryResponse {
     @Schema(description = "变更后版本")
     private String toVersion;
 
+    @Schema(description = "变更前版本名称")
+    private String fromVersionName;
+
+    @Schema(description = "变更后版本名称")
+    private String toVersionName;
+
     @Schema(description = "本次成交价(元)")
     private BigDecimal price;
+
+    @Schema(description = "成交价计算过程(补差公式/首年价说明)")
+    private String priceDetail;
 
     @Schema(description = "本次后到期时间(毫秒)")
     private Long expireTime;

@@ -4,6 +4,8 @@ import cn.cordys.crm.platform.dto.response.PlatformContractResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 租户订阅信息（套餐 + 当前生效合同），个人中心自助展示。
  */
@@ -30,4 +32,7 @@ public class TenantSubscriptionResponse {
 
     @Schema(description = "当前生效合同(无合同为 null)")
     private PlatformContractResponse contract;
+
+    @Schema(description = "开通/续费/升级历史(含成交价计算过程，按时间倒序)")
+    private List<TenantPlanHistoryResponse> histories;
 }

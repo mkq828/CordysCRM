@@ -153,10 +153,10 @@ public class TenantPlanService {
         plan.setUpdateUser(operatorId);
         tenantPlanMapper.updateById(plan);
 
-        BigDecimal price = resolveOpenPrice(edition, plan.getOrganizationId());
-        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime, price, operatorId);
-        recordHistory(plan.getOrganizationId(), ACTION_OPEN, oldVersion, edition.getCode(), price, expireTime,
-                StringUtils.trim(request.getRemark()), operatorId, now);
+        PriceResult priceResult = resolveOpenPrice(edition, plan.getOrganizationId());
+        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime, priceResult.price(), operatorId);
+        recordHistory(plan.getOrganizationId(), ACTION_OPEN, oldVersion, edition.getCode(), priceResult.price(),
+                expireTime, StringUtils.trim(request.getRemark()), priceResult.detail(), operatorId, now);
 
         if (!edition.getCode().equals(oldVersion)) {
             syncAdminRole(plan.getOrganizationId(), operatorId);
@@ -187,10 +187,10 @@ public class TenantPlanService {
         plan.setUpdateUser(operatorId);
         tenantPlanMapper.updateById(plan);
 
-        BigDecimal price = resolveUpgradePrice(edition, oldVersion, oldExpire, plan.getOrganizationId());
-        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime, price, operatorId);
-        recordHistory(plan.getOrganizationId(), ACTION_UPGRADE, oldVersion, edition.getCode(), price, expireTime,
-                null, operatorId, now);
+        PriceResult priceResult = resolveUpgradePrice(edition, oldVersion, oldExpire, plan.getOrganizationId());
+        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime, priceResult.price(), operatorId);
+        recordHistory(plan.getOrganizationId(), ACTION_UPGRADE, oldVersion, edition.getCode(), priceResult.price(),
+                expireTime, null, priceResult.detail(), operatorId, now);
         syncAdminRole(plan.getOrganizationId(), operatorId);
     }
 
@@ -230,10 +230,10 @@ public class TenantPlanService {
             tenantPlanMapper.updateById(plan);
         }
 
-        BigDecimal price = resolveOpenPrice(edition, organizationId);
-        editionService.writeSnapshot(organizationId, edition.getCode(), plan.getExpireTime(), price, operatorId);
-        recordHistory(organizationId, ACTION_OPEN, oldVersion, edition.getCode(), price, plan.getExpireTime(),
-                null, operatorId, now);
+        PriceResult priceResult = resolveOpenPrice(edition, organizationId);
+        editionService.writeSnapshot(organizationId, edition.getCode(), plan.getExpireTime(), priceResult.price(), operatorId);
+        recordHistory(organizationId, ACTION_OPEN, oldVersion, edition.getCode(), priceResult.price(),
+                plan.getExpireTime(), null, priceResult.detail(), operatorId, now);
 
         if (!edition.getCode().equals(oldVersion)) {
             syncAdminRole(organizationId, operatorId);
@@ -385,7 +385,8 @@ public class TenantPlanService {
      * 记录开通/续费/升级历史
      */
     private void recordHistory(String organizationId, String action, String fromVersion, String toVersion,
-                               BigDecimal price, Long expireTime, String remark, String operatorId, long now) {
+                               BigDecimal price, Long expireTime, String remark, String priceDetail,
+                               String operatorId, long now) {
         TenantPlanHistory history = new TenantPlanHistory();
         history.setId(IDGenerator.nextStr());
         history.setOrganizationId(organizationId);
@@ -395,6 +396,7 @@ public class TenantPlanService {
         history.setPrice(price);
         history.setExpireTime(expireTime);
         history.setRemark(remark);
+        history.setPriceDetail(priceDetail);
         history.setCreateTime(now);
         history.setUpdateTime(now);
         history.setCreateUser(operatorId);
@@ -405,7 +407,7 @@ public class TenantPlanService {
     /**
      * 查询开通/续费/升级历史（按时间倒序）
      */
-    private List<TenantPlanHistoryResponse> listHistories(String organizationId) {
+    public List<TenantPlanHistoryResponse> listHistories(String organizationId) {
         List<TenantPlanHistory> list = tenantPlanHistoryMapper.selectListByLambda(new LambdaQueryWrapper<TenantPlanHistory>()
                 .eq(TenantPlanHistory::getOrganizationId, organizationId)
                 .orderByDesc(TenantPlanHistory::getCreateTime));
@@ -415,7 +417,10 @@ public class TenantPlanService {
             row.setAction(item.getAction());
             row.setFromVersion(item.getFromVersion());
             row.setToVersion(item.getToVersion());
+            row.setFromVersionName(editionName(item.getFromVersion()));
+            row.setToVersionName(editionName(item.getToVersion()));
             row.setPrice(item.getPrice());
+            row.setPriceDetail(item.getPriceDetail());
             row.setExpireTime(item.getExpireTime());
             row.setRemark(item.getRemark());
             row.setCreateTime(item.getCreateTime());
@@ -423,6 +428,17 @@ public class TenantPlanService {
             result.add(row);
         }
         return result;
+    }
+
+    /**
+     * 版本编码 → 版本名称（读不到时回退编码本身）
+     */
+    private String editionName(String code) {
+        if (StringUtils.isBlank(code)) {
+            return null;
+        }
+        SysEdition edition = editionService.getEditionByCode(code);
+        return edition == null ? code : edition.getName();
     }
 
     /**
@@ -545,36 +561,56 @@ public class TenantPlanService {
     /**
      * 开通价格：首次付费（尚无版本快照）用「首年促销价」（无则回退年价），续费/复购用「年价」。
      */
-    private BigDecimal resolveOpenPrice(SysEdition edition, String organizationId) {
+    private PriceResult resolveOpenPrice(SysEdition edition, String organizationId) {
         boolean firstYear = editionService.getByOrganizationId(organizationId) == null;
         BigDecimal promo = edition.getFirstYearPrice();
         if (firstYear && promo != null && promo.signum() > 0) {
-            return promo;
+            return new PriceResult(promo, "首次开通·" + edition.getName() + "首年促销价 ¥" + money(promo));
         }
-        return edition.getYearPrice();
+        return new PriceResult(edition.getYearPrice(),
+                "续费·" + edition.getName() + "年价 ¥" + money(edition.getYearPrice()));
     }
 
     /**
-     * 升级补差：补差 =（目标版年价 − 当前版年价）×（剩余天数 / 365）。
+     * 升级/降级补差：补差 =（目标版年价 − 当前版年价）×（剩余天数 / 365）。
      * 降级/平级不补差（记 0）；无剩余时长（已到期/无套餐）则按首年促销价。
      */
-    private BigDecimal resolveUpgradePrice(SysEdition target, String oldVersionCode, Long oldExpire, String organizationId) {
+    private PriceResult resolveUpgradePrice(SysEdition target, String oldVersionCode, Long oldExpire, String organizationId) {
         SysEdition current = editionService.getEditionByCode(oldVersionCode);
+        String currentName = current != null ? current.getName() : oldVersionCode;
         BigDecimal from = current != null && current.getYearPrice() != null ? current.getYearPrice() : BigDecimal.ZERO;
         BigDecimal to = target.getYearPrice() != null ? target.getYearPrice() : BigDecimal.ZERO;
         BigDecimal diff = to.subtract(from);
-        if (diff.signum() <= 0) {
-            return BigDecimal.ZERO;
-        }
         long now = System.currentTimeMillis();
         long remaining = (oldExpire != null && oldExpire > now)
                 ? (long) Math.ceil((oldExpire - now) / (double) DAY_MILLIS)
                 : 0;
+        if (diff.signum() <= 0) {
+            return new PriceResult(BigDecimal.ZERO,
+                    "降级/平级不补差，成交价 ¥0，剩余 " + remaining + " 天不变");
+        }
         if (remaining <= 0) {
             return resolveOpenPrice(target, organizationId);
         }
-        return diff.multiply(BigDecimal.valueOf(remaining))
+        BigDecimal price = diff.multiply(BigDecimal.valueOf(remaining))
                 .divide(BigDecimal.valueOf(365), 2, RoundingMode.HALF_UP);
+        String detail = "补差 =（" + target.getName() + "年价 ¥" + money(to)
+                + " − " + currentName + "年价 ¥" + money(from)
+                + "）× 剩余 " + remaining + " 天 ÷ 365 = ¥" + money(price);
+        return new PriceResult(price, detail);
+    }
+
+    /**
+     * 金额去尾零展示（3980.00 → 3980）
+     */
+    private String money(BigDecimal value) {
+        return value == null ? "0" : value.stripTrailingZeros().toPlainString();
+    }
+
+    /**
+     * 成交价 + 计算过程（供历史记录落库与详情/个人中心展示）
+     */
+    private record PriceResult(BigDecimal price, String detail) {
     }
 
     private String getParam(String key) {

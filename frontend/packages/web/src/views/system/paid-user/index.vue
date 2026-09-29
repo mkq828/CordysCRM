@@ -184,9 +184,12 @@
             <n-descriptions-item :label="t('paidUser.orgType')">{{ orgTypeLabel(detail.orgType) }}</n-descriptions-item>
             <n-descriptions-item :label="t('paidUser.adminName')">{{ detail.adminName || '-' }}</n-descriptions-item>
             <n-descriptions-item :label="t('paidUser.phone')">{{ detail.phone || '-' }}</n-descriptions-item>
-            <n-descriptions-item :label="t('paidUser.accountStatus')">{{
-              enabledLabel(detail.enabled)
-            }}</n-descriptions-item>
+            <n-descriptions-item :label="t('paidUser.accountStatus')">
+              <n-tag v-if="detail.enabled != null" :type="detail.enabled ? 'success' : 'error'" size="small">
+                {{ enabledLabel(detail.enabled) }}
+              </n-tag>
+              <span v-else>-</span>
+            </n-descriptions-item>
             <n-descriptions-item
               v-if="detail.orgType === 'ENTERPRISE'"
               :label="t('paidUser.unifiedSocialCreditCode')"
@@ -205,7 +208,10 @@
               {{ detail.editionName || (detail.version ? versionLabel(detail.version) : '-') }}
             </n-descriptions-item>
             <n-descriptions-item :label="t('paidUser.status')">
-              {{ detail.status ? statusLabel(detail.status) : '-' }}
+              <n-tag v-if="detail.status" :type="statusTagType(detail.status)" size="small">
+                {{ statusLabel(detail.status) }}
+              </n-tag>
+              <span v-else>-</span>
             </n-descriptions-item>
             <n-descriptions-item :label="t('paidUser.price')">
               {{ detail.price == null ? '-' : `¥${detail.price}` }}
@@ -230,14 +236,17 @@
             <div
               v-for="(h, i) in detail.histories"
               :key="i"
-              class="flex items-center gap-[12px] rounded border border-[var(--divider-color)] px-[12px] py-[8px] text-xs"
+              class="flex flex-col gap-[4px] rounded border border-[var(--divider-color)] px-[12px] py-[8px] text-xs"
             >
-              <n-tag :type="h.action === 'UPGRADE' ? 'warning' : 'info'" size="small">
-                {{ h.action === 'UPGRADE' ? t('paidUser.historyUpgrade') : t('paidUser.historyOpen') }}
-              </n-tag>
-              <span>{{ h.fromVersion ? `${h.fromVersion} → ${h.toVersion}` : h.toVersion }}</span>
-              <span v-if="h.price != null" class="text-orange-500">¥{{ h.price }}</span>
-              <span class="flex-1 text-right text-[var(--text-n4)]">{{ formatTime(h.createTime) }}</span>
+              <div class="flex items-center gap-[12px]">
+                <n-tag :type="h.action === 'UPGRADE' ? 'warning' : 'info'" size="small">
+                  {{ h.action === 'UPGRADE' ? t('paidUser.historyUpgrade') : t('paidUser.historyOpen') }}
+                </n-tag>
+                <span>{{ versionChangeLabel(h) }}</span>
+                <span v-if="h.price != null" class="text-orange-500">¥{{ h.price }}</span>
+                <span class="flex-1 text-right text-[var(--text-n4)]">{{ formatTime(h.createTime) }}</span>
+              </div>
+              <div v-if="h.priceDetail" class="pl-[8px] text-[var(--text-n3)]">{{ h.priceDetail }}</div>
             </div>
           </div>
         </template>
@@ -271,6 +280,7 @@
   import type { Edition } from '@lib/shared/models/system/edition';
   import type {
     TenantPlanDetail,
+    TenantPlanHistoryItem,
     TenantPlanItem,
     TenantPlanStatus,
     TenantPlanVersion,
@@ -336,6 +346,12 @@
 
   function versionLabel(version: TenantPlanVersion) {
     return editionMap.value[version] ?? version;
+  }
+
+  function versionChangeLabel(item: TenantPlanHistoryItem) {
+    const from = item.fromVersionName || item.fromVersion;
+    const to = item.toVersionName || item.toVersion;
+    return from ? `${from} → ${to}` : to || '-';
   }
 
   function statusLabel(status: TenantPlanStatus) {
@@ -454,11 +470,9 @@
   const upgradeVersionOptions = ref<{ label: string; value: string }[]>([]);
 
   function openUpgrade(row: TenantPlanItem) {
-    const current = editionsRef.value.find((e) => e.code === row.version);
-    const higher = editionsRef.value.filter(
-      (e) => e.code !== row.version && (current == null || (e.sort ?? 0) > (current.sort ?? 0))
-    );
-    upgradeVersionOptions.value = higher.map((e) => ({ label: e.name, value: e.code }));
+    upgradeVersionOptions.value = editionsRef.value
+      .filter((e) => e.code !== row.version)
+      .map((e) => ({ label: e.name, value: e.code }));
     upgradeForm.value = {
       id: row.id,
       orgName: row.orgName,
@@ -544,11 +558,8 @@
       { label: t('paidUser.detail'), key: 'detail' },
       { label: t('paidUser.renew'), key: 'renew' },
     ];
-    // 有更高版本可选时才展示「升级」
-    const current = editionsRef.value.find((e) => e.code === row.version);
-    const hasHigher =
-      current == null || editionsRef.value.some((e) => e.code !== row.version && (e.sort ?? 0) > (current.sort ?? 0));
-    if (hasHigher) {
+    // 有其他版本可选时才展示「升降版本」
+    if (editionsRef.value.some((e) => e.code !== row.version)) {
       list.push({ label: t('paidUser.upgrade'), key: 'upgrade' });
     }
     if (row.enabled !== null && row.enabled !== undefined) {
@@ -711,12 +722,16 @@
       title: t('paidUser.expireTime'),
       key: 'expireTime',
       width: 160,
+      sortOrder: false,
+      sorter: true,
       render: (row: TenantPlanItem) => formatTime(row.expireTime),
     },
     {
       title: t('paidUser.remainingDays'),
       key: 'remainingDays',
       width: 110,
+      sortOrder: false,
+      sorter: true,
       render: (row: TenantPlanItem) =>
         h('span', { style: remainingDaysColor(row) }, { default: () => remainingDaysLabel(row) }),
     },

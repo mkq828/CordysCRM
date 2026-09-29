@@ -322,4 +322,8 @@ export default {
   'system.personal.contract.status.ARCHIVED': 'Archived',
   'system.personal.contract.status.VOIDED': 'Voided',
   'system.personal.noContract': 'No contract yet',
+  'system.personal.history': 'Plan history',
+  'system.personal.historyEmpty': 'No records',
+  'system.personal.historyOpen': 'Open / renew',
+  'system.personal.historyUpgrade': 'Change plan',
 };

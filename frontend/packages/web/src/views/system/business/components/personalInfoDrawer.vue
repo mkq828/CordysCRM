@@ -104,6 +104,30 @@
           </div>
         </template>
         <div v-else class="mt-[8px] text-[13px] text-[var(--text-n4)]">{{ t('system.personal.noContract') }}</div>
+
+        <div class="mt-[16px] flex font-medium text-[var(--text-n1)]">
+          <n-p>{{ t('system.personal.history') }}</n-p>
+        </div>
+        <div v-if="!subscription.histories?.length" class="mt-[8px] text-[13px] text-[var(--text-n4)]">
+          {{ t('system.personal.historyEmpty') }}
+        </div>
+        <div v-else class="mt-[8px] flex flex-col gap-[8px]">
+          <div
+            v-for="(h, i) in subscription.histories"
+            :key="i"
+            class="flex flex-col gap-[4px] rounded border border-[var(--divider-color)] px-[12px] py-[8px] text-xs"
+          >
+            <div class="flex items-center gap-[12px]">
+              <n-tag :type="h.action === 'UPGRADE' ? 'warning' : 'info'" size="small">
+                {{ h.action === 'UPGRADE' ? t('system.personal.historyUpgrade') : t('system.personal.historyOpen') }}
+              </n-tag>
+              <span>{{ versionChangeLabel(h) }}</span>
+              <span v-if="h.price != null" class="text-orange-500">¥{{ h.price }}</span>
+              <span class="flex-1 text-right text-[var(--text-n4)]">{{ formatHistoryTime(h.createTime) }}</span>
+            </div>
+            <div v-if="h.priceDetail" class="pl-[8px] text-[var(--text-n3)]">{{ h.priceDetail }}</div>
+          </div>
+        </div>
       </CrmCard>
       <n-image-preview v-model:show="preview.show" :src="preview.src" />
       <CrmCard v-if="activeTab === PersonalEnum.INFO" hide-footer :special-height="64">
@@ -199,6 +223,7 @@
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import { PersonalInfoRequest, TenantSubscription } from '@lib/shared/models/system/business';
   import { OrgUserInfo } from '@lib/shared/models/system/org';
+  import { TenantPlanHistoryItem } from '@lib/shared/models/system/tenant-plan';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmDrawer from '@/components/pure/crm-drawer/index.vue';
@@ -252,6 +277,14 @@
   function fmtMoney(v?: number | string) {
     const n = Number(v ?? 0);
     return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function versionChangeLabel(h: TenantPlanHistoryItem) {
+    const from = h.fromVersionName || h.fromVersion;
+    const to = h.toVersionName || h.toVersion;
+    return from ? `${from} → ${to}` : to || '-';
+  }
+  function formatHistoryTime(ts?: number) {
+    return ts ? dayjs(ts).format('YYYY-MM-DD HH:mm') : '-';
   }
   function isImage(type?: string) {
     return /(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(type || '');

@@ -110,6 +110,7 @@ public class PersonalCenterService {
             }
         }
         response.setContract(platformContractService.getActiveByOrganizationId(organizationId));
+        response.setHistories(tenantPlanService.listHistories(organizationId));
         return response;
     }
 

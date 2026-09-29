@@ -76,7 +76,10 @@ export interface TenantPlanHistoryItem {
   action: 'OPEN' | 'UPGRADE';
   fromVersion?: string;
   toVersion: string;
+  fromVersionName?: string;
+  toVersionName?: string;
   price?: number;
+  priceDetail?: string;
   expireTime?: number;
   remark?: string;
   createTime?: number;

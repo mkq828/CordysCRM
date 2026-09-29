@@ -88,6 +88,15 @@
           </n-descriptions-item>
         </n-descriptions>
       </n-spin>
+      <template #footer>
+        <div class="flex justify-end gap-[12px]">
+          <template v-if="detail?.verifyStatus === 'PENDING'">
+            <n-button type="error" @click="rejectFromDetail">{{ t('registerAudit.reject') }}</n-button>
+            <n-button type="primary" @click="approveFromDetail">{{ t('registerAudit.approve') }}</n-button>
+          </template>
+          <n-button v-else @click="showDetail = false">{{ t('common.close') }}</n-button>
+        </div>
+      </template>
     </n-modal>
 
     <!-- 驳回弹窗 -->
@@ -267,8 +276,9 @@
     }
   }
 
-  // 通过
-  function handleApprove(row: RegisterAuditItem) {
+  // 审核通过（在详情弹窗内点「通过」）
+  function approveFromDetail() {
+    if (!detail.value) return;
     openModal({
       type: 'default',
       title: t('registerAudit.approveTip'),
@@ -277,8 +287,9 @@
       negativeText: t('common.cancel'),
       onPositiveClick: async () => {
         try {
-          await registerApprove({ id: row.id });
+          await registerApprove({ id: detail.value!.id });
           Message.success(t('registerAudit.approveSuccess'));
+          showDetail.value = false;
           tableRefreshId.value += 1;
         } catch (error) {
           // eslint-disable-next-line no-console
@@ -294,9 +305,12 @@
   const rejectLoading = ref(false);
   const rejectTarget = ref<RegisterAuditItem | null>(null);
 
-  function openReject(row: RegisterAuditItem) {
-    rejectTarget.value = row;
+  // 审核拒绝（详情弹窗内点「拒绝」，跳转拒绝弹窗填原因）
+  function rejectFromDetail() {
+    if (!detail.value) return;
+    rejectTarget.value = detail.value;
     rejectRemark.value = '';
+    showDetail.value = false;
     showReject.value = true;
   }
 
@@ -398,15 +412,14 @@
   }
 
   function buildActions(row: RegisterAuditItem): ActionsItem[] {
-    const list: ActionsItem[] = [{ label: t('registerAudit.detail'), key: 'detail' }];
+    const list: ActionsItem[] = [];
+    if (row.verifyStatus === 'PENDING') {
+      list.push({ label: t('registerAudit.audit'), key: 'audit' });
+    } else {
+      list.push({ label: t('registerAudit.detail'), key: 'detail' });
+    }
     if (row.planStatus === 'FREE') {
       list.push({ label: t('registerAudit.open'), key: 'open' });
-    }
-    if (row.verifyStatus === 'PENDING') {
-      list.push(
-        { label: t('registerAudit.approve'), key: 'approve' },
-        { label: t('registerAudit.reject'), key: 'reject', danger: true }
-      );
     }
     if (row.enabled !== null && row.enabled !== undefined) {
       list.push(
@@ -421,16 +434,11 @@
   function handleActionSelect(row: RegisterAuditItem, key: string) {
     switch (key) {
       case 'detail':
+      case 'audit':
         openDetail(row);
         break;
       case 'open':
         openPlan(row);
-        break;
-      case 'approve':
-        handleApprove(row);
-        break;
-      case 'reject':
-        openReject(row);
         break;
       case 'enable':
       case 'disable':

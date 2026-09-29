@@ -1,6 +1,7 @@
 import type { CompanyTypeEnum } from '../../enums/commonEnum';
 import type { TableQueryParams } from '../common';
 import { PersonalExportStatusEnum } from '@lib/shared/enums/systemEnum';
+import type { TenantPlanHistoryItem } from './tenant-plan';
 
 // 邮件设置
 export interface ConfigEmailParams {
@@ -307,6 +308,7 @@ export interface TenantSubscription {
   remainDays?: number; // 剩余天数(宽限期内为负)
   inGrace?: boolean; // 是否宽限期
   contract?: TenantSubscriptionContract | null; // 当前生效合同
+  histories?: TenantPlanHistoryItem[]; // 开通/续费/升级记录（含计算过程）
 }
 
 

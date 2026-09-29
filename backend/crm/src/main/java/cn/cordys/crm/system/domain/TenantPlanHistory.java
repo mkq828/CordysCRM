@@ -34,4 +34,7 @@ public class TenantPlanHistory extends BaseModel {
 
     @Schema(description = "备注")
     private String remark;
+
+    @Schema(description = "成交价计算过程(补差公式/首年价说明)")
+    private String priceDetail;
 }

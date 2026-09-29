@@ -18,6 +18,7 @@ export default {
   'registerAudit.status.approved': 'Approved',
   'registerAudit.status.rejected': 'Rejected',
   'registerAudit.detail': 'Detail',
+  'registerAudit.audit': 'Review',
   'registerAudit.approve': 'Approve',
   'registerAudit.reject': 'Reject',
   'registerAudit.detailTitle': 'Registration Detail',

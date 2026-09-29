@@ -55,7 +55,28 @@
                                  and u2.phone like concat('%', #{request.keyword}, '%')))
             </if>
         </where>
-        order by tp.expire_time asc
+        <include refid="sorts">
+            <property name="sort" value="request.sort"/>
+        </include>
     </select>
+
+    <sql id="sorts">
+        <choose>
+            <when test="${sort} != null and ${sort}.valid() > 0">
+                <bind name="sortName" value="${sort}.name"/>
+                <bind name="sortType" value="${sort}.type"/>
+                order by
+                <choose>
+                    <when test="sortName == 'expire_time'">tp.expire_time ${sortType}</when>
+                    <when test="sortName == 'remaining_days'">tp.expire_time ${sortType}</when>
+                    <when test="sortName == 'create_time'">tp.create_time ${sortType}</when>
+                    <otherwise>tp.expire_time asc</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                order by tp.expire_time asc
+            </otherwise>
+        </choose>
+    </sql>
 
 </mapper>
