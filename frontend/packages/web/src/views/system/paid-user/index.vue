@@ -81,6 +81,54 @@
       </template>
     </n-modal>
 
+    <!-- 升级套餐弹窗 -->
+    <n-modal
+      v-model:show="showUpgrade"
+      preset="card"
+      :title="t('paidUser.upgradeTitle')"
+      class="w-[480px]"
+      :mask-closable="false"
+    >
+      <div class="flex flex-col gap-[16px]">
+        <div class="flex items-center gap-[12px]">
+          <span class="w-[80px] shrink-0 text-right">{{ t('paidUser.orgName') }}</span>
+          <span class="flex-1">{{ upgradeForm.orgName }}</span>
+        </div>
+        <div class="flex items-center gap-[12px]">
+          <span class="w-[80px] shrink-0 text-right">{{ t('paidUser.currentVersion') }}</span>
+          <span class="flex-1">{{ versionLabel(upgradeForm.currentVersion) }}</span>
+        </div>
+        <div class="flex items-center gap-[12px]">
+          <span class="w-[80px] shrink-0 text-right">{{ t('paidUser.expireTime') }}</span>
+          <span class="flex-1">{{ formatTime(upgradeForm.expireTime) }}</span>
+        </div>
+        <div class="flex items-center gap-[12px]">
+          <span class="w-[80px] shrink-0 text-right">{{ t('paidUser.remainingDays') }}</span>
+          <span class="flex-1">
+            {{ upgradeForm.remainingDays == null ? '-' : `${upgradeForm.remainingDays} ${t('paidUser.days')}` }}
+          </span>
+        </div>
+        <div class="flex items-center gap-[12px]">
+          <span class="w-[80px] shrink-0 text-right">{{ t('paidUser.upgradeVersion') }}</span>
+          <CrmSelect
+            v-model:value="upgradeForm.editionCode"
+            :options="upgradeVersionOptions"
+            :placeholder="t('paidUser.upgradeVersionPlaceholder')"
+            class="flex-1"
+          />
+        </div>
+        <div class="ml-[92px] text-xs text-orange-500">{{ t('paidUser.upgradePriceTip') }}</div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-[12px]">
+          <n-button @click="showUpgrade = false">{{ t('common.cancel') }}</n-button>
+          <n-button type="primary" :loading="upgradeLoading" @click="confirmUpgrade">
+            {{ t('common.confirm') }}
+          </n-button>
+        </div>
+      </template>
+    </n-modal>
+
     <!-- 试用设置弹窗 -->
     <n-modal
       v-model:show="showConfig"
@@ -260,6 +308,7 @@
   const tableRefreshId = ref(0);
 
   const editionMap = ref<Record<string, string>>({});
+  const editionsRef = ref<Edition[]>([]);
   const versionOptions = ref<{ label: string; value: string }[]>([]);
   const openVersionOptions = ref<{ label: string; value: string }[]>([]);
 
@@ -273,6 +322,7 @@
     try {
       const editions = await editionOptions();
       const opts = editions.map((e: Edition) => ({ label: e.name, value: e.code }));
+      editionsRef.value = editions;
       versionOptions.value = [{ label: t('common.all'), value: '' }, ...opts];
       openVersionOptions.value = opts;
       editions.forEach((e: Edition) => {
@@ -383,25 +433,60 @@
     });
   }
 
-  // 升级企业版：切换版本 + 按剩余天数补差，成交价列展示补差金额
-  function handleUpgrade(row: TenantPlanItem) {
-    openModal({
-      type: 'warning',
-      title: t('paidUser.upgradeTip'),
-      content: t('paidUser.upgradeTipContent'),
-      positiveText: t('common.confirm'),
-      negativeText: t('common.cancel'),
-      onPositiveClick: async () => {
-        try {
-          await tenantPlanUpgrade({ id: row.id, editionCode: 'ENTERPRISE' });
-          Message.success(t('paidUser.upgradeSuccess'));
-          tableRefreshId.value += 1;
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error(error);
-        }
-      },
-    });
+  // 升级套餐：弹框选择目标版本，后端按剩余天数补差（成交价列展示补差金额）
+  const showUpgrade = ref(false);
+  const upgradeLoading = ref(false);
+  const upgradeForm = ref<{
+    id: string;
+    orgName: string;
+    currentVersion: TenantPlanVersion;
+    expireTime?: number;
+    remainingDays?: number;
+    editionCode: TenantPlanVersion;
+  }>({
+    id: '',
+    orgName: '',
+    currentVersion: '',
+    expireTime: undefined,
+    remainingDays: undefined,
+    editionCode: '',
+  });
+  const upgradeVersionOptions = ref<{ label: string; value: string }[]>([]);
+
+  function openUpgrade(row: TenantPlanItem) {
+    const current = editionsRef.value.find((e) => e.code === row.version);
+    const higher = editionsRef.value.filter(
+      (e) => e.code !== row.version && (current == null || (e.sort ?? 0) > (current.sort ?? 0))
+    );
+    upgradeVersionOptions.value = higher.map((e) => ({ label: e.name, value: e.code }));
+    upgradeForm.value = {
+      id: row.id,
+      orgName: row.orgName,
+      currentVersion: row.version,
+      expireTime: row.expireTime,
+      remainingDays: row.remainingDays,
+      editionCode: '',
+    };
+    showUpgrade.value = true;
+  }
+
+  async function confirmUpgrade() {
+    if (!upgradeForm.value.editionCode) {
+      Message.warning(t('paidUser.upgradeVersionRequired'));
+      return;
+    }
+    upgradeLoading.value = true;
+    try {
+      await tenantPlanUpgrade({ id: upgradeForm.value.id, editionCode: upgradeForm.value.editionCode });
+      Message.success(t('paidUser.upgradeSuccess'));
+      showUpgrade.value = false;
+      tableRefreshId.value += 1;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    } finally {
+      upgradeLoading.value = false;
+    }
   }
 
   // 演示标记：置 sys_organization.is_demo，演示租户不进营收/业绩看板
@@ -459,7 +544,11 @@
       { label: t('paidUser.detail'), key: 'detail' },
       { label: t('paidUser.renew'), key: 'renew' },
     ];
-    if (row.version !== 'ENTERPRISE') {
+    // 有更高版本可选时才展示「升级」
+    const current = editionsRef.value.find((e) => e.code === row.version);
+    const hasHigher =
+      current == null || editionsRef.value.some((e) => e.code !== row.version && (e.sort ?? 0) > (current.sort ?? 0));
+    if (hasHigher) {
       list.push({ label: t('paidUser.upgrade'), key: 'upgrade' });
     }
     if (row.enabled !== null && row.enabled !== undefined) {
@@ -486,7 +575,7 @@
         openRenew(row);
         break;
       case 'upgrade':
-        handleUpgrade(row);
+        openUpgrade(row);
         break;
       case 'enable':
       case 'disable':
