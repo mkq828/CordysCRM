@@ -44,5 +44,5 @@ public class Organization extends BaseModel {
 
     @Schema(description = "是否演示租户(1=是,0=否)")
     @Column(name = "is_demo")
-    private Boolean demo;
+    private Boolean demo = false;
 }
