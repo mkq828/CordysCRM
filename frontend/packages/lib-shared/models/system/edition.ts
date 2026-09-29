@@ -7,6 +7,7 @@ export interface Edition {
   firstYearPrice?: number;
   softLimit?: number;
   validityDays?: number;
+  aiMonthlyQuota?: number;
   sort?: number;
   status?: number;
 }
@@ -29,6 +30,7 @@ export interface EditionSaveParams {
   firstYearPrice?: number;
   softLimit?: number;
   validityDays?: number;
+  aiMonthlyQuota?: number;
   sort?: number;
   status?: number;
   featureIds?: string[];

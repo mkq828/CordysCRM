@@ -142,6 +142,7 @@ export default {
   'edition.firstYearPrice': '首年价（元）',
   'edition.softLimit': '人数上限',
   'edition.validityDays': '有效期（天）',
+  'edition.aiMonthlyQuota': 'AI 月度配额（次）',
   'edition.sort': '排序',
   'edition.status': '状态',
   'edition.status.enabled': '启用',

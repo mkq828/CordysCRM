@@ -147,6 +147,7 @@ export default {
   'edition.firstYearPrice': 'First-year price (¥)',
   'edition.softLimit': 'User limit',
   'edition.validityDays': 'Validity (days)',
+  'edition.aiMonthlyQuota': 'AI monthly quota (calls)',
   'edition.sort': 'Sort',
   'edition.status': 'Status',
   'edition.status.enabled': 'Enabled',

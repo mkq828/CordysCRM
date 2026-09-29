@@ -71,6 +71,10 @@
             <n-input-number v-model:value="editionForm.validityDays" :min="1" class="flex-1" />
           </div>
           <div class="flex items-center gap-[12px]">
+            <span class="w-[100px] shrink-0 text-right">{{ t('edition.aiMonthlyQuota') }}</span>
+            <n-input-number v-model:value="editionForm.aiMonthlyQuota" :min="0" class="flex-1" />
+          </div>
+          <div class="flex items-center gap-[12px]">
             <span class="w-[100px] shrink-0 text-right">{{ t('edition.sort') }}</span>
             <n-input-number v-model:value="editionForm.sort" :min="0" class="flex-1" />
           </div>
@@ -211,6 +215,7 @@
     firstYearPrice: number | null;
     softLimit: number | null;
     validityDays: number | null;
+    aiMonthlyQuota: number | null;
     sort: number | null;
     status: number;
     featureIds: string[];
@@ -222,6 +227,7 @@
     firstYearPrice: null,
     softLimit: null,
     validityDays: null,
+    aiMonthlyQuota: null,
     sort: null,
     status: 1,
     featureIds: [],
@@ -236,6 +242,7 @@
       firstYearPrice: row?.firstYearPrice ?? null,
       softLimit: row?.softLimit ?? null,
       validityDays: row?.validityDays ?? null,
+      aiMonthlyQuota: row?.aiMonthlyQuota ?? null,
       sort: row?.sort ?? null,
       status: row?.status ?? 1,
       featureIds: [],
@@ -270,6 +277,7 @@
         firstYearPrice: editionForm.value.firstYearPrice ?? undefined,
         softLimit: editionForm.value.softLimit ?? undefined,
         validityDays: editionForm.value.validityDays ?? undefined,
+        aiMonthlyQuota: editionForm.value.aiMonthlyQuota ?? undefined,
         sort: editionForm.value.sort ?? undefined,
         status: editionForm.value.status,
         featureIds: editionForm.value.featureIds,
@@ -403,6 +411,12 @@
       key: 'validityDays',
       width: 110,
       render: (row) => row.validityDays ?? '-',
+    },
+    {
+      title: t('edition.aiMonthlyQuota'),
+      key: 'aiMonthlyQuota',
+      width: 130,
+      render: (row) => row.aiMonthlyQuota ?? '-',
     },
     {
       title: t('edition.sort'),
