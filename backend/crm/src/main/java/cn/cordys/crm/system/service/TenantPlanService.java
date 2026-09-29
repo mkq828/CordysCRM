@@ -27,6 +27,8 @@ import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -137,7 +139,8 @@ public class TenantPlanService {
         plan.setUpdateUser(operatorId);
         tenantPlanMapper.updateById(plan);
 
-        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime, null, operatorId);
+        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime,
+                resolveOpenPrice(edition, plan.getOrganizationId()), operatorId);
 
         if (!edition.getCode().equals(oldVersion)) {
             syncAdminRole(plan.getOrganizationId(), operatorId);
@@ -157,16 +160,19 @@ public class TenantPlanService {
             throw new GenericException(Translator.get("edition.not_found"));
         }
         long now = System.currentTimeMillis();
+        String oldVersion = plan.getVersion();
+        Long oldExpire = plan.getExpireTime();
         plan.setVersion(edition.getCode());
         plan.setStatus(TenantPlanStatus.ACTIVE.getValue());
-        long expireTime = plan.getExpireTime() != null
-                ? plan.getExpireTime()
+        long expireTime = oldExpire != null
+                ? oldExpire
                 : now + (long) getValidityDays(edition) * DAY_MILLIS;
         plan.setUpdateTime(now);
         plan.setUpdateUser(operatorId);
         tenantPlanMapper.updateById(plan);
 
-        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime, null, operatorId);
+        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime,
+                resolveUpgradePrice(edition, oldVersion, oldExpire, plan.getOrganizationId()), operatorId);
         syncAdminRole(plan.getOrganizationId(), operatorId);
     }
 
@@ -206,7 +212,8 @@ public class TenantPlanService {
             tenantPlanMapper.updateById(plan);
         }
 
-        editionService.writeSnapshot(organizationId, edition.getCode(), plan.getExpireTime(), null, operatorId);
+        editionService.writeSnapshot(organizationId, edition.getCode(), plan.getExpireTime(),
+                resolveOpenPrice(edition, organizationId), operatorId);
 
         if (!edition.getCode().equals(oldVersion)) {
             syncAdminRole(organizationId, operatorId);
@@ -412,6 +419,41 @@ public class TenantPlanService {
      */
     private int getValidityDays(SysEdition edition) {
         return edition.getValidityDays() == null ? DEFAULT_VALIDITY_DAYS : edition.getValidityDays();
+    }
+
+    /**
+     * 开通价格：首次付费（尚无版本快照）用「首年促销价」（无则回退年价），续费/复购用「年价」。
+     */
+    private BigDecimal resolveOpenPrice(SysEdition edition, String organizationId) {
+        boolean firstYear = editionService.getByOrganizationId(organizationId) == null;
+        BigDecimal promo = edition.getFirstYearPrice();
+        if (firstYear && promo != null && promo.signum() > 0) {
+            return promo;
+        }
+        return edition.getYearPrice();
+    }
+
+    /**
+     * 升级补差：补差 =（目标版年价 − 当前版年价）×（剩余天数 / 365）。
+     * 降级/平级不补差（记 0）；无剩余时长（已到期/无套餐）则按首年促销价。
+     */
+    private BigDecimal resolveUpgradePrice(SysEdition target, String oldVersionCode, Long oldExpire, String organizationId) {
+        SysEdition current = editionService.getEditionByCode(oldVersionCode);
+        BigDecimal from = current != null && current.getYearPrice() != null ? current.getYearPrice() : BigDecimal.ZERO;
+        BigDecimal to = target.getYearPrice() != null ? target.getYearPrice() : BigDecimal.ZERO;
+        BigDecimal diff = to.subtract(from);
+        if (diff.signum() <= 0) {
+            return BigDecimal.ZERO;
+        }
+        long now = System.currentTimeMillis();
+        long remaining = (oldExpire != null && oldExpire > now)
+                ? (long) Math.ceil((oldExpire - now) / (double) DAY_MILLIS)
+                : 0;
+        if (remaining <= 0) {
+            return resolveOpenPrice(target, organizationId);
+        }
+        return diff.multiply(BigDecimal.valueOf(remaining))
+                .divide(BigDecimal.valueOf(365), 2, RoundingMode.HALF_UP);
     }
 
     private String getParam(String key) {

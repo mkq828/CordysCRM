@@ -79,6 +79,7 @@ export default {
   // Paid users
   'paidUser.keywordPlaceholder': 'Search org name / admin phone',
   'paidUser.version': 'Version',
+  'paidUser.price': 'Deal price',
   'paidUser.version.personal': 'Personal',
   'paidUser.version.enterprise': 'Enterprise',
   'paidUser.status': 'Status',

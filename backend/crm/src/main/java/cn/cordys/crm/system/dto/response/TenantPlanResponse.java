@@ -3,6 +3,8 @@ package cn.cordys.crm.system.dto.response;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * 租户套餐响应（含组织信息与管理员信息）
  */
@@ -26,6 +28,9 @@ public class TenantPlanResponse {
 
     @Schema(description = "备注")
     private String remark;
+
+    @Schema(description = "成交价(元)")
+    private BigDecimal price;
 
     @Schema(description = "组织名称")
     private String orgName;

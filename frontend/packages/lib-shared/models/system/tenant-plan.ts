@@ -20,6 +20,7 @@ export interface TenantPlanItem {
   version: TenantPlanVersion;
   status: TenantPlanStatus;
   expireTime?: number;
+  price?: number;
   remark?: string;
   orgName: string;
   orgType: TenantPlanVersion;

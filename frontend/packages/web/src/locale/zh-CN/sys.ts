@@ -76,6 +76,7 @@ export default {
   // 付费用户
   'paidUser.keywordPlaceholder': '搜索组织名称/管理员手机号',
   'paidUser.version': '版本',
+  'paidUser.price': '成交价',
   'paidUser.version.personal': '个人版',
   'paidUser.version.enterprise': '企业版',
   'paidUser.status': '状态',

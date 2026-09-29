@@ -9,6 +9,10 @@
                tp.status,
                tp.expire_time,
                tp.remark,
+               (select te.price
+                from tenant_edition te
+                where te.organization_id = tp.organization_id
+                limit 1) as price,
                tp.create_time,
                tp.update_time,
                o.name as org_name,

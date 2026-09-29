@@ -416,6 +416,12 @@
       render: (row: TenantPlanItem) => versionLabel(row.version),
     },
     {
+      title: t('paidUser.price'),
+      key: 'price',
+      width: 110,
+      render: (row: TenantPlanItem) => (row.price == null ? '-' : `¥${row.price}`),
+    },
+    {
       title: t('paidUser.phone'),
       key: 'phone',
       width: 130,
