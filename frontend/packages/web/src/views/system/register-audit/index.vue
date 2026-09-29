@@ -366,7 +366,7 @@
   function openPlan(row: RegisterAuditItem) {
     openForm.value = {
       id: row.planId || '',
-      version: (row.type === 'ENTERPRISE' ? 'ENTERPRISE' : 'BASIC') as TenantPlanVersion,
+      version: 'BASIC',
       expireTime: Date.now() + 365 * 24 * 60 * 60 * 1000,
       remark: '',
     };
