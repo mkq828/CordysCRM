@@ -81,7 +81,7 @@
 
 ### 功能 4 — 企业知识库（RAG + 文档解析）
 - **做什么**：租户上传产品文档/合同/手册，AI 解析建库，问答/检索。是后续多个功能的 RAG 基座。
-- **来源**：ragflow（首选，Apache-2.0）/ MaxKB（GPL）/ 腾讯 WeKnora（GPL）、anydoc（文档解析）。
+- **来源**：ragflow（首选，Apache-2.0）/ MaxKB（GPL）/ 腾讯 WeKnora（GPL）；文档解析 **anydoc（扫描件 OCR 重解析）+ markitdown（电子版 Office/PDF 转 Markdown，微软 MIT，轻快）** 互补。
 - **依赖**：G1、G2、G3。
 - **验收**：上传文档后可自然语言问答，答案带出处。
 
@@ -93,7 +93,7 @@
 
 ### 功能 6 — AI 员工（144 员工，编排层）
 - **做什么**：把 144 个 AI 员工 skill 落成租户可配置的 Agent（岗位分工、自动跑任务），在现有 Agent 平台上发布。
-- **来源**：agency Agents、metagpt、144 个 AI 员工 repo；编排运行时参考 google/ax、n8n（工作流）；私有助手参考 TencentCloud/Octop。
+- **来源**：agency Agents、metagpt、144 个 AI 员工 repo；编排运行时参考 google/ax、n8n（工作流）；私有助手参考 TencentCloud/Octop；企业数字员工平台参考 LinkWork（Apache-2.0，配额/审计/K8s）与 StaffDeck（⚠️AGPL，仅抄思路）。
 - **依赖**：G1、G2、G3、功能 4（知识库赋能）。
 - **验收**：租户可创建/配置一个「岗位 Agent」，跑通一个端到端任务。
 
@@ -148,6 +148,8 @@
 ## 六、来源仓库已下载说明（2026-09-28 更新）
 
 2026-09-28 补下 26 个参考仓库 + MoneyPrinterTurbo 后，本清单各功能的「来源」已按**实际已下载仓库**更新：ragflow/MaxKB（RAG）、PaddleOCR（OCR）、FunASR/CosyVoice（语音）、vanna（问数）、kev（打分）、ax/n8n/Octop（AI 员工编排）、univer（Office 渲染/编辑运行时，非 AI 生成）、jev-ultrafast（无脚本浏览器）、MoneyPrinterTurbo（短视频成片）、ZJU-REAL/Easel（自媒体一条龙）。
+
+2026-09-29 网络到期前补下三处来源：qdrant（向量库，功能 2/4 的 RAG 向量存储底座）、langgraph（Agent 编排运行时，功能 6）、markitdown（微软 MIT 文档转 Markdown，功能 4 电子版文档解析）。
 
 **ZJU-REAL/Easel 单独说明**（Apache-2.0，Python + OpenClaw，113 个 skill，759M）：它是「获客 + 传播」线的**整合参考底座**，五段式覆盖 发现（热点/竞品/受众画像）→ 策划（选题/内容矩阵/日历）→ 创作（文案/图文/视频/音乐/配音）→ 发布（小红书/抖音/B站/知乎/快手/微信）→ 复盘（数据/评分/归因）。对应本清单 功能3（获客内容）、功能7（短视频）、功能8（私信获客）三处，可复用其 skill prompt + `skills/shared/scripts/*.py` 脚本思路。两个边界：① 它是独立 Python 系统（含 Web UI），只能「抄思路 + prompt + 脚本」，不能整搬进 Java/Vue CRM；② 它的「一键自动发布」有封号风险，与本清单「内容生成 + 手动下载发布」的防封号口径一致——只参考创作侧，不接自动发布侧。
 
