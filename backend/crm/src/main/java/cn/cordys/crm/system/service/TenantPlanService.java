@@ -4,21 +4,27 @@ import cn.cordys.common.constants.InternalRole;
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.Translator;
+import cn.cordys.crm.ai.service.AiQuotaService;
 import cn.cordys.crm.system.constants.RegisterType;
 import cn.cordys.crm.system.constants.TenantPlanStatus;
 import cn.cordys.crm.system.domain.Organization;
 import cn.cordys.crm.system.domain.OrganizationUser;
 import cn.cordys.crm.system.domain.Parameter;
 import cn.cordys.crm.system.domain.SysEdition;
+import cn.cordys.crm.system.domain.TenantEdition;
 import cn.cordys.crm.system.domain.TenantPlan;
+import cn.cordys.crm.system.domain.TenantPlanHistory;
 import cn.cordys.crm.system.domain.User;
 import cn.cordys.crm.system.domain.UserRole;
 import cn.cordys.crm.system.dto.request.TenantPlanConfigRequest;
+import cn.cordys.crm.system.dto.request.TenantPlanDetailRequest;
 import cn.cordys.crm.system.dto.request.TenantPlanOpenRequest;
 import cn.cordys.crm.system.dto.request.TenantPlanPageRequest;
 import cn.cordys.crm.system.dto.request.TenantPlanToggleRequest;
 import cn.cordys.crm.system.dto.request.TenantPlanUpgradeRequest;
 import cn.cordys.crm.system.dto.response.TenantPlanConfigResponse;
+import cn.cordys.crm.system.dto.response.TenantPlanDetailResponse;
+import cn.cordys.crm.system.dto.response.TenantPlanHistoryResponse;
 import cn.cordys.crm.system.dto.response.TenantPlanResponse;
 import cn.cordys.crm.system.mapper.ExtTenantPlanMapper;
 import cn.cordys.mybatis.BaseMapper;
@@ -52,6 +58,8 @@ public class TenantPlanService {
     private static final int DEFAULT_VALIDITY_DAYS = 365;
     private static final String DEFAULT_TRIAL_EDITION = "BASIC";
     private static final long DAY_MILLIS = 24L * 60 * 60 * 1000;
+    private static final String ACTION_OPEN = "OPEN";
+    private static final String ACTION_UPGRADE = "UPGRADE";
 
     @Resource
     private BaseMapper<TenantPlan> tenantPlanMapper;
@@ -75,7 +83,13 @@ public class TenantPlanService {
     private BaseMapper<Organization> organizationMapper;
 
     @Resource
+    private BaseMapper<TenantPlanHistory> tenantPlanHistoryMapper;
+
+    @Resource
     private EditionService editionService;
+
+    @Resource
+    private AiQuotaService aiQuotaService;
 
     /**
      * 初始化免费试用套餐（租户开通时调用，试用 = 基础版）
@@ -139,8 +153,10 @@ public class TenantPlanService {
         plan.setUpdateUser(operatorId);
         tenantPlanMapper.updateById(plan);
 
-        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime,
-                resolveOpenPrice(edition, plan.getOrganizationId()), operatorId);
+        BigDecimal price = resolveOpenPrice(edition, plan.getOrganizationId());
+        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime, price, operatorId);
+        recordHistory(plan.getOrganizationId(), ACTION_OPEN, oldVersion, edition.getCode(), price, expireTime,
+                StringUtils.trim(request.getRemark()), operatorId, now);
 
         if (!edition.getCode().equals(oldVersion)) {
             syncAdminRole(plan.getOrganizationId(), operatorId);
@@ -171,8 +187,10 @@ public class TenantPlanService {
         plan.setUpdateUser(operatorId);
         tenantPlanMapper.updateById(plan);
 
-        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime,
-                resolveUpgradePrice(edition, oldVersion, oldExpire, plan.getOrganizationId()), operatorId);
+        BigDecimal price = resolveUpgradePrice(edition, oldVersion, oldExpire, plan.getOrganizationId());
+        editionService.writeSnapshot(plan.getOrganizationId(), edition.getCode(), expireTime, price, operatorId);
+        recordHistory(plan.getOrganizationId(), ACTION_UPGRADE, oldVersion, edition.getCode(), price, expireTime,
+                null, operatorId, now);
         syncAdminRole(plan.getOrganizationId(), operatorId);
     }
 
@@ -212,8 +230,10 @@ public class TenantPlanService {
             tenantPlanMapper.updateById(plan);
         }
 
-        editionService.writeSnapshot(organizationId, edition.getCode(), plan.getExpireTime(),
-                resolveOpenPrice(edition, organizationId), operatorId);
+        BigDecimal price = resolveOpenPrice(edition, organizationId);
+        editionService.writeSnapshot(organizationId, edition.getCode(), plan.getExpireTime(), price, operatorId);
+        recordHistory(organizationId, ACTION_OPEN, oldVersion, edition.getCode(), price, plan.getExpireTime(),
+                null, operatorId, now);
 
         if (!edition.getCode().equals(oldVersion)) {
             syncAdminRole(organizationId, operatorId);
@@ -314,6 +334,107 @@ public class TenantPlanService {
         List<TenantPlan> plans = tenantPlanMapper.selectListByLambda(new LambdaQueryWrapper<TenantPlan>()
                 .eq(TenantPlan::getOrganizationId, organizationId));
         return plans.isEmpty() ? null : plans.getFirst();
+    }
+
+    /**
+     * 租户详情（付费用户详情页：组织信息 + 管理员 + 当前套餐 + AI 配额 + 开通/续费/升级历史）
+     */
+    public TenantPlanDetailResponse detail(TenantPlanDetailRequest request) {
+        String organizationId = request.getOrganizationId();
+        Organization organization = organizationMapper.selectByPrimaryKey(organizationId);
+        if (organization == null) {
+            throw new GenericException(Translator.get("organization.not.exist"));
+        }
+        TenantPlan plan = getByOrganizationId(organizationId);
+        TenantEdition edition = editionService.getByOrganizationId(organizationId);
+        User admin = getAdminUser(organizationId);
+        long now = System.currentTimeMillis();
+
+        TenantPlanDetailResponse response = new TenantPlanDetailResponse();
+        response.setOrganizationId(organizationId);
+        response.setOrgName(organization.getName());
+        response.setOrgType(organization.getOrgType());
+        response.setUnifiedSocialCreditCode(organization.getUnifiedSocialCreditCode());
+        response.setLegalPersonName(organization.getLegalPersonName());
+        response.setDemo(organization.getDemo());
+        if (admin != null) {
+            response.setAdminName(admin.getName());
+            response.setPhone(admin.getPhone());
+        }
+        response.setEnabled(resolveEnabled(admin));
+
+        if (plan != null) {
+            response.setVersion(plan.getVersion());
+            response.setStatus(plan.getStatus());
+            response.setExpireTime(plan.getExpireTime());
+            if (plan.getExpireTime() != null) {
+                response.setRemainingDays((long) Math.ceil((plan.getExpireTime() - now) / (double) DAY_MILLIS));
+            }
+        }
+        if (edition != null) {
+            response.setEditionName(edition.getEditionName());
+            response.setPrice(edition.getPrice());
+        }
+        response.setAiQuota(aiQuotaService.getMonthlyQuota(organizationId));
+        response.setAiUsedCalls(aiQuotaService.getUsedCalls(organizationId));
+        response.setHistories(listHistories(organizationId));
+        return response;
+    }
+
+    /**
+     * 记录开通/续费/升级历史
+     */
+    private void recordHistory(String organizationId, String action, String fromVersion, String toVersion,
+                               BigDecimal price, Long expireTime, String remark, String operatorId, long now) {
+        TenantPlanHistory history = new TenantPlanHistory();
+        history.setId(IDGenerator.nextStr());
+        history.setOrganizationId(organizationId);
+        history.setAction(action);
+        history.setFromVersion(fromVersion);
+        history.setToVersion(toVersion);
+        history.setPrice(price);
+        history.setExpireTime(expireTime);
+        history.setRemark(remark);
+        history.setCreateTime(now);
+        history.setUpdateTime(now);
+        history.setCreateUser(operatorId);
+        history.setUpdateUser(operatorId);
+        tenantPlanHistoryMapper.insert(history);
+    }
+
+    /**
+     * 查询开通/续费/升级历史（按时间倒序）
+     */
+    private List<TenantPlanHistoryResponse> listHistories(String organizationId) {
+        List<TenantPlanHistory> list = tenantPlanHistoryMapper.selectListByLambda(new LambdaQueryWrapper<TenantPlanHistory>()
+                .eq(TenantPlanHistory::getOrganizationId, organizationId)
+                .orderByDesc(TenantPlanHistory::getCreateTime));
+        List<TenantPlanHistoryResponse> result = new ArrayList<>();
+        for (TenantPlanHistory item : list) {
+            TenantPlanHistoryResponse row = new TenantPlanHistoryResponse();
+            row.setAction(item.getAction());
+            row.setFromVersion(item.getFromVersion());
+            row.setToVersion(item.getToVersion());
+            row.setPrice(item.getPrice());
+            row.setExpireTime(item.getExpireTime());
+            row.setRemark(item.getRemark());
+            row.setCreateTime(item.getCreateTime());
+            row.setCreateUser(item.getCreateUser());
+            result.add(row);
+        }
+        return result;
+    }
+
+    /**
+     * 租户管理员账号是否启用
+     */
+    private Boolean resolveEnabled(User admin) {
+        if (admin == null) {
+            return null;
+        }
+        List<OrganizationUser> orgUsers = organizationUserMapper.selectListByLambda(new LambdaQueryWrapper<OrganizationUser>()
+                .eq(OrganizationUser::getUserId, admin.getId()));
+        return orgUsers.isEmpty() ? null : orgUsers.getFirst().getEnable();
     }
 
     /**

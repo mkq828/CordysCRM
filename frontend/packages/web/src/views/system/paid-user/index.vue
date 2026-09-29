@@ -120,18 +120,113 @@
         </div>
       </template>
     </n-modal>
+
+    <!-- 租户详情弹窗 -->
+    <n-modal
+      v-model:show="showDetail"
+      preset="card"
+      :title="t('paidUser.detailTitle')"
+      class="w-[720px]"
+      :mask-closable="false"
+    >
+      <n-spin :show="detailLoading">
+        <template v-if="detail">
+          <n-descriptions label-placement="left" :column="2" bordered size="small" class="mb-[16px]">
+            <n-descriptions-item :label="t('paidUser.orgName')" :span="2">{{ detail.orgName }}</n-descriptions-item>
+            <n-descriptions-item :label="t('paidUser.orgType')">{{ orgTypeLabel(detail.orgType) }}</n-descriptions-item>
+            <n-descriptions-item :label="t('paidUser.adminName')">{{ detail.adminName || '-' }}</n-descriptions-item>
+            <n-descriptions-item :label="t('paidUser.phone')">{{ detail.phone || '-' }}</n-descriptions-item>
+            <n-descriptions-item :label="t('paidUser.accountStatus')">{{
+              enabledLabel(detail.enabled)
+            }}</n-descriptions-item>
+            <n-descriptions-item
+              v-if="detail.orgType === 'ENTERPRISE'"
+              :label="t('paidUser.unifiedSocialCreditCode')"
+              :span="2"
+            >
+              {{ detail.unifiedSocialCreditCode || '-' }}
+            </n-descriptions-item>
+            <n-descriptions-item
+              v-if="detail.orgType === 'ENTERPRISE'"
+              :label="t('paidUser.legalPersonName')"
+              :span="2"
+            >
+              {{ detail.legalPersonName || '-' }}
+            </n-descriptions-item>
+            <n-descriptions-item :label="t('paidUser.version')">
+              {{ detail.editionName || (detail.version ? versionLabel(detail.version) : '-') }}
+            </n-descriptions-item>
+            <n-descriptions-item :label="t('paidUser.status')">
+              {{ detail.status ? statusLabel(detail.status) : '-' }}
+            </n-descriptions-item>
+            <n-descriptions-item :label="t('paidUser.price')">
+              {{ detail.price == null ? '-' : `¥${detail.price}` }}
+            </n-descriptions-item>
+            <n-descriptions-item :label="t('paidUser.expireTime')">{{
+              formatTime(detail.expireTime)
+            }}</n-descriptions-item>
+            <n-descriptions-item :label="t('paidUser.remainingDays')">{{
+              remainingDaysLabel(detail)
+            }}</n-descriptions-item>
+            <n-descriptions-item :label="t('paidUser.aiQuota')">{{ detail.aiQuota ?? '-' }}</n-descriptions-item>
+            <n-descriptions-item :label="t('paidUser.aiUsedCalls')">{{
+              detail.aiUsedCalls ?? '-'
+            }}</n-descriptions-item>
+          </n-descriptions>
+
+          <div class="mb-[8px] text-sm font-medium">{{ t('paidUser.history') }}</div>
+          <div v-if="!detail.histories?.length" class="text-xs text-[var(--text-n4)]">
+            {{ t('paidUser.historyEmpty') }}
+          </div>
+          <div v-else class="flex flex-col gap-[8px]">
+            <div
+              v-for="(h, i) in detail.histories"
+              :key="i"
+              class="flex items-center gap-[12px] rounded border border-[var(--divider-color)] px-[12px] py-[8px] text-xs"
+            >
+              <n-tag :type="h.action === 'UPGRADE' ? 'warning' : 'info'" size="small">
+                {{ h.action === 'UPGRADE' ? t('paidUser.historyUpgrade') : t('paidUser.historyOpen') }}
+              </n-tag>
+              <span>{{ h.fromVersion ? `${h.fromVersion} → ${h.toVersion}` : h.toVersion }}</span>
+              <span v-if="h.price != null" class="text-orange-500">¥{{ h.price }}</span>
+              <span class="flex-1 text-right text-[var(--text-n4)]">{{ formatTime(h.createTime) }}</span>
+            </div>
+          </div>
+        </template>
+      </n-spin>
+      <template #footer>
+        <div class="flex justify-end">
+          <n-button @click="showDetail = false">{{ t('common.close') }}</n-button>
+        </div>
+      </template>
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
   import { h, ref, watch } from 'vue';
-  import { NButton, NInput, NInputNumber, NModal, NSpin, NTag, useMessage } from 'naive-ui';
+  import {
+    NButton,
+    NDescriptions,
+    NDescriptionsItem,
+    NInput,
+    NInputNumber,
+    NModal,
+    NSpin,
+    NTag,
+    useMessage,
+  } from 'naive-ui';
   import dayjs from 'dayjs';
 
   import { SpecialColumnEnum, TableKeyEnum } from '@lib/shared/enums/tableEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import type { Edition } from '@lib/shared/models/system/edition';
-  import type { TenantPlanItem, TenantPlanStatus, TenantPlanVersion } from '@lib/shared/models/system/tenant-plan';
+  import type {
+    TenantPlanDetail,
+    TenantPlanItem,
+    TenantPlanStatus,
+    TenantPlanVersion,
+  } from '@lib/shared/models/system/tenant-plan';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
@@ -144,6 +239,7 @@
 
   import {
     editionOptions,
+    tenantPlanDetail,
     tenantPlanGetConfig,
     tenantPlanOpen,
     tenantPlanPageList,
@@ -206,7 +302,7 @@
     return ts ? dayjs(ts).format('YYYY-MM-DD HH:mm:ss') : '-';
   }
 
-  function remainingDaysLabel(row: TenantPlanItem) {
+  function remainingDaysLabel(row: { remainingDays?: number | null }) {
     const d = row.remainingDays;
     if (d == null) return '-';
     if (d <= 0) return t('paidUser.expired');
@@ -330,8 +426,39 @@
     });
   }
 
+  // 租户详情
+  const showDetail = ref(false);
+  const detailLoading = ref(false);
+  const detail = ref<TenantPlanDetail | null>(null);
+
+  async function openDetail(row: TenantPlanItem) {
+    showDetail.value = true;
+    detailLoading.value = true;
+    detail.value = null;
+    try {
+      detail.value = await tenantPlanDetail({ organizationId: row.organizationId });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    } finally {
+      detailLoading.value = false;
+    }
+  }
+
+  function orgTypeLabel(orgType?: string) {
+    return orgType === 'ENTERPRISE' ? t('paidUser.orgType.enterprise') : t('paidUser.orgType.personal');
+  }
+
+  function enabledLabel(enabled?: boolean) {
+    if (enabled == null) return '-';
+    return enabled ? t('paidUser.accountEnabled') : t('paidUser.accountDisabled');
+  }
+
   function buildActions(row: TenantPlanItem): ActionsItem[] {
-    const list: ActionsItem[] = [{ label: t('paidUser.renew'), key: 'renew' }];
+    const list: ActionsItem[] = [
+      { label: t('paidUser.detail'), key: 'detail' },
+      { label: t('paidUser.renew'), key: 'renew' },
+    ];
     if (row.version !== 'ENTERPRISE') {
       list.push({ label: t('paidUser.upgrade'), key: 'upgrade' });
     }
@@ -352,6 +479,9 @@
 
   function handleActionSelect(row: TenantPlanItem, key: string) {
     switch (key) {
+      case 'detail':
+        openDetail(row);
+        break;
       case 'renew':
         openRenew(row);
         break;
@@ -531,7 +661,7 @@
   const { propsRes, propsEvent, loadList, setLoadListParams } = useTable<TenantPlanItem>(tenantPlanPageList, {
     tableKey: TableKeyEnum.SYSTEM_PAID_USER_TABLE,
     columns,
-    showSetting: false,
+    showSetting: true,
     containerClass: '.crm-paid-user-table',
   });
 

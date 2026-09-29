@@ -2,6 +2,7 @@ import type { CordysAxios } from '@lib/shared/api/http/Axios';
 import {
   tenantPlanConfigUrl,
   tenantPlanDemoUrl,
+  tenantPlanDetailUrl,
   tenantPlanListUrl,
   tenantPlanOpenUrl,
   tenantPlanToggleUrl,
@@ -11,6 +12,8 @@ import type { CommonList } from '@lib/shared/models/common';
 import type {
   TenantPlanConfig,
   TenantPlanDemoParams,
+  TenantPlanDetail,
+  TenantPlanDetailParams,
   TenantPlanItem,
   TenantPlanOpenParams,
   TenantPlanQueryParams,
@@ -22,6 +25,11 @@ export default function useTenantPlanApi(CDR: CordysAxios) {
   // 付费用户-列表查询
   function pageList(data: TenantPlanQueryParams) {
     return CDR.post<CommonList<TenantPlanItem>>({ url: tenantPlanListUrl, data });
+  }
+
+  // 付费用户-租户详情
+  function detail(data: TenantPlanDetailParams) {
+    return CDR.post<TenantPlanDetail>({ url: tenantPlanDetailUrl, data });
   }
 
   // 付费用户-开通/续费
@@ -56,6 +64,7 @@ export default function useTenantPlanApi(CDR: CordysAxios) {
 
   return {
     pageList,
+    detail,
     open,
     upgrade,
     toggle,

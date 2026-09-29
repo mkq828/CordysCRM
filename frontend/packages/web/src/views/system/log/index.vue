@@ -400,7 +400,7 @@
     },
   ];
   const { propsRes, propsEvent, loadList, setLoadListParams } = useTable(operationLogList, {
-    showSetting: false,
+    showSetting: true,
     columns,
     tableKey: TableKeyEnum.LOG,
     hiddenRefresh: true,
@@ -484,7 +484,7 @@
     loadList: loadAiExecutionList,
     setLoadListParams: setAiExecutionLoadListParams,
   } = useTable<AiExecutionLogItem>(aiExecutionLogList, {
-    showSetting: false,
+    showSetting: true,
     columns: aiExecutionColumns,
     tableKey: TableKeyEnum.AI_EXECUTION_LOG,
     hiddenRefresh: true,

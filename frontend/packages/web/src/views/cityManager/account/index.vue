@@ -530,7 +530,7 @@
   const { propsRes, propsEvent, loadList, setLoadListParams } = useTable<CityManagerItem>(cityManagerPageList, {
     tableKey: TableKeyEnum.CITY_MANAGER_TABLE,
     columns,
-    showSetting: false,
+    showSetting: true,
     containerClass: '.cm-account-table',
   });
 

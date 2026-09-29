@@ -994,6 +994,7 @@ export const { financeOverview, financePage, financeVerify, financeRevoke } = fi
 
 export const {
   pageList: tenantPlanPageList,
+  detail: tenantPlanDetail,
   open: tenantPlanOpen,
   upgrade: tenantPlanUpgrade,
   toggle: tenantPlanToggle,

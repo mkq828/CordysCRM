@@ -263,7 +263,7 @@
   const { propsRes, propsEvent, loadList, setLoadListParams } = useTable<BugReportItem>(bugReportList, {
     tableKey: TableKeyEnum.SYSTEM_BUG_REPORT_TABLE,
     columns,
-    showSetting: false,
+    showSetting: true,
     containerClass: '.crm-bug-report-table',
   });
 

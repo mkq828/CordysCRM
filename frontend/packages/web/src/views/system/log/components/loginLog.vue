@@ -66,7 +66,7 @@
 
   const crmTableRef = ref<InstanceType<typeof CrmTable>>();
   const { propsRes, propsEvent, loadList, setLoadListParams } = useTable(loginLogList, {
-    showSetting: false,
+    showSetting: true,
     columns,
     tableKey: TableKeyEnum.LOGIN_LOG,
     hiddenRefresh: true,

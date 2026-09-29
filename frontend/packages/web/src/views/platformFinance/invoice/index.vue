@@ -474,7 +474,7 @@
   const { propsRes, propsEvent, loadList, setLoadListParams } = useTable<PlatformInvoiceItem>(platformInvoicePageList, {
     tableKey: TableKeyEnum.PLATFORM_INVOICE_TABLE,
     columns,
-    showSetting: false,
+    showSetting: true,
     containerClass: '.pf-invoice-table',
   });
 

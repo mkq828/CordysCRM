@@ -5,11 +5,13 @@ import cn.cordys.common.pager.PageUtils;
 import cn.cordys.common.pager.Pager;
 import cn.cordys.crm.system.dto.request.TenantPlanConfigRequest;
 import cn.cordys.crm.system.dto.request.TenantPlanDemoRequest;
+import cn.cordys.crm.system.dto.request.TenantPlanDetailRequest;
 import cn.cordys.crm.system.dto.request.TenantPlanOpenRequest;
 import cn.cordys.crm.system.dto.request.TenantPlanPageRequest;
 import cn.cordys.crm.system.dto.request.TenantPlanToggleRequest;
 import cn.cordys.crm.system.dto.request.TenantPlanUpgradeRequest;
 import cn.cordys.crm.system.dto.response.TenantPlanConfigResponse;
+import cn.cordys.crm.system.dto.response.TenantPlanDetailResponse;
 import cn.cordys.crm.system.dto.response.TenantPlanResponse;
 import cn.cordys.crm.system.service.TenantPlanService;
 import cn.cordys.security.SessionUtils;
@@ -44,6 +46,16 @@ public class TenantPlanController {
     public Pager<List<TenantPlanResponse>> pageList(@Validated @RequestBody TenantPlanPageRequest request) {
         Page<Object> page = PageHelper.startPage(request.getCurrent(), request.getPageSize());
         return PageUtils.setPageInfo(page, tenantPlanService.pageList(request));
+    }
+
+    /**
+     * 租户详情（管理端）
+     */
+    @PostMapping("/detail")
+    @Operation(summary = "付费用户-租户详情")
+    @RequiresPermissions(PermissionConstants.PAID_USER_READ)
+    public TenantPlanDetailResponse detail(@Validated @RequestBody TenantPlanDetailRequest request) {
+        return tenantPlanService.detail(request);
     }
 
     /**

@@ -818,7 +818,7 @@
     {
       tableKey: TableKeyEnum.PLATFORM_PAYMENT_RECORD_TABLE,
       columns,
-      showSetting: false,
+      showSetting: true,
       containerClass: '.pf-payment-table',
     }
   );

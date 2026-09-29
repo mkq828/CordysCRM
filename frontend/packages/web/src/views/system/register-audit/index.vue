@@ -551,7 +551,7 @@
   const { propsRes, propsEvent, loadList, setLoadListParams } = useTable<RegisterAuditItem>(registerPageList, {
     tableKey: TableKeyEnum.SYSTEM_REGISTER_AUDIT_TABLE,
     columns,
-    showSetting: false,
+    showSetting: true,
     containerClass: '.crm-register-audit-table',
   });
 

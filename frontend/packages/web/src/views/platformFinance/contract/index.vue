@@ -741,7 +741,7 @@
     {
       tableKey: TableKeyEnum.PLATFORM_CONTRACT_TABLE,
       columns,
-      showSetting: false,
+      showSetting: true,
       containerClass: '.pf-contract-table',
     }
   );
