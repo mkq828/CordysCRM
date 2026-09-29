@@ -150,6 +150,7 @@
     tenantPlanToggle,
     tenantPlanToggleDemo,
     tenantPlanUpdateConfig,
+    tenantPlanUpgrade,
   } from '@/api/modules';
   import useModal from '@/hooks/useModal';
 
@@ -286,6 +287,27 @@
     });
   }
 
+  // 升级企业版：切换版本 + 按剩余天数补差，成交价列展示补差金额
+  function handleUpgrade(row: TenantPlanItem) {
+    openModal({
+      type: 'warning',
+      title: t('paidUser.upgradeTip'),
+      content: t('paidUser.upgradeTipContent'),
+      positiveText: t('common.confirm'),
+      negativeText: t('common.cancel'),
+      onPositiveClick: async () => {
+        try {
+          await tenantPlanUpgrade({ id: row.id, editionCode: 'ENTERPRISE' });
+          Message.success(t('paidUser.upgradeSuccess'));
+          tableRefreshId.value += 1;
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error(error);
+        }
+      },
+    });
+  }
+
   // 演示标记：置 sys_organization.is_demo，演示租户不进营收/业绩看板
   function handleToggleDemo(row: TenantPlanItem) {
     const willDemo = !row.demo;
@@ -310,6 +332,9 @@
 
   function buildActions(row: TenantPlanItem): ActionsItem[] {
     const list: ActionsItem[] = [{ label: t('paidUser.renew'), key: 'renew' }];
+    if (row.version !== 'ENTERPRISE') {
+      list.push({ label: t('paidUser.upgrade'), key: 'upgrade' });
+    }
     if (row.enabled !== null && row.enabled !== undefined) {
       list.push(
         row.enabled
@@ -329,6 +354,9 @@
     switch (key) {
       case 'renew':
         openRenew(row);
+        break;
+      case 'upgrade':
+        handleUpgrade(row);
         break;
       case 'enable':
       case 'disable':

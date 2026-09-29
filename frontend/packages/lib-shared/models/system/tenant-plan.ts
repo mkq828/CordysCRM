@@ -41,6 +41,12 @@ export interface TenantPlanOpenParams {
   remark?: string;
 }
 
+// 升级企业版参数
+export interface TenantPlanUpgradeParams {
+  id: string;
+  editionCode: TenantPlanVersion;
+}
+
 // 账号启用/禁用参数
 export interface TenantPlanToggleParams {
   organizationId: string;
