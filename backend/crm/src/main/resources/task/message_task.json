@@ -278,5 +278,47 @@
         "weComEnable": false
       }
     ]
+  },
+  {
+    "organizationId": "",
+    "module": "SYSTEM",
+    "moduleName": "",
+    "messageTaskDetailDTOList": [
+      {
+        "event": "ENTERPRISE_REGISTER_APPLY",
+        "eventName": "",
+        "emailEnable": false,
+        "sysEnable": false,
+        "weComEnable": false
+      },
+      {
+        "event": "ENTERPRISE_REGISTER_APPROVED",
+        "eventName": "",
+        "emailEnable": false,
+        "sysEnable": false,
+        "weComEnable": false
+      },
+      {
+        "event": "ENTERPRISE_REGISTER_REJECTED",
+        "eventName": "",
+        "emailEnable": false,
+        "sysEnable": false,
+        "weComEnable": false
+      },
+      {
+        "event": "PLAN_EXPIRE_REMIND",
+        "eventName": "",
+        "emailEnable": false,
+        "sysEnable": false,
+        "weComEnable": false
+      },
+      {
+        "event": "AI_QUOTA_BREAK",
+        "eventName": "",
+        "emailEnable": false,
+        "sysEnable": false,
+        "weComEnable": false
+      }
+    ]
   }
 ]

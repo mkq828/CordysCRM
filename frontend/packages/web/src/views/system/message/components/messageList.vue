@@ -16,11 +16,22 @@
       :show-time-setting="activeDetail?.event.includes(showTimeSettingEvent)"
       @ok="initMessageList"
     />
+    <n-modal
+      v-model:show="showTemplateEditor"
+      preset="dialog"
+      :title="t('system.message.templateEditTitle')"
+      :positive-text="t('common.save')"
+      :negative-text="t('common.cancel')"
+      @positive-click="saveTemplate"
+    >
+      <div class="mb-[8px] text-[var(--text-n4)]">{{ t('system.message.templateHint') }}</div>
+      <n-input v-model:value="templateText" type="textarea" :rows="6" :placeholder="activeTemplateRow?.eventName" />
+    </n-modal>
   </CrmCard>
 </template>
 
 <script lang="ts" setup>
-  import { DataTableColumn, NDataTable, useMessage } from 'naive-ui';
+  import { DataTableColumn, NDataTable, NInput, NModal, useMessage } from 'naive-ui';
 
   import { CompanyTypeEnum } from '@lib/shared/enums/commonEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -46,6 +57,7 @@
   const enableSystemMessage = ref(false);
   const enableEmailMessage = ref(false);
   const enableThirdPartyMessage = ref(false);
+  const enableSmsMessage = ref(false);
   const enableSystemLoading = ref(false);
   const noticeEnableMapKey: Record<string, keyof MessageTaskDetailDTOItem> = {
     [CompanyTypeEnum.WECOM]: 'weComEnable',
@@ -70,6 +82,7 @@
       enableThirdPartyMessage.value = result.every((e) => {
         return e.messageTaskDetailDTOList.every((c) => c[thirdPartyEnableKey.value]);
       });
+      enableSmsMessage.value = result.every((e) => e.messageTaskDetailDTOList.every((c) => c.smsEnable));
 
       data.value = result
         .map((item) =>
@@ -97,6 +110,7 @@
         event: row.event,
         emailEnable: type === 'email' ? !row.emailEnable : row.emailEnable,
         sysEnable: type === 'system' ? !row.sysEnable : row.sysEnable,
+        smsEnable: type === 'sms' ? !row.smsEnable : row.smsEnable,
         [thirdPartyEnableKey.value]:
           type === 'weChat' ? !row[thirdPartyEnableKey.value] : row[thirdPartyEnableKey.value],
       });
@@ -121,12 +135,14 @@
         weComEnable: boolean | undefined;
         dingTalkEnable: boolean | undefined;
         larkEnable: boolean | undefined;
+        smsEnable: boolean | undefined;
       } = {
         sysEnable: undefined,
         emailEnable: undefined,
         weComEnable: undefined,
         dingTalkEnable: undefined,
         larkEnable: undefined,
+        smsEnable: undefined,
       };
 
       if (type === 'system') {
@@ -135,6 +151,8 @@
         params.emailEnable = !enableEmailMessage.value;
       } else if (type === 'weChat') {
         params[thirdPartyEnableKey.value as keyof typeof params] = !enableThirdPartyMessage.value;
+      } else if (type === 'sms') {
+        params.smsEnable = !enableSmsMessage.value;
       }
 
       await batchSaveMessageTask(params);
@@ -172,6 +190,41 @@
     showExpirationSetting.value = true;
     activeDetail.value = row;
   }
+
+  // 模板文案编辑（通知文案从 i18n 迁到配置表，留空回退系统默认文案）
+  const showTemplateEditor = ref(false);
+  const activeTemplateRow = ref<MessageConfigItem>();
+  const templateText = ref('');
+  function editTemplate(row: MessageConfigItem) {
+    activeTemplateRow.value = row;
+    templateText.value = row.template || '';
+    showTemplateEditor.value = true;
+  }
+  async function saveTemplate() {
+    if (!activeTemplateRow.value) return;
+    try {
+      enableSystemLoading.value = true;
+      await saveMessageTask({
+        module: activeTemplateRow.value.module,
+        event: activeTemplateRow.value.event,
+        sysEnable: activeTemplateRow.value.sysEnable,
+        emailEnable: activeTemplateRow.value.emailEnable,
+        weComEnable: activeTemplateRow.value.weComEnable,
+        dingTalkEnable: activeTemplateRow.value.dingTalkEnable,
+        larkEnable: activeTemplateRow.value.larkEnable,
+        smsEnable: activeTemplateRow.value.smsEnable,
+        template: templateText.value,
+      });
+      Message.success(t('common.saveSuccess'));
+      showTemplateEditor.value = false;
+      initMessageList();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.log(error);
+    } finally {
+      enableSystemLoading.value = false;
+    }
+  }
   const columns = computed<DataTableColumn[]>(() => [
     {
       title: t('system.message.Feature'),
@@ -193,22 +246,33 @@
         tooltip: true,
       },
       render: (row) => {
+        const actions: any[] = [];
+        if (hasAnyPermission(['SYSTEM_NOTICE:UPDATE'])) {
+          if (needSetEndTimeEvent.includes(row.event as string)) {
+            actions.push(
+              h(CrmIcon, {
+                type: 'iconicon_set_up',
+                size: 16,
+                class: 'cursor-pointer text-[var(--primary-8)]',
+                onClick: (e: MouseEvent) => settingMessage(e, row as unknown as MessageConfigItem),
+              })
+            );
+          }
+          actions.push(
+            h(CrmIcon, {
+              type: 'iconicon_edit',
+              size: 16,
+              class: 'cursor-pointer text-[var(--primary-8)]',
+              onClick: () => editTemplate(row as unknown as MessageConfigItem),
+            })
+          );
+        }
         return h(
           'div',
           {
             class: 'one-line-text flex items-center justify-between gap-[8px] w-[196px]',
           },
-          [
-            h('span', row.eventName as string),
-            hasAnyPermission(['SYSTEM_NOTICE:UPDATE']) && needSetEndTimeEvent.includes(row.event as string)
-              ? h(CrmIcon, {
-                  type: 'iconicon_set_up',
-                  size: 16,
-                  class: 'ml-2 text-[var(--primary-8)] cursor-pointer',
-                  onClick: (e: MouseEvent) => settingMessage(e, row as unknown as MessageConfigItem),
-                })
-              : null,
-          ]
+          [h('span', row.eventName as string), h('div', { class: 'flex items-center gap-[8px]' }, actions)]
         );
       },
     },
@@ -263,6 +327,31 @@
           disabled: !hasAnyPermission(['SYSTEM_NOTICE:UPDATE']),
           onChange: (cancel?: () => void) =>
             handleToggleSystemMessage(row as unknown as MessageConfigItem, 'email', cancel),
+        });
+      },
+    },
+    {
+      title: () => {
+        return h(SwitchPopConfirm, {
+          titleColumnText: t('system.message.smsMessage'),
+          value: enableSmsMessage.value,
+          loading: enableSystemLoading.value,
+          disabled: !hasAnyPermission(['SYSTEM_NOTICE:UPDATE']),
+          onChange: (cancel?: () => void) => toggleGlobalMessage('sms', cancel),
+        });
+      },
+      key: 'smsMessage',
+      width: 200,
+      ellipsis: {
+        tooltip: true,
+      },
+      render: (row) => {
+        return h(SwitchPopConfirm, {
+          value: row.smsEnable as boolean,
+          loading: enableSystemLoading.value,
+          disabled: !hasAnyPermission(['SYSTEM_NOTICE:UPDATE']),
+          onChange: (cancel?: () => void) =>
+            handleToggleSystemMessage(row as unknown as MessageConfigItem, 'sms', cancel),
         });
       },
     },

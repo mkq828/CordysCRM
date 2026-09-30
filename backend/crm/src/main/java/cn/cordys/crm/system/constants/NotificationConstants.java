@@ -213,6 +213,12 @@ public class NotificationConstants {
         //租户AI单日成本超阈值熔断（通知平台管理员）
         @Schema(description = "message.ai_quota_break")
         String AI_QUOTA_BREAK = "AI_QUOTA_BREAK";
+        //企业注册审核通过（通知租户管理员，可登录）
+        @Schema(description = "message.enterprise_register_approved")
+        String ENTERPRISE_REGISTER_APPROVED = "ENTERPRISE_REGISTER_APPROVED";
+        //企业注册审核驳回（短信通知租户）
+        @Schema(description = "message.enterprise_register_rejected")
+        String ENTERPRISE_REGISTER_REJECTED = "ENTERPRISE_REGISTER_REJECTED";
     }
 
     public interface RelatedUser {
@@ -413,6 +419,14 @@ public class NotificationConstants {
         //租户「${name}」单日 AI 成本已超阈值，已触发熔断，请关注。
         @Schema(description = "message.ai_quota_break_text")
         String AI_QUOTA_BREAK_TEXT = "AI_QUOTA_BREAK_TEXT";
+
+        //你的企业「${name}」注册已通过审核，可登录使用。
+        @Schema(description = "message.enterprise_register_approved_text")
+        String ENTERPRISE_REGISTER_APPROVED_TEXT = "ENTERPRISE_REGISTER_APPROVED_TEXT";
+
+        //你的企业「${name}」注册未通过审核：${remark}
+        @Schema(description = "message.enterprise_register_rejected_text")
+        String ENTERPRISE_REGISTER_REJECTED_TEXT = "ENTERPRISE_REGISTER_REJECTED_TEXT";
     }
 
 

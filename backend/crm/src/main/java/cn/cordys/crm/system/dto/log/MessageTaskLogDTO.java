@@ -26,6 +26,9 @@ public class MessageTaskLogDTO {
     @Schema(description = "飞书发送启用")
     private String larkEnable;
 
+    @Schema(description = "短信发送启用")
+    private String smsEnable;
+
     @Schema(description = "是否通知负责人")
     private String ownerEnable;
 

@@ -51,6 +51,8 @@ export interface MessageTaskDetailDTOItem {
   weComEnable: boolean;
   dingTalkEnable: boolean;
   larkEnable: boolean;
+  smsEnable: boolean;
+  template?: string;
 }
 
 export interface MessageConfigItem extends MessageTaskDetailDTOItem {
@@ -83,6 +85,8 @@ export interface SaveMessageConfigParams {
   weComEnable?: boolean;
   dingTalkEnable?: boolean;
   larkEnable?: boolean;
+  smsEnable?: boolean;
+  template?: string;
   config?:MessageSettingsConfig;
 }
 

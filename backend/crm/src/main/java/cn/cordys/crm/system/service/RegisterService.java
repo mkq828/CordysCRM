@@ -15,6 +15,8 @@ import cn.cordys.crm.system.constants.RegisterResultCode;
 import cn.cordys.crm.system.constants.RegisterType;
 import cn.cordys.crm.system.constants.RegisterVerifyStatus;
 import cn.cordys.crm.system.domain.Department;
+import cn.cordys.crm.system.domain.MessageTask;
+import cn.cordys.crm.system.domain.Notification;
 import cn.cordys.crm.system.domain.Organization;
 import cn.cordys.crm.system.domain.OrganizationUser;
 import cn.cordys.crm.system.domain.RegisterApplication;
@@ -28,19 +30,25 @@ import cn.cordys.crm.system.dto.request.RegisterToggleRequest;
 import cn.cordys.crm.system.dto.request.UploadTransferRequest;
 import cn.cordys.crm.system.dto.response.RegisterApplicationResponse;
 import cn.cordys.crm.system.dto.response.RegisterStatusResponse;
+import cn.cordys.crm.system.mapper.ExtMessageTaskMapper;
 import cn.cordys.crm.system.mapper.ExtRegisterApplicationMapper;
 import cn.cordys.crm.system.mapper.ExtUserMapper;
 import cn.cordys.crm.system.mapper.OrganizationMapper;
 import cn.cordys.crm.system.mapper.RegisterApplicationMapper;
 import cn.cordys.crm.system.notice.CommonNoticeSendService;
+import cn.cordys.crm.system.utils.MessageTemplateUtils;
+import cn.cordys.crm.system.utils.SmsSender;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -52,11 +60,21 @@ import java.util.Map;
  * </p>
  */
 @Service
+@Slf4j
 @Transactional(rollbackFor = Exception.class)
 public class RegisterService {
 
     @Resource
     private RegisterApplicationMapper registerApplicationMapper;
+
+    @Resource
+    private ExtMessageTaskMapper extMessageTaskMapper;
+
+    @Resource
+    private BaseMapper<Notification> notificationMapper;
+
+    @Resource
+    private SmsSender smsSender;
 
     @Resource
     private ExtRegisterApplicationMapper extRegisterApplicationMapper;
@@ -260,7 +278,7 @@ public class RegisterService {
             throw new GenericException(RegisterResultCode.ALREADY_PROCESSED);
         }
 
-        openAccount(application, operatorId);
+        String tenantOrgId = openAccount(application, operatorId);
 
         long now = System.currentTimeMillis();
         application.setVerifyStatus(RegisterVerifyStatus.APPROVED.getValue());
@@ -269,12 +287,15 @@ public class RegisterService {
         application.setUpdateTime(now);
         application.setUpdateUser(operatorId);
         registerApplicationMapper.updateById(application);
+
+        // 审核通过后通知租户管理员（站内信/短信，走平台级模板）
+        notifyTenantAuditResult(application, tenantOrgId, operatorId, true);
     }
 
     /**
      * 开通租户账号：创建组织、根部门、管理员用户、组织成员，按注册类型挂角色，并初始化菜单与顶部导航
      */
-    private void openAccount(RegisterApplication application, String operatorId) {
+    private String openAccount(RegisterApplication application, String operatorId) {
         boolean enterprise = RegisterType.isEnterprise(application.getType());
         String orgId = IDGenerator.nextStr();
         String userId = IDGenerator.nextStr();
@@ -368,6 +389,8 @@ public class RegisterService {
         tenantConfigService.initStageConfigs(orgId);
         // 9. 初始化免费试用套餐（付费用户管理：记录套餐版本与到期时间）
         tenantPlanService.initFreeTrial(orgId, operatorId);
+
+        return orgId;
     }
 
     /**
@@ -404,6 +427,78 @@ public class RegisterService {
         application.setUpdateTime(now);
         application.setUpdateUser(operatorId);
         registerApplicationMapper.updateById(application);
+
+        // 审核驳回后短信通知租户（此时无账号，只能短信触达）
+        notifyTenantAuditResult(application, null, operatorId, false);
+    }
+
+    /**
+     * 审核结果通知租户（专用直发路径）。
+     * <p>
+     * 不走通用 sendNotice 链路：通用链路按 organization_id 查 sys_message_task、且要求接收人属于该组织
+     * （AbstractNoticeSender.getRealUserIds → getOrgUserByUserIds），跨组织/无账号（驳回时无 userId）送不到；
+     * 这里直接读平台组织 100001 的模板，按通道开关直发。
+     * </p>
+     *
+     * @param tenantOrgId 新租户组织 ID（驳回时为 null，无账号）
+     * @param approved    true=通过（站内信 + 短信），false=驳回（仅短信）
+     */
+    private void notifyTenantAuditResult(RegisterApplication application, String tenantOrgId, String operatorId, boolean approved) {
+        String event = approved
+                ? NotificationConstants.Event.ENTERPRISE_REGISTER_APPROVED
+                : NotificationConstants.Event.ENTERPRISE_REGISTER_REJECTED;
+        MessageTask task = extMessageTaskMapper.getMessageByEvent(event, OrganizationContext.DEFAULT_ORGANIZATION_ID);
+        if (task == null) {
+            log.warn("平台组织未配置审核结果通知模板，跳过通知：{}", event);
+            return;
+        }
+
+        Map<String, Object> paramMap = new HashMap<>();
+        paramMap.put("name", application.getName());
+        if (!approved) {
+            paramMap.put("remark", StringUtils.defaultString(application.getVerifyRemark()));
+        }
+        String content = MessageTemplateUtils.getContent(resolveTemplate(task), paramMap);
+
+        // 短信触达（驳回时无账号，短信是唯一渠道）
+        if (Boolean.TRUE.equals(task.getSmsEnable())) {
+            smsSender.send(application.getPhone(), content);
+        }
+
+        // 站内信触达（仅审核通过有账号，落到新租户组织下）
+        if (approved && Boolean.TRUE.equals(task.getSysEnable())
+                && StringUtils.isNotBlank(application.getUserId()) && StringUtils.isNotBlank(tenantOrgId)) {
+            insertTenantNotification(application, tenantOrgId, event, content, operatorId);
+        }
+    }
+
+    private void insertTenantNotification(RegisterApplication application, String tenantOrgId, String event, String content, String operatorId) {
+        long now = System.currentTimeMillis();
+        Notification notification = new Notification();
+        notification.setId(IDGenerator.nextStr());
+        notification.setType(NotificationConstants.Type.SYSTEM_NOTICE.name());
+        notification.setReceiver(application.getUserId());
+        notification.setSubject(MessageTemplateUtils.getEventMap().get(event));
+        notification.setStatus(NotificationConstants.Status.UNREAD.name());
+        notification.setOperator(operatorId);
+        notification.setOperation(event);
+        notification.setOrganizationId(tenantOrgId);
+        notification.setResourceType(NotificationConstants.Module.SYSTEM);
+        notification.setResourceName(application.getName());
+        notification.setContent(content.getBytes(StandardCharsets.UTF_8));
+        notification.setCreateUser(operatorId);
+        notification.setUpdateUser(operatorId);
+        notification.setCreateTime(now);
+        notification.setUpdateTime(now);
+        notificationMapper.insert(notification);
+    }
+
+    private String resolveTemplate(MessageTask task) {
+        byte[] template = task.getTemplate();
+        if (template != null && template.length > 0) {
+            return new String(template, StandardCharsets.UTF_8);
+        }
+        return MessageTemplateUtils.getTemplate(task.getEvent());
     }
 
     /**

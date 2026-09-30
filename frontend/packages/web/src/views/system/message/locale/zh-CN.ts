@@ -56,4 +56,9 @@ export default {
   'system.message.departmentHeadTooltip': '0 代表直属上级',
   'system.message.timeSetting': '时间配置',
   'system.message.todoList': '待办',
+  'system.message.smsMessage': '短信提醒',
+  'system.message.confirmCloseSmsNotify': '确定关闭该短信通知吗？',
+  'system.message.templateText': '模板文案',
+  'system.message.templateEditTitle': '编辑模板文案',
+  'system.message.templateHint': '留空则使用系统默认文案；支持 name、remark 等变量。',
 };

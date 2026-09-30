@@ -18,5 +18,6 @@ public class MessageDetailDTO implements Serializable {
     private boolean weComEnable;
     private boolean dingTalkEnable;
     private boolean larkEnable;
+    private boolean smsEnable;
 
 }

@@ -27,6 +27,7 @@ import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,7 +87,9 @@ public class MessageNotificationService {
 
         MessageTask messageTask = buildMessageTask(request, organizationId, userId);
 
-        String template = MessageTemplateUtils.getTemplate(request.getEvent());
+        String template = StringUtils.isNotBlank(request.getTemplate())
+                ? request.getTemplate()
+                : MessageTemplateUtils.getTemplate(request.getEvent());
         messageTask.setTemplate(template.getBytes(StandardCharsets.UTF_8));
 
         messageTaskMapper.insert(messageTask);
@@ -119,6 +122,10 @@ public class MessageNotificationService {
         updateTask.setWeComEnable(request.isWeComEnable());
         updateTask.setDingTalkEnable(request.isDingTalkEnable());
         updateTask.setLarkEnable(request.isLarkEnable());
+        updateTask.setSmsEnable(request.isSmsEnable());
+        if (StringUtils.isNotBlank(request.getTemplate())) {
+            updateTask.setTemplate(request.getTemplate().getBytes(StandardCharsets.UTF_8));
+        }
         updateTask.setUpdateUser(userId);
         updateTask.setUpdateTime(System.currentTimeMillis());
 
@@ -192,6 +199,10 @@ public class MessageNotificationService {
                 detail.setWeComEnable(task.getWeComEnable());
                 detail.setDingTalkEnable(task.getDingTalkEnable());
                 detail.setLarkEnable(task.getLarkEnable());
+                detail.setSmsEnable(task.getSmsEnable());
+                if (task.getTemplate() != null && task.getTemplate().length > 0) {
+                    detail.setTemplate(new String(task.getTemplate(), StandardCharsets.UTF_8));
+                }
             }
         }
 
@@ -240,6 +251,7 @@ public class MessageNotificationService {
         task.setWeComEnable(request.isWeComEnable());
         task.setDingTalkEnable(request.isDingTalkEnable());
         task.setLarkEnable(request.isLarkEnable());
+        task.setSmsEnable(request.isSmsEnable());
 
         return task;
     }
@@ -388,6 +400,7 @@ public class MessageNotificationService {
         if (request.getWeComEnable() != null) newTask.setWeComEnable(request.getWeComEnable());
         if (request.getDingTalkEnable() != null) newTask.setDingTalkEnable(request.getDingTalkEnable());
         if (request.getLarkEnable() != null) newTask.setLarkEnable(request.getLarkEnable());
+        if (request.getSmsEnable() != null) newTask.setSmsEnable(request.getSmsEnable());
 
         MessageTaskLogDTO newDTO = buildLogDTO(newTask, null);
 
@@ -415,6 +428,7 @@ public class MessageNotificationService {
         dto.setWeComEnable(toEnableText(task.getWeComEnable()));
         dto.setDingTalkEnable(toEnableText(task.getDingTalkEnable()));
         dto.setLarkEnable(toEnableText(task.getLarkEnable()));
+        dto.setSmsEnable(toEnableText(task.getSmsEnable()));
         dto.setEvent(MessageTemplateUtils.getEventMap().get(task.getEvent()));
 
         if (config == null) return dto;
@@ -467,6 +481,7 @@ public class MessageNotificationService {
         task.setWeComEnable(request.isWeComEnable());
         task.setDingTalkEnable(request.isDingTalkEnable());
         task.setLarkEnable(request.isLarkEnable());
+        task.setSmsEnable(request.isSmsEnable());
 
         return task;
     }

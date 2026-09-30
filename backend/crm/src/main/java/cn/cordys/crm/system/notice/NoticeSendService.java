@@ -9,6 +9,7 @@ import cn.cordys.crm.system.notice.common.NoticeModel;
 import cn.cordys.crm.system.notice.message.MessageDetailService;
 import cn.cordys.crm.system.notice.sender.insite.InSiteNoticeSender;
 import cn.cordys.crm.system.notice.sender.mail.MailNoticeSender;
+import cn.cordys.crm.system.notice.sender.sms.SmsNoticeSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.SerializationUtils;
@@ -93,6 +94,14 @@ public class NoticeSendService {
                     larkNoticeSender.sendLark(clonedMessageDetail, clonedNoticeModel);
                 } else {
                     log.warn("LarkNoticeSender bean not found, skipping Lark notification.");
+                }
+            }
+            if (clonedMessageDetail.isSmsEnable()) {
+                SmsNoticeSender smsNoticeSender = CommonBeanFactory.getBean(SmsNoticeSender.class);
+                if (smsNoticeSender != null) {
+                    smsNoticeSender.sendSms(clonedMessageDetail, clonedNoticeModel);
+                } else {
+                    log.warn("SmsNoticeSender bean not found, skipping SMS notification.");
                 }
             }
         } catch (Exception e) {

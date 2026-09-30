@@ -22,4 +22,7 @@ public class MessageTaskBatchRequest {
     @Schema(description = "飞书启用")
     private Boolean larkEnable;
 
+    @Schema(description = "短信启用")
+    private Boolean smsEnable;
+
 }

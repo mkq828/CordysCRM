@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -67,7 +68,8 @@ public class MessageDetailService {
             MessageDetailDTO messageDetailDTO = new MessageDetailDTO();
             BeanUtils.copyBean(messageDetailDTO, messageTask);
             if (!useTemplate) {
-                String template = MessageTemplateUtils.getTemplate(messageTask.getEvent());
+                // 优先使用配置表里的自定义模板文案（可为空），为空时回退 i18n 默认文案
+                String template = resolveTemplate(messageTask);
                 messageDetailDTO.setTemplate(template);
             } else {
                 //这里特殊处理,如果使用模版，这里用调用处传来的模板
@@ -75,6 +77,17 @@ public class MessageDetailService {
             }
             messageDetails.add(messageDetailDTO);
         });
+    }
+
+    /**
+     * 解析事件模板文案：优先用配置表（sys_message_task.template）里管理员自定义的文案，为空时回退 i18n 默认文案。
+     */
+    private String resolveTemplate(MessageTask messageTask) {
+        byte[] template = messageTask.getTemplate();
+        if (template != null && template.length > 0) {
+            return new String(template, StandardCharsets.UTF_8);
+        }
+        return MessageTemplateUtils.getTemplate(messageTask.getEvent());
     }
 
 }

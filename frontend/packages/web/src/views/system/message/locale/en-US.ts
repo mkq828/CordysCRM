@@ -57,4 +57,9 @@ export default {
   'system.message.departmentHeadTooltip': '0 represents the direct superior',
   'system.message.timeSetting': 'Time configuration',
   'system.message.todoList': 'Todo list',
+  'system.message.smsMessage': 'SMS reminder',
+  'system.message.confirmCloseSmsNotify': 'Are you sure to close this SMS notification?',
+  'system.message.templateText': 'Template text',
+  'system.message.templateEditTitle': 'Edit template text',
+  'system.message.templateHint': 'Leave empty to use the system default text. Supports variables like name, remark.',
 };
