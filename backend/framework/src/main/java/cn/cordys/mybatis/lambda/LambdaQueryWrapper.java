@@ -218,10 +218,9 @@ public class LambdaQueryWrapper<T> {
     public void orderByAsc(XFunction<T, ?> column) {
         String columnName = columnToString(column);
         checkSqlInjection(columnName);
-        String paramKey = String.format("order_%s", columnName);
 
-        orderByClauses.add(String.format("#{%s} ASC", paramKey));
-        params.put(paramKey, columnName);
+        // 列名已通过 checkSqlInjection 校验，直接拼接字面量（不能用 #{}，否则会被绑定为字符串常量，排序失效）
+        orderByClauses.add(String.format("%s ASC", columnName));
     }
 
     /**
@@ -232,10 +231,9 @@ public class LambdaQueryWrapper<T> {
     public LambdaQueryWrapper<T> orderByDesc(XFunction<T, ?> column) {
         String columnName = columnToString(column);
         checkSqlInjection(columnName);
-        String paramKey = String.format("order_%s", columnName);
 
-        orderByClauses.add(String.format("#{%s} DESC", paramKey));
-        params.put(paramKey, columnName);
+        // 列名已通过 checkSqlInjection 校验，直接拼接字面量（不能用 #{}，否则会被绑定为字符串常量，排序失效）
+        orderByClauses.add(String.format("%s DESC", columnName));
         return this;
     }
 
