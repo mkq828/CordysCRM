@@ -135,6 +135,10 @@ export enum PlatformAiQuotaRouteEnum {
   PLATFORM_AI_QUOTA_INDEX = 'platformAiQuotaIndex',
 }
 
+export enum PlatformAdminRouteEnum {
+  PLATFORM_ADMIN = 'platformAdmin',
+}
+
 export const AppRouteEnum = {
   ...SystemRouteEnum,
   ...OpportunityRouteEnum,
@@ -155,4 +159,5 @@ export const AppRouteEnum = {
   ...SuggestionRouteEnum,
   ...AiQuotaRouteEnum,
   ...PlatformAiQuotaRouteEnum,
+  ...PlatformAdminRouteEnum,
 };

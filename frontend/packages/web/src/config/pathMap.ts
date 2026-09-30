@@ -310,7 +310,7 @@ export const pathMap: PathMapItem[] = [
       {
         key: 'OPERATION_LOG',
         route: AppRouteEnum.SYSTEM_LOG,
-        locale: 'menu.settings.log',
+        locale: 'menu.platformAdmin.log',
       },
     ],
   },

@@ -16,11 +16,7 @@ const system: AppRouteRecordRaw = {
       'MODULE_SETTING:READ',
       'SYSTEM_NOTICE:READ',
       'SYSTEM_SETTING:READ',
-      'OPERATION_LOG:READ',
       'PROCESS_SETTING:READ',
-      'SYS_REGISTER_AUDIT:READ',
-      'BUG_REPORT:READ',
-      'PAID_USER:READ',
     ],
     icon: 'iconicon_set_up',
     collapsedLocale: 'menu.collapsedSettings',
@@ -102,51 +98,6 @@ const system: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.settings.businessSetting',
         permissions: ['SYSTEM_SETTING:READ'],
-      },
-    },
-    {
-      path: 'log',
-      name: SystemRouteEnum.SYSTEM_LOG,
-      component: () => import('@/views/system/log/index.vue'),
-      meta: {
-        locale: 'menu.settings.log',
-        permissions: ['OPERATION_LOG:READ'],
-      },
-    },
-    {
-      path: 'register-audit',
-      name: SystemRouteEnum.SYSTEM_REGISTER_AUDIT,
-      component: () => import('@/views/system/register-audit/index.vue'),
-      meta: {
-        locale: 'menu.settings.registerAudit',
-        permissions: ['SYS_REGISTER_AUDIT:READ'],
-      },
-    },
-    {
-      path: 'bug-report',
-      name: SystemRouteEnum.SYSTEM_BUG_REPORT,
-      component: () => import('@/views/system/bug-report/index.vue'),
-      meta: {
-        locale: 'menu.settings.bugReport',
-        permissions: ['BUG_REPORT:READ'],
-      },
-    },
-    {
-      path: 'paid-user',
-      name: SystemRouteEnum.SYSTEM_PAID_USER,
-      component: () => import('@/views/system/paid-user/index.vue'),
-      meta: {
-        locale: 'menu.settings.paidUser',
-        permissions: ['PAID_USER:READ'],
-      },
-    },
-    {
-      path: 'edition',
-      name: SystemRouteEnum.SYSTEM_EDITION,
-      component: () => import('@/views/system/edition/index.vue'),
-      meta: {
-        locale: 'menu.settings.edition',
-        permissions: ['PAID_USER:READ'],
       },
     },
   ],
