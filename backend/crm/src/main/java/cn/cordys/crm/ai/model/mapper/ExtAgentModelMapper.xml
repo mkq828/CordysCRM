@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.cordys.crm.ai.model.mapper.ExtAgentModelMapper">
+
+    <select id="selectPage" resultType="cn.cordys.crm.ai.model.dto.response.AgentModelResponse">
+        select
+            m.id,
+            m.display_name,
+            m.model_name,
+            m.provider,
+            m.api_url,
+            m.enable,
+            m.user_daily_limit,
+            m.global_daily_limit,
+            m.model_params,
+            m.create_user,
+            m.create_time,
+            m.update_user,
+            m.update_time,
+            cu.name as create_user_name,
+            uu.name as update_user_name,
+            coalesce(mu.daily_total, 0) as daily_total
+        from agent_model m
+        left join sys_user cu on cu.id = m.create_user
+        left join sys_user uu on uu.id = m.update_user
+        left join (
+            select model_code, sum(total_tokens) as daily_total
+            from ai_usage_record
+            where organization_id = #{orgId}
+              and create_time >= #{todayStart}
+              and create_time &lt; #{todayEnd}
+            group by model_code
+        ) mu on mu.model_code = m.model_name
+        where m.organization_id = #{orgId}
+        <if test="keyword != null and keyword != ''">
+            and m.display_name like concat('%', #{keyword}, '%')
+        </if>
+        order by m.create_time desc
+    </select>
+
+</mapper>

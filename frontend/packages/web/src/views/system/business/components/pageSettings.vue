@@ -356,7 +356,7 @@
         type: 'file',
         fileName: pageConfig.value.icon[0]?.name,
         original: pageConfig.value.icon.length === 0, // 是否为默认值
-        hasFile: pageConfig.value.icon[0]?.file, // 是否是上传了文件
+        hasFile: !!pageConfig.value.icon[0]?.file, // 是否是上传了文件
         organizationId: appStore.orgId,
       },
       {
@@ -365,7 +365,7 @@
         type: 'file',
         fileName: pageConfig.value.loginLogo[0]?.name,
         original: pageConfig.value.loginLogo.length === 0,
-        hasFile: pageConfig.value.loginLogo[0]?.file,
+        hasFile: !!pageConfig.value.loginLogo[0]?.file,
         organizationId: appStore.orgId,
       },
       {
@@ -374,7 +374,7 @@
         type: 'file',
         fileName: pageConfig.value.loginImage[0]?.name,
         original: pageConfig.value.loginImage.length === 0,
-        hasFile: pageConfig.value.loginImage[0]?.file,
+        hasFile: !!pageConfig.value.loginImage[0]?.file,
         organizationId: appStore.orgId,
       },
       {
@@ -383,7 +383,7 @@
         type: 'file',
         fileName: pageConfig.value.logoPlatform[0]?.name,
         original: pageConfig.value.logoPlatform.length === 0,
-        hasFile: pageConfig.value.logoPlatform[0]?.file,
+        hasFile: !!pageConfig.value.logoPlatform[0]?.file,
         organizationId: appStore.orgId,
       },
       { paramKey: 'ui.slogan', paramValue: pageConfig.value.slogan, type: 'text', organizationId: appStore.orgId },

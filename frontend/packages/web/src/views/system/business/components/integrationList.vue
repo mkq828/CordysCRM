@@ -126,7 +126,7 @@
       </div>
     </div>
   </CrmCard>
-  <CrmCard class="my-[16px]" hide-footer auto-height :loading="loading">
+  <CrmCard v-if="integrationList.length" class="my-[16px]" hide-footer auto-height :loading="loading">
     <div class="content-title">{{ t('system.business.authenticationSettings.openSourceDataTools') }}</div>
     <div v-if="integrationList.length" class="grid gap-[16px] xl:grid-cols-2 2xl:grid-cols-3">
       <div
@@ -538,12 +538,6 @@
       logo: 'iconlogo_lark',
     },
     {
-      type: CompanyTypeEnum.DATA_EASE,
-      title: 'DataEase',
-      description: t('system.business.DE.description'),
-      logo: 'dataease',
-    },
-    {
       type: CompanyTypeEnum.MAXKB,
       title: 'MaxKB',
       description: t('system.business.agent.agentMaxKBDescription'),
@@ -590,13 +584,7 @@
       const configMap = new Map(res.map((item) => [item.type, item]));
       originIntegrationList.value = allIntegrations
         .filter((item) =>
-          [
-            ...platformType,
-            CompanyTypeEnum.DATA_EASE,
-            CompanyTypeEnum.MAXKB,
-            CompanyTypeEnum.TENDER,
-            CompanyTypeEnum.QCC,
-          ].includes(item.type)
+          [...platformType, CompanyTypeEnum.MAXKB, CompanyTypeEnum.TENDER, CompanyTypeEnum.QCC].includes(item.type)
         )
         .map((item) => {
           const result = configMap.get(item.type);

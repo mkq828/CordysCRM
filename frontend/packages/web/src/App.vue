@@ -152,11 +152,10 @@
     try {
       appStore.initThirdPartyResource();
       await licenseStore.ensureLicenseValidated();
-      if (licenseStore.hasLicense()) {
-        await appStore.initPageConfig();
-        if (appStore.pageConfig.icon[0]?.url) {
-          setFavicon(appStore.pageConfig.icon[0]?.url);
-        }
+      // 界面设置（登录页外观/平台 logo 等）为基础功能，不受 license 门控，登录页匿名也要加载
+      await appStore.initPageConfig();
+      if (appStore.pageConfig.icon[0]?.url) {
+        setFavicon(appStore.pageConfig.icon[0]?.url);
       }
     } catch (error) {
       // eslint-disable-next-line no-console

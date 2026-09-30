@@ -11,13 +11,7 @@
       :class="`${['modelSettings', 'termSettings', 'globalTask'].includes(activeTab) ? 'flex h-full flex-col' : ''}`"
     >
       <CrmCard no-content-padding hide-footer auto-height class="mb-[16px]">
-        <CrmTab
-          v-model:active-tab="activeTab"
-          no-content
-          :tab-list="tabList"
-          type="line"
-          :before-leave="handleBeforeLeave"
-        />
+        <CrmTab v-model:active-tab="activeTab" no-content :tab-list="tabList" type="line" />
       </CrmCard>
       <PageSettings v-if="activeTab === 'pageSettings'" />
       <MailSettings v-if="activeTab === 'mailSettings'" />
@@ -39,7 +33,6 @@
   import CrmTab from '@/components/pure/crm-tab/index.vue';
   import IntegrationList from './components/integrationList.vue';
 
-  import useModal from '@/hooks/useModal.js';
   import useLicenseStore from '@/store/modules/setting/license';
 
   const PageSettings = defineAsyncComponent(() => import('./components/pageSettings.vue'));
@@ -48,7 +41,6 @@
   const TermSettings = defineAsyncComponent(() => import('./components/termSettings/index.vue'));
   // const GlobalTask = defineAsyncComponent(() => import('./components/globalTask/index.vue'));
   const { t } = useI18n();
-  const { openModal } = useModal();
 
   const licenseStore = useLicenseStore();
 
@@ -67,17 +59,6 @@
   ];
 
   const tabList = ref([...initTabList]);
-
-  function handleBeforeLeave(newVal: string | number) {
-    if (
-      ['pageSettings', 'modelSettings', 'termSettings', 'globalTask'].includes(String(newVal)) &&
-      !licenseStore.hasLicense()
-    ) {
-      openModal(licenseStore.getNoLicenseModalConfig());
-      return false;
-    }
-    return true;
-  }
 </script>
 
 <style lang="less" scoped>

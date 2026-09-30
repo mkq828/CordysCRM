@@ -23,6 +23,31 @@
           :placeholder="t('common.pleaseSelect')"
         />
       </n-form-item>
+
+      <div class="mb-[20px]">
+        <div class="mb-[4px]">
+          {{ t('system.business.modelSettings.backupModel') }}
+          <span class="text-[var(--text-n4)]">{{ t('system.business.modelSettings.backupModelTip') }}</span>
+        </div>
+        <div v-for="(modelId, index) in form.backupModelIds" :key="index" class="mb-[12px] flex items-center gap-[8px]">
+          <n-select
+            v-model:value="form.backupModelIds[index]"
+            clearable
+            :disabled="props.readonly || !form.fallback"
+            :fallback-option="form.backupModelIds[index] ? fallbackModelOption : false"
+            :options="modelOptions"
+            :placeholder="t('common.pleaseSelect')"
+            class="flex-1"
+          />
+          <n-button text type="error" :disabled="props.readonly" @click="removeBackupModel(index)">
+            {{ t('system.business.modelSettings.removeBackupModel') }}
+          </n-button>
+        </div>
+        <n-button dashed block :disabled="props.readonly || !form.fallback" @click="addBackupModel">
+          {{ t('system.business.modelSettings.addBackupModel') }}
+        </n-button>
+      </div>
+
       <n-form-item :label="t('system.business.modelSettings.insightModel')">
         <n-select
           v-model:value="form.insightModelId"
@@ -33,20 +58,7 @@
           :placeholder="t('common.pleaseSelect')"
         />
       </n-form-item>
-      <n-form-item>
-        <template #label>
-          {{ t('system.business.modelSettings.classifyModel') }}
-          <span class="text-[var(--text-n4)]">{{ t('system.business.modelSettings.classifyModelTip') }}</span>
-        </template>
-        <n-select
-          v-model:value="form.classifyModelId"
-          :options="modelOptions"
-          clearable
-          :disabled="props.readonly"
-          :fallback-option="form.classifyModelId ? fallbackModelOption : false"
-          :placeholder="t('common.pleaseSelect')"
-        />
-      </n-form-item>
+
       <div class="flex items-center gap-[8px]">
         <n-switch v-model:value="form.fallback" :disabled="props.readonly" :rubber-band="false" />
         <div class="text-[var(--text-n1)]">
@@ -59,7 +71,7 @@
 
 <script setup lang="ts">
   import { reactive, ref, watch } from 'vue';
-  import { NForm, NFormItem, NSelect, NSwitch, useMessage } from 'naive-ui';
+  import { NButton, NForm, NFormItem, NSelect, NSwitch, useMessage } from 'naive-ui';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import type { AiModelRouteStrategy } from '@lib/shared/models/system/aiModel';
@@ -93,11 +105,12 @@
   interface RouteStrategyForm {
     defaultModelId?: string;
     insightModelId?: string;
-    classifyModelId?: string;
+    backupModelIds: string[];
     fallback: boolean;
   }
 
   const form = reactive<RouteStrategyForm>({
+    backupModelIds: [],
     fallback: true,
   });
 
@@ -114,7 +127,7 @@
       const [strategy, models] = await Promise.all([getAiModelRouteStrategy(), getAiModelOptions()]);
       form.defaultModelId = strategy?.chatModels?.[0];
       form.insightModelId = strategy?.taskModels?.[0];
-      form.classifyModelId = strategy?.chatModels?.[1];
+      form.backupModelIds = strategy?.chatModels?.slice(1) ?? [];
       form.fallback = strategy?.fallback ?? true;
       modelOptions.value = models.map((model) => ({
         label: model.name,
@@ -137,11 +150,18 @@
     }
   );
 
+  function addBackupModel() {
+    form.backupModelIds.push('');
+  }
+
+  function removeBackupModel(index: number) {
+    form.backupModelIds.splice(index, 1);
+  }
+
   function getStrategyParams(): AiModelRouteStrategy {
+    const backupModels = form.backupModelIds.filter((id) => !!id);
     return {
-      chatModels: [form.defaultModelId ?? '', form.classifyModelId].filter(
-        (modelId, index) => index === 0 || modelId
-      ) as string[],
+      chatModels: [form.defaultModelId, ...backupModels].filter((modelId, index) => index === 0 || modelId) as string[],
       taskModels: [form.insightModelId].filter(Boolean) as string[],
       fallback: form.fallback,
     };

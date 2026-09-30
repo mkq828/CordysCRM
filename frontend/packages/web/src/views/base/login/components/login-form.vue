@@ -245,9 +245,7 @@
             captchaCode: userInfo.value.captchaCode,
           });
           await licenseStore.getValidateLicense();
-          if (licenseStore.hasLicense()) {
-            appStore.initPageConfig();
-          }
+          appStore.initPageConfig();
           setLoginExpires();
           setLoginType(userInfo.value.authenticate);
           Message.success(t('login.form.login.success'));

@@ -44,6 +44,9 @@ public final class AiQuotaConstant {
     public static final String GROUP_BY_MONTH = "MONTH";
 
     // ==================== AI 功能编码（与 sys_feature.feature_code 一致） ====================
+    /** 通用 AI 对话（G1 模型层联调用；功能 1 军师等落地后改用各自 feature_code） */
+    public static final String AI_CHAT = "ai_chat";
+
     public static final List<String> AI_FEATURE_CODES = List.of(
             "ai_advisor", "ai_acquire", "ai_sales_rag", "ai_video", "wecom_auto_analysis",
             "ai_ppt", "lead_crawl", "dm_profile", "ai_employee", "ai_kb", "digital_human");

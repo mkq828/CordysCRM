@@ -388,8 +388,8 @@ const useAppStore = defineStore('app', {
               // 四个属性值为文件类型，单独处理
               this.pageConfig[key] = [
                 {
-                  url: `/ui/display/preview?paramKey=ui.${key}`,
-                  name: e.paramValue,
+                  url: `/ui/display/preview?paramKey=ui.${key}&organizationId=${this.orgId}`,
+                  name: e.fileName ?? e.paramValue,
                 },
               ] as any;
             } else {

@@ -92,6 +92,9 @@ public final class ShiroFilter {
         // 附件预览使用 attachmentAuth 过滤器进行 Cookie 认证
         FILTER_CHAIN_DEFINITION_MAP.put("/attachment/preview/**", "authf");
         FILTER_CHAIN_DEFINITION_MAP.put("/pic/preview/**", "authf");
+        // 界面设置（登录页/平台 logo 等）文件预览与查询为登录页匿名可见，无需登录
+        FILTER_CHAIN_DEFINITION_MAP.put("/ui/display/preview/**", "anon");
+        FILTER_CHAIN_DEFINITION_MAP.put("/ui/display/info", "anon");
     }
 
     /**

@@ -58,24 +58,28 @@
         />
       </n-form-item>
 
-      <div class="mb-[16px] mt-[8px] font-semibold">
-        {{ t('system.business.modelSettings.aiParams') }}
+      <div class="mb-[16px] mt-[8px] flex items-center gap-[8px] font-semibold">
+        <span>{{ t('system.business.modelSettings.aiParams') }}</span>
+        <span class="text-xs text-orange-500">控制生成效果，保持默认即可</span>
       </div>
       <div class="grid grid-cols-3 gap-x-[16px]">
         <n-form-item path="temperature">
-          <template #label> temperature<span class="text-[var(--text-n4)]">（0~1）</span> </template>
+          <template #label> temperature<span class="text-xs text-orange-500">（0~1，越高越随机）</span> </template>
           <CrmInputNumber v-model:value="form.temperature" :min="0" :max="1" :step="0.1" class="w-full" />
         </n-form-item>
-        <n-form-item label="max_tokens" path="max_tokens">
+        <n-form-item path="max_tokens">
+          <template #label> max_tokens<span class="text-xs text-orange-500">（输出长度上限）</span> </template>
           <CrmInputNumber v-model:value="form.max_tokens" :min="1" :step="1" :precision="0" class="w-full" />
         </n-form-item>
-        <n-form-item label="top_p" path="top_p">
+        <n-form-item path="top_p">
+          <template #label> top_p<span class="text-xs text-orange-500">（0~1，越低越集中）</span> </template>
           <CrmInputNumber v-model:value="form.top_p" :min="0" :max="1" :step="0.1" class="w-full" />
         </n-form-item>
       </div>
 
-      <div class="mb-[16px] mt-[8px] font-semibold">
-        {{ t('system.business.modelSettings.callLimit') }}
+      <div class="mb-[16px] mt-[8px] flex items-center gap-[8px] font-semibold">
+        <span>{{ t('system.business.modelSettings.callLimit') }}</span>
+        <span class="text-xs text-orange-500">限制该模型每日 token 消耗，防止超量</span>
       </div>
       <div class="grid grid-cols-2 gap-x-[16px]">
         <n-form-item path="globalDailyLimit">
@@ -158,6 +162,7 @@
     { label: t('system.business.modelSettings.providerAliyun'), value: '阿里云' },
     { label: 'Anthropic', value: 'Anthropic' },
     { label: t('system.business.modelSettings.providerTencent'), value: '腾讯云' },
+    { label: t('system.business.modelSettings.providerDoubao'), value: '豆包' },
     { label: t('system.business.modelSettings.providerCustom'), value: '自定义' },
   ]);
 
@@ -172,11 +177,6 @@
     temperature: 0.7,
     max_tokens: 2048,
     top_p: 0.9,
-  };
-  const emptyModelParams: FormModelParams = {
-    temperature: null,
-    max_tokens: null,
-    top_p: null,
   };
   const defaultForm: AiModelForm = {
     id: undefined,
@@ -197,7 +197,7 @@
       ? ({
           ...(JSON.parse(model.modelParams) as AiModelParams),
         } as FormModelParams)
-      : { ...emptyModelParams };
+      : { ...defaultModelParams };
 
     return {
       id: model.id,
@@ -207,8 +207,8 @@
       apiUrl: model.apiUrl ?? '',
       apiKey: model.apiKey ?? '',
       enable: model.enable ?? defaultForm.enable,
-      globalDailyLimit: model.globalDailyLimit,
-      userDailyLimit: model.userDailyLimit,
+      globalDailyLimit: model.globalDailyLimit ?? defaultForm.globalDailyLimit,
+      userDailyLimit: model.userDailyLimit ?? defaultForm.userDailyLimit,
       modelParams: model.modelParams,
       ...modelParams,
     };

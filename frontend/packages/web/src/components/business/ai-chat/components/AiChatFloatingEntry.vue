@@ -62,8 +62,6 @@
     renameAgentConversation,
     streamAgentChat,
   } from '@/api/modules';
-  import useModal from '@/hooks/useModal';
-  import useLicenseStore from '@/store/modules/setting/license';
 
   const AI_CHAT_FLOATING_OPEN_EVENT = 'crm-ai-chat-floating-open';
 
@@ -83,8 +81,6 @@
   const DRAG_THRESHOLD = 4;
   const STORAGE_KEY = 'crm_ai_chat_floating_entry_position';
 
-  const licenseStore = useLicenseStore();
-  const { openModal } = useModal();
   const showChatDrawer = ref(false);
   const aiChatRef = ref<InstanceType<typeof AiChat>>();
   const position = ref<FloatingPosition>({ right: DEFAULT_GAP, bottom: DEFAULT_GAP });
@@ -164,20 +160,7 @@
     return createConversation();
   }
 
-  function ensureLicense(): boolean {
-    if (licenseStore.hasLicense()) {
-      return true;
-    }
-
-    openModal(licenseStore.getNoLicenseModalConfig());
-    return false;
-  }
-
   function openChatDrawer(): void {
-    if (!ensureLicense()) {
-      return;
-    }
-
     if (!chatRuntime.value) {
       createChatSession();
     }
@@ -188,10 +171,6 @@
   }
 
   async function openWithPayload(payload: AiChatFloatingOpenPayload): Promise<void> {
-    if (!ensureLicense()) {
-      return;
-    }
-
     const selectedMcps = payload.mcps ?? [];
     const runtime = createChatSession();
 

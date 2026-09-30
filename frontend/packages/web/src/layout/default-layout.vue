@@ -26,9 +26,7 @@
     </n-layout>
   </n-layout>
   <PersonalInfoDrawer v-model:visible="showPersonalInfo" :active-tab-value="personalTab" />
-  <!-- AI 聊天机器人悬浮入口已隐藏（用户要求） -->
-  <!-- <AiChatFloatingEntry /> -->
-  <FeedbackBug />
+  <AiChatFloatingEntry />
 </template>
 
 <script setup lang="ts">
@@ -38,8 +36,7 @@
   import { PersonalEnum } from '@lib/shared/enums/systemEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
 
-  // import AiChatFloatingEntry from '@/components/business/ai-chat/components/AiChatFloatingEntry.vue';
-  import FeedbackBug from '@/components/business/feedback-bug/index.vue';
+  import AiChatFloatingEntry from '@/components/business/ai-chat/components/AiChatFloatingEntry.vue';
   import LayoutHeader from './components/layout-header.vue';
   import LayoutSider from './components/layout-sider.vue';
   import PageContent from './page-content.vue';

@@ -83,7 +83,7 @@ public class AdminAiQuotaController {
     @Operation(summary = "AI 额度-模拟记账(验证用，上线前删)")
     public AiQuotaRecordResult mockRecord(@Validated @RequestBody AiMockRecordRequest request) {
         return aiQuotaService.record(request.getOrganizationId(), request.getFeatureCode(),
-                request.getModelCode(), request.getInputTokens(), request.getOutputTokens());
+                request.getModelCode(), request.getInputTokens(), request.getOutputTokens(), null);
     }
 
     @PostMapping("/tenant/list")

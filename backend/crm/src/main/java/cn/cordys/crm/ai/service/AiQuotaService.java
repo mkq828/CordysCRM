@@ -11,6 +11,7 @@ import cn.cordys.crm.ai.domain.AiModelPrice;
 import cn.cordys.crm.ai.domain.AiQuotaOverride;
 import cn.cordys.crm.ai.domain.AiQuotaUsage;
 import cn.cordys.crm.ai.domain.AiUsageRecord;
+import cn.cordys.crm.ai.model.domain.AgentModel;
 import cn.cordys.crm.ai.dto.request.AdminAiCostRequest;
 import cn.cordys.crm.ai.dto.request.AiModelPriceSaveRequest;
 import cn.cordys.crm.ai.dto.request.AiQuotaConfigRequest;
@@ -130,7 +131,7 @@ public class AiQuotaService {
      * 硬超（&gt;软超阈值）时拒绝记账、不再累加。
      */
     public AiQuotaRecordResult record(String organizationId, String featureCode, String modelCode,
-                                      long inputTokens, long outputTokens) {
+                                      long inputTokens, long outputTokens, String userId) {
         AiQuotaRecordResult result = new AiQuotaRecordResult();
         result.setQuota(getMonthlyQuota(organizationId));
 
@@ -151,12 +152,52 @@ public class AiQuotaService {
             return result;
         }
 
-        persistUsage(organizationId, featureCode, modelCode, inputTokens, outputTokens, costCalls, status);
+        persistUsage(organizationId, featureCode, modelCode, inputTokens, outputTokens, costCalls, status, userId);
         checkCostCircuitBreak(organizationId, modelCode, inputTokens, outputTokens);
 
         result.setStatus(status);
         result.setUsedCalls(getUsedCalls(organizationId));
         return result;
+    }
+
+    /**
+     * 模型级每日 token 限额检查（调用前预判）：globalDailyLimit 限全租户、userDailyLimit 限单用户。
+     * 超限抛异常；null 或 &lt;=0 表示不限制。今日已消耗按 ai_usage_record 当日 total_tokens 累计。
+     */
+    public void checkModelDailyLimit(String organizationId, AgentModel model, String userId) {
+        if (model == null) {
+            return;
+        }
+        String modelCode = model.getModelName();
+        Long globalLimit = model.getGlobalDailyLimit();
+        if (globalLimit != null && globalLimit > 0) {
+            long used = sumTodayTokens(organizationId, modelCode, null);
+            if (used >= globalLimit) {
+                throw new GenericException("该模型今日用量已达上限，请明日再试或更换模型");
+            }
+        }
+        Long userLimit = model.getUserDailyLimit();
+        if (userLimit != null && userLimit > 0 && StringUtils.isNotBlank(userId)) {
+            long used = sumTodayTokens(organizationId, modelCode, userId);
+            if (used >= userLimit) {
+                throw new GenericException("您今日对该模型的调用已达上限，请明日再试");
+            }
+        }
+    }
+
+    private long sumTodayTokens(String organizationId, String modelCode, String userId) {
+        long start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long end = System.currentTimeMillis();
+        LambdaQueryWrapper<AiUsageRecord> wrapper = new LambdaQueryWrapper<AiUsageRecord>()
+                .eq(AiUsageRecord::getOrganizationId, organizationId)
+                .eq(AiUsageRecord::getModelCode, modelCode)
+                .between(AiUsageRecord::getCreateTime, start, end);
+        if (StringUtils.isNotBlank(userId)) {
+            wrapper.eq(AiUsageRecord::getCreateUser, userId);
+        }
+        return usageRecordMapper.selectListByLambda(wrapper).stream()
+                .mapToLong(r -> nvl(r.getTotalTokens()))
+                .sum();
     }
 
     // ==================== 租户端看板 ====================
@@ -532,7 +573,8 @@ public class AiQuotaService {
     }
 
     private void persistUsage(String organizationId, String featureCode, String modelCode,
-                              long inputTokens, long outputTokens, BigDecimal costCalls, String status) {
+                              long inputTokens, long outputTokens, BigDecimal costCalls, String status,
+                              String userId) {
         long now = System.currentTimeMillis();
         AiUsageRecord record = new AiUsageRecord();
         record.setId(IDGenerator.nextStr());
@@ -544,6 +586,7 @@ public class AiQuotaService {
         record.setTotalTokens(inputTokens + outputTokens);
         record.setCostCalls(costCalls);
         record.setStatus(status);
+        record.setCreateUser(userId);
         record.setCreateTime(now);
         usageRecordMapper.insert(record);
         upsertMonthlyUsage(organizationId, costCalls, now);
