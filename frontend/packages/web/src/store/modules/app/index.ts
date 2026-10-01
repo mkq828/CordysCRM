@@ -22,6 +22,7 @@ import {
   getThirdPartyResource,
   getTodoStatistic,
   getUnReadAnnouncement,
+  tenantPlanApplicationList,
 } from '@/api/modules';
 import { defaultNavList } from '@/config/system';
 import useUserStore from '@/store/modules/user';
@@ -161,6 +162,7 @@ const useAppStore = defineStore('app', {
       order: 0,
       invoice: 0,
     },
+    pendingApplicationCount: 0,
   }),
   getters: {
     getMenuCollapsed(state: AppState) {
@@ -469,6 +471,21 @@ const useAppStore = defineStore('app', {
       try {
         const res = await getTodoStatistic();
         this.todoStatistic = res;
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.log(error);
+      }
+    },
+    async initPendingApplicationCount() {
+      // 只有具备「付费用户」查看权限的平台账号（admin/城市经理）才拉取待核销数。
+      // 租户无此权限，调 /tenant/plan/application/list 会 403，进而整页跳「暂无资源权限」，所以这里先拦截。
+      const userStore = useUserStore();
+      if (!userStore.isAdmin && !userStore.userInfo.permissionIds.includes('PAID_USER:READ')) {
+        return;
+      }
+      try {
+        const res = await tenantPlanApplicationList({ current: 1, pageSize: 1, status: 'PENDING' });
+        this.pendingApplicationCount = res?.total ?? 0;
       } catch (error) {
         // eslint-disable-next-line no-console
         console.log(error);

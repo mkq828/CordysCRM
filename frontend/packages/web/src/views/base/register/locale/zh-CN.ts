@@ -46,4 +46,9 @@ export default {
   'register.status.notFound': '未找到注册申请',
   'register.status.type.personal': '个人',
   'register.status.type.enterprise': '企业',
+  'register.agreement.prefix': '我已阅读并同意',
+  'register.agreement.service': '《SaaS服务协议》',
+  'register.agreement.ip': '《知识产权与保密条款》',
+  'register.agreement.privacy': '《隐私政策》',
+  'register.agreement.errMsg': '请先阅读并同意相关协议',
 };

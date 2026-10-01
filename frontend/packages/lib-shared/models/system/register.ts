@@ -18,6 +18,7 @@ export interface RegisterApplyParams {
   businessLicenseAttachmentId?: string;
   captchaId?: string;
   captchaCode?: string;
+  agreed?: boolean; // 是否已勾选同意《SaaS服务协议》与《隐私政策》
 }
 
 // 注册审核状态查询结果
@@ -53,6 +54,7 @@ export interface RegisterAuditItem {
   planVersion?: string;
   planStatus?: string;
   planExpireTime?: number;
+  remainDays?: number;
   usageDays?: number;
   lastLoginTime?: number;
   enabled?: boolean;
@@ -62,6 +64,7 @@ export interface RegisterAuditItem {
 // 注册申请审核通过参数
 export interface RegisterApproveParams {
   id: string;
+  remark?: string;
 }
 
 // 注册申请驳回参数

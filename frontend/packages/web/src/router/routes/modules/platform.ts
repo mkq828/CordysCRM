@@ -46,6 +46,15 @@ const platformAdmin: AppRouteRecordRaw = {
       },
     },
     {
+      path: 'plan-application',
+      name: SystemRouteEnum.SYSTEM_PLAN_APPLICATION,
+      component: () => import('@/views/system/paid-user/application/index.vue'),
+      meta: {
+        locale: 'menu.platformAdmin.planApplication',
+        permissions: ['PAID_USER:READ'],
+      },
+    },
+    {
       path: 'log',
       name: SystemRouteEnum.SYSTEM_LOG,
       component: () => import('@/views/system/log/index.vue'),

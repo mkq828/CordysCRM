@@ -9,11 +9,14 @@ import cn.cordys.common.util.BeanUtils;
 import cn.cordys.common.util.CodingUtils;
 import cn.cordys.common.util.EncryptUtils;
 import cn.cordys.common.util.PasswordUtils;
+import cn.cordys.common.util.ServletUtils;
+import cn.cordys.common.utils.IpUtils;
 import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.system.constants.NotificationConstants;
 import cn.cordys.crm.system.constants.RegisterResultCode;
 import cn.cordys.crm.system.constants.RegisterType;
 import cn.cordys.crm.system.constants.RegisterVerifyStatus;
+import cn.cordys.crm.system.domain.AgreementConsentLog;
 import cn.cordys.crm.system.domain.Department;
 import cn.cordys.crm.system.domain.MessageTask;
 import cn.cordys.crm.system.domain.Notification;
@@ -41,6 +44,7 @@ import cn.cordys.crm.system.utils.SmsSender;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -121,6 +125,14 @@ public class RegisterService {
     @Resource
     private CommonNoticeSendService commonNoticeSendService;
 
+    @Resource
+    private BaseMapper<AgreementConsentLog> agreementConsentLogMapper;
+
+    private static final long DAY_MILLIS = 24L * 60 * 60 * 1000;
+
+    private static final String AGREEMENT_TYPE = "SAAS_SERVICE";
+    private static final String AGREEMENT_VERSION = "v1.0";
+
     /**
      * 提交注册申请
      * <p>
@@ -128,6 +140,11 @@ public class RegisterService {
      * </p>
      */
     public RegisterStatusResponse apply(RegisterApplyRequest request) {
+        // 必须主动勾选同意《SaaS服务协议》与《隐私政策》（留痕，防纠纷）
+        if (!Boolean.TRUE.equals(request.getAgreed())) {
+            throw new GenericException(RegisterResultCode.AGREEMENT_NOT_AGREED);
+        }
+
         // 校验图形验证码
         captchaService.validate(request.getCaptchaId(), request.getCaptchaCode());
 
@@ -199,11 +216,15 @@ public class RegisterService {
                     OrganizationContext.DEFAULT_ORGANIZATION_ID,
                     List.of(InternalUser.ADMIN.getValue()),
                     false);
+            // 勾选留痕：企业注册提交即记录（此时无用户ID，用手机号追溯）
+            recordAgreementConsent(null, phone);
         }
 
         // 个人注册免审：提交即开通账号
         if (!enterprise) {
             openAccount(application, phone);
+            // 勾选留痕：个人注册提交即开通，记录用户ID
+            recordAgreementConsent(application.getUserId(), phone);
             application.setVerifyStatus(RegisterVerifyStatus.APPROVED.getValue());
             application.setVerifyUser(phone);
             application.setVerifyTime(now);
@@ -243,7 +264,14 @@ public class RegisterService {
      */
     public List<RegisterApplicationResponse> pageList(RegisterApplicationPageRequest request) {
         // 累计使用天数由 SQL 子查询按 sys_login_log 去重日期统计（实际登录天数），见 ExtRegisterApplicationMapper.pageList
-        return extRegisterApplicationMapper.pageList(request);
+        List<RegisterApplicationResponse> list = extRegisterApplicationMapper.pageList(request);
+        long now = System.currentTimeMillis();
+        for (RegisterApplicationResponse item : list) {
+            if (item.getPlanExpireTime() != null) {
+                item.setRemainDays((long) Math.ceil((item.getPlanExpireTime() - now) / (double) DAY_MILLIS));
+            }
+        }
+        return list;
     }
 
     /**
@@ -263,6 +291,18 @@ public class RegisterService {
         }
         RegisterApplicationResponse response = BeanUtils.copyBean(new RegisterApplicationResponse(), application);
         response.setIdCard(maskIdCard(EncryptUtils.aesDecrypt(application.getIdCard())));
+        // 补充套餐信息与剩余可用天数（与列表页口径一致）
+        RegisterApplicationResponse planInfo = extRegisterApplicationMapper.selectPlanByApplicationId(id);
+        if (planInfo != null) {
+            response.setPlanId(planInfo.getPlanId());
+            response.setPlanVersion(planInfo.getPlanVersion());
+            response.setPlanStatus(planInfo.getPlanStatus());
+            response.setPlanExpireTime(planInfo.getPlanExpireTime());
+            if (planInfo.getPlanExpireTime() != null) {
+                response.setRemainDays(
+                        (long) Math.ceil((planInfo.getPlanExpireTime() - System.currentTimeMillis()) / (double) DAY_MILLIS));
+            }
+        }
         return response;
     }
 
@@ -282,6 +322,7 @@ public class RegisterService {
 
         long now = System.currentTimeMillis();
         application.setVerifyStatus(RegisterVerifyStatus.APPROVED.getValue());
+        application.setVerifyRemark(StringUtils.trim(request.getRemark()));
         application.setVerifyUser(operatorId);
         application.setVerifyTime(now);
         application.setUpdateTime(now);
@@ -387,6 +428,24 @@ public class RegisterService {
         tenantPlanService.initFreeTrial(orgId, operatorId);
 
         return orgId;
+    }
+
+    /**
+     * 记录协议勾选留痕：用户ID、手机号、协议类型/版本、IP、浏览器信息、勾选时间。
+     * 企业注册审核通过前 user_id 为空，用手机号追溯；个人注册在开通账号后带 userId。
+     */
+    private void recordAgreementConsent(String userId, String phone) {
+        HttpServletRequest request = ServletUtils.getRequest();
+        AgreementConsentLog log = new AgreementConsentLog();
+        log.setId(IDGenerator.nextStr());
+        log.setUserId(userId);
+        log.setPhone(phone);
+        log.setAgreementType(AGREEMENT_TYPE);
+        log.setAgreementVersion(AGREEMENT_VERSION);
+        log.setIp(request == null ? null : IpUtils.getClientIpAddress(request));
+        log.setUserAgent(ServletUtils.getUserAgent());
+        log.setCreateTime(System.currentTimeMillis());
+        agreementConsentLogMapper.insert(log);
     }
 
     /**

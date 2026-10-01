@@ -14,7 +14,9 @@ public enum RegisterResultCode implements IResultCode {
     ALREADY_PROCESSED(101104, "register.application.already.processed"),
     REGISTER_TYPE_INVALID(101105, "register.type.invalid"),
     LICENSE_REQUIRED(101106, "register.license.required"),
-    ACCOUNT_NOT_OPENED(101107, "register.account.not.opened");
+    ACCOUNT_NOT_OPENED(101107, "register.account.not.opened"),
+    AGREEMENT_NOT_AGREED(101108, "register.agreement.not.agreed"),
+    REGISTER_REJECTED(101109, "register.rejected.login");
 
     private final int code;
     private final String message;

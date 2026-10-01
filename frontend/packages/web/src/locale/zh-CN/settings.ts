@@ -23,6 +23,8 @@ export default {
   'settings.help.versionInfo': '关于',
   'settings.help.currentVersion': '当前版本',
   'settings.help.latestVersion': '最新版本',
+  'settings.help.agreementService': '《SaaS服务协议》',
+  'settings.help.agreementPrivacy': '《隐私政策》',
   'settings.menu': '菜单栏',
   'settings.tabBar': '多页签',
   'settings.footer': '底部',

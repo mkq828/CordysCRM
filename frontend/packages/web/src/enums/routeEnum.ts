@@ -14,6 +14,7 @@ export enum SystemRouteEnum {
   SYSTEM_BUG_REPORT = 'systemBugReport',
   SYSTEM_PAID_USER = 'systemPaidUser',
   SYSTEM_EDITION = 'systemEdition',
+  SYSTEM_PLAN_APPLICATION = 'systemPlanApplication',
 }
 
 export enum OpportunityRouteEnum {

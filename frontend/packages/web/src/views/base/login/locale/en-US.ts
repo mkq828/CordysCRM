@@ -11,6 +11,7 @@ export default {
   'login.form.forgetPassword': 'Forgot password',
   'login.form.login': 'Login',
   'login.form.register': 'register account',
+  'login.form.rejectReason': 'Reject reason',
   'login.form.normalLogin': 'Normal login',
   'login.form.oauth2Test': 'OAuth2 Test',
   'login.form.modeLoginMethods': 'More',

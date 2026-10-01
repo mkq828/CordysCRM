@@ -55,6 +55,9 @@ public class RegisterApplyRequest {
     @Schema(description = "图形验证码")
     private String captchaCode;
 
+    @Schema(description = "是否已勾选同意《SaaS服务协议》与《隐私政策》")
+    private Boolean agreed;
+
     /**
      * 获取解密后的密码
      */

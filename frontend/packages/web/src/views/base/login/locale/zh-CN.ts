@@ -11,6 +11,7 @@ export default {
   'login.form.forgetPassword': '忘记密码',
   'login.form.login': '登录',
   'login.form.register': '注册账号',
+  'login.form.rejectReason': '驳回原因',
   'login.form.normalLogin': '普通登录',
   'login.form.oauth2Test': 'OAuth2 测试',
   'login.form.modeLoginMethods': '更多登录方式',

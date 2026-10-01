@@ -83,4 +83,5 @@ export interface AppState {
   activePlatformResource: ThirdPartyResource; // 当前激活的平台资源
   stageConfigList: Option[]; // 商机阶段配置
   todoStatistic: TodoStatistic; // 待办统计
+  pendingApplicationCount: number; // 待核销续费/升级申请数（钱包角标）
 }

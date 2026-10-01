@@ -84,6 +84,9 @@
           <div class="mt-[12px] flex justify-center">
             <n-button text type="primary" @click="goRegister">{{ t('login.form.register') }}</n-button>
           </div>
+          <div v-if="rejectReason" class="mt-[8px] flex justify-center text-[13px] text-orange-500">
+            {{ t('login.form.rejectReason') }}：{{ rejectReason }}
+          </div>
           <div v-if="showDemo" class="mb-[-16px] mt-[16px] flex items-center gap-[16px]">
             <div class="flex items-center">
               <div>{{ t('login.form.username') }}：</div>
@@ -134,7 +137,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, ref } from 'vue';
+  import { computed, ref, watch } from 'vue';
   import { useRouter } from 'vue-router';
   import { FormInst, NButton, NDivider, NForm, NFormItem, NInput, NSpin, useMessage } from 'naive-ui';
 
@@ -147,7 +150,7 @@
 
   // import { getAuthDetailByType } from '@/api/modules/setting/config';
   // import { getPlatformParamUrl } from '@/api/modules/user';
-  import { getCaptcha, getThirdConfigByType } from '@/api/modules';
+  import { getCaptcha, getThirdConfigByType, registerStatus } from '@/api/modules';
   import { defaultLoginLogo } from '@/config/business';
   import useLoading from '@/hooks/useLoading';
   import useUser from '@/hooks/useUser';
@@ -230,8 +233,28 @@
     }
   }
 
+  // 注册申请被驳回时，登录页在「注册账号」下方展示驳回原因
+  const rejectReason = ref('');
+
+  async function fetchRejectReason() {
+    const phone = userInfo.value.username?.trim();
+    if (!/^\d{11}$/.test(phone)) {
+      rejectReason.value = '';
+      return;
+    }
+    try {
+      const res = await registerStatus({ phone });
+      rejectReason.value = res?.verifyStatus === 'REJECTED' ? res.verifyRemark || '' : '';
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      rejectReason.value = '';
+    }
+  }
+
   const handleSubmit = () => {
     if (loading.value) return;
+    rejectReason.value = '';
     formRef.value?.validate(async (errors) => {
       if (!errors) {
         setLoading(true);
@@ -254,6 +277,7 @@
           // eslint-disable-next-line no-console
           console.log(err);
           refreshCaptcha();
+          fetchRejectReason();
         } finally {
           setLoading(false);
           userStore.getAuthentication();
@@ -265,6 +289,12 @@
   const isShowLDAP = computed(() => {
     return userStore.loginType.includes('LDAP');
   });
+  watch(
+    () => userInfo.value.username,
+    () => {
+      rejectReason.value = '';
+    }
+  );
   const isShowOIDC = computed(() => {
     return userStore.loginType.includes('OIDC');
   });

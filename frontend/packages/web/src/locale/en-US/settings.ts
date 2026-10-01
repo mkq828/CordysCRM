@@ -23,6 +23,8 @@ export default {
   'settings.help.versionInfo': 'About',
   'settings.help.currentVersion': 'Current Version',
   'settings.help.latestVersion': 'Latest Version',
+  'settings.help.agreementService': 'SaaS Service Agreement',
+  'settings.help.agreementPrivacy': 'Privacy Policy',
   'settings.menu': 'Menu',
   'settings.tabBar': 'Tab Bar',
   'settings.footer': 'Footer',

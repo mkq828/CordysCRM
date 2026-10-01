@@ -78,6 +78,15 @@
             </div>
           </n-form-item>
         </n-form>
+        <div class="mb-[16px] flex items-start gap-[8px]">
+          <n-checkbox v-model:checked="formModel.agreed" class="mt-[2px]" />
+          <div class="text-[12px] leading-5 text-[var(--text-n2)]">
+            {{ t('register.agreement.prefix') }}
+            <a class="agreement-link" @click="openAgreement('service')">{{ t('register.agreement.service') }}</a>
+            <a class="agreement-link" @click="openAgreement('ip')">{{ t('register.agreement.ip') }}</a>
+            <a class="agreement-link" @click="openAgreement('privacy')">{{ t('register.agreement.privacy') }}</a>
+          </div>
+        </div>
         <n-button type="primary" block size="large" :loading="loading" @click="handleSubmit">
           {{ t('register.submit') }}
         </n-button>
@@ -116,6 +125,8 @@
         </n-result>
       </div>
     </div>
+
+    <AgreementModal v-model:show="showAgreement" v-model:active-key="agreementActiveKey" />
   </div>
 </template>
 
@@ -126,6 +137,7 @@
     type FormInst,
     type FormRules,
     NButton,
+    NCheckbox,
     NForm,
     NFormItem,
     NInput,
@@ -141,6 +153,8 @@
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import { encrypted } from '@lib/shared/method';
   import type { RegisterStatusResult } from '@lib/shared/models/system/register';
+
+  import AgreementModal from '@/components/agreement/AgreementModal.vue';
 
   import { getCaptcha, registerApply, registerStatus, uploadTempAttachment } from '@/api/modules';
   import useAppStore from '@/store/modules/app';
@@ -161,6 +175,9 @@
   const statusLoading = ref(false);
   const statusResult = ref<RegisterStatusResult | null>(null);
 
+  const showAgreement = ref(false);
+  const agreementActiveKey = ref<'service' | 'ip' | 'privacy'>('service');
+
   const formModel = ref({
     name: '',
     phone: '',
@@ -172,7 +189,13 @@
     businessLicenseAttachmentId: '',
     captchaId: '',
     captchaCode: '',
+    agreed: false,
   });
+
+  function openAgreement(key: 'service' | 'ip' | 'privacy' = 'service') {
+    agreementActiveKey.value = key;
+    showAgreement.value = true;
+  }
 
   const captchaImage = ref('');
   async function refreshCaptcha() {
@@ -243,6 +266,15 @@
       message: t('register.businessLicense.errMsg'),
       trigger: ['change'],
     },
+    agreed: {
+      validator: (_rule: unknown, value: boolean) => {
+        if (!value) {
+          return new Error(t('register.agreement.errMsg'));
+        }
+        return true;
+      },
+      trigger: ['change'],
+    },
   }));
 
   async function uploadLicense({ file, onFinish, onError }: UploadCustomRequestOptions) {
@@ -278,6 +310,7 @@
           businessLicenseAttachmentId: formModel.value.businessLicenseAttachmentId || undefined,
           captchaId: formModel.value.captchaId,
           captchaCode: formModel.value.captchaCode,
+          agreed: formModel.value.agreed,
         });
         submittedType.value = activeTab.value;
         Message.success(
@@ -371,5 +404,10 @@
     border-radius: var(--border-radius-small);
     cursor: pointer;
     flex-shrink: 0;
+  }
+  .agreement-link {
+    margin-right: 4px;
+    color: var(--primary);
+    cursor: pointer;
   }
 </style>

@@ -95,7 +95,7 @@
           <template #versionInfoSlot>
             <n-popover position="left" content-class="w-[320px]" class="!p-[16px]">
               <div class="flex flex-col gap-[8px]">
-                <CrmSvg name="logo_CORDYS" height="22px" width="100px" />
+                <img :src="innerLogo" class="h-[22px] max-w-[100px] object-contain object-left" />
                 <div
                   class="flex cursor-pointer items-center gap-[8px] text-[14px] text-[var(--color-text-1)]"
                   @click="copyVersion(appStore.versionInfo.currentVersion)"
@@ -180,6 +180,21 @@
                     appStore.versionInfo.operator
                   }}</div>
                 </div>
+                <n-divider class="!my-0" />
+                <div class="flex items-center gap-[12px]">
+                  <a
+                    class="cursor-pointer text-[12px] text-[var(--text-n4)] hover:text-[var(--primary)]"
+                    @click="openAgreement('service')"
+                  >
+                    {{ t('settings.help.agreementService') }}
+                  </a>
+                  <a
+                    class="cursor-pointer text-[12px] text-[var(--text-n4)] hover:text-[var(--primary)]"
+                    @click="openAgreement('privacy')"
+                  >
+                    {{ t('settings.help.agreementPrivacy') }}
+                  </a>
+                </div>
               </div>
               <template #trigger>
                 <n-button class="p-[8px]" quaternary>
@@ -202,6 +217,18 @@
             </CrmMoreAction>
           </template>
         </CrmButtonGroup>
+        <n-tooltip placement="bottom">
+          <template #trigger>
+            <n-button v-permission="['PAID_USER:READ']" class="p-[8px]" quaternary @click="goPlanApplication">
+              <template #icon>
+                <n-badge :value="appStore.pendingApplicationCount" :show="appStore.pendingApplicationCount > 0">
+                  <CrmIcon type="iconicon_wallet" :size="16" />
+                </n-badge>
+              </template>
+            </n-button>
+          </template>
+          {{ t('planApplication.pendingBadge') }}
+        </n-tooltip>
       </div>
     </div>
     <MessageDrawer v-model:show="showMessageDrawer" />
@@ -213,11 +240,22 @@
   <agentDrawer v-if="initAgentDrawer" v-model:visible="showAgentDrawer" />
   <CrmFollowDrawer v-if="initFollowDrawer" v-model:visible="showFollowDrawer" />
   <CrmTaskDrawer v-if="initTaskDrawer" v-model:show="showTaskDrawer" />
+  <AgreementModal v-model:show="showAgreement" v-model:active-key="agreementActiveKey" />
 </template>
 
 <script setup lang="ts">
-  import { useRoute } from 'vue-router';
-  import { NBadge, NButton, NDivider, NDropdown, NLayoutHeader, NPopover, NPopselect, useMessage } from 'naive-ui';
+  import { useRoute, useRouter } from 'vue-router';
+  import {
+    NBadge,
+    NButton,
+    NDivider,
+    NDropdown,
+    NLayoutHeader,
+    NPopover,
+    NPopselect,
+    NTooltip,
+    useMessage,
+  } from 'naive-ui';
   import { LanguageOutline } from '@vicons/ionicons5';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -234,6 +272,7 @@
   import { lastScopedOptions } from '@/components/business/crm-duplicate-check-drawer/config';
   import CrmTaskDrawer from '@/components/business/crm-task-drawer/index.vue';
   import CrmTopMenu from '@/components/business/crm-top-menu/index.vue';
+  import AgreementModal from '@/components/agreement/AgreementModal.vue';
   import licenseDrawer from '@/views/system/license/licenseDrawer.vue';
   import MessageDrawer from '@/views/system/message/components/messageDrawer.vue';
 
@@ -246,7 +285,7 @@
   import useUserStore from '@/store/modules/user';
   import { hasAnyPermission } from '@/utils/permission';
 
-  import { WorkbenchRouteEnum } from '@/enums/routeEnum';
+  import { SystemRouteEnum, WorkbenchRouteEnum } from '@/enums/routeEnum';
 
   const agentDrawer = defineAsyncComponent(() => import('@/components/business/crm-agent-drawer/index.vue'));
   const CrmFollowDrawer = defineAsyncComponent(() => import('@/components/business/crm-follow-drawer/index.vue'));
@@ -255,6 +294,7 @@
   );
 
   const route = useRoute();
+  const router = useRouter();
 
   const { loading } = useMessage();
   const { t } = useI18n();
@@ -294,6 +334,10 @@
   const showMessageDrawer = ref(false);
   function showMessage() {
     showMessageDrawer.value = true;
+  }
+
+  function goPlanApplication() {
+    router.push({ name: SystemRouteEnum.SYSTEM_PLAN_APPLICATION });
   }
 
   const showLicenseDrawer = ref(false);
@@ -363,6 +407,14 @@
     legacyCopy(version);
   }
 
+  const showAgreement = ref(false);
+  const agreementActiveKey = ref<'service' | 'ip' | 'privacy'>('service');
+
+  function openAgreement(key: 'service' | 'ip' | 'privacy' = 'service') {
+    agreementActiveKey.value = key;
+    showAgreement.value = true;
+  }
+
   const moreActions: ActionsItem[] = [
     {
       label: t('settings.help.doc'),
@@ -403,6 +455,7 @@
     }
     appStore.connectSystemMessageSSE();
     userStore.initApiKeyList();
+    appStore.initPendingApplicationCount();
   });
 
   const innerLogo = computed(() =>

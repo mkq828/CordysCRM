@@ -46,4 +46,9 @@ export default {
   'register.status.notFound': 'No registration application found',
   'register.status.type.personal': 'Personal',
   'register.status.type.enterprise': 'Enterprise',
+  'register.agreement.prefix': 'I have read and agree to',
+  'register.agreement.service': 'SaaS Service Agreement',
+  'register.agreement.ip': 'IP & Confidentiality Terms',
+  'register.agreement.privacy': 'Privacy Policy',
+  'register.agreement.errMsg': 'Please read and agree to the agreements first',
 };
