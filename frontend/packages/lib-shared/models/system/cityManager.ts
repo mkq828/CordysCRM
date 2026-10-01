@@ -48,6 +48,15 @@ export interface CityManagerReassignParams {
   organizationIds: string[];
 }
 
+// 批量分配：一次把多家租户的签约/跟进经理批量调整
+export interface CityManagerBatchAssignParams {
+  items: {
+    organizationId: string;
+    signManagerId?: string;
+    followManagerId?: string;
+  }[];
+}
+
 // 业绩看板
 export interface CityManagerPerformanceSummary {
   managerId: string;

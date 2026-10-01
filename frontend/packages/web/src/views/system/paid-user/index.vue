@@ -33,12 +33,17 @@
     <CrmCard no-content-padding hide-footer class="min-h-0 flex-1">
       <CrmTable
         ref="crmTableRef"
+        v-model:checked-row-keys="checkedRowKeys"
         v-bind="propsRes"
+        :action-config="actionConfig"
         class="crm-paid-user-table"
         @page-change="propsEvent.pageChange"
         @page-size-change="propsEvent.pageSizeChange"
         @sorter-change="propsEvent.sorterChange"
         @filter-change="propsEvent.filterChange"
+        @refresh="propsEvent.refresh"
+        @batch-action="handleBatchAction"
+        @row-key-change="handleRowKeyChange"
       />
     </CrmCard>
 
@@ -169,6 +174,9 @@
       </template>
     </n-modal>
 
+    <!-- 批量分配弹窗 -->
+    <batchAssignModal v-model:show="showBatchAssign" :rows="selectedRows" @success="handleBatchAssignSuccess" />
+
     <!-- 租户详情弹窗 -->
     <n-modal
       v-model:show="showDetail"
@@ -291,9 +299,10 @@
   import type { ActionsItem } from '@/components/pure/crm-more-action/type';
   import CrmSelect from '@/components/pure/crm-select/index.vue';
   import CrmTable from '@/components/pure/crm-table/index.vue';
-  import { CrmDataTableColumn } from '@/components/pure/crm-table/type';
+  import { BatchActionConfig, CrmDataTableColumn } from '@/components/pure/crm-table/type';
   import useTable from '@/components/pure/crm-table/useTable';
   import CrmOperationButton from '@/components/business/crm-operation-button/index.vue';
+  import batchAssignModal from './components/batchAssignModal.vue';
 
   import {
     editionOptions,
@@ -307,6 +316,9 @@
     tenantPlanUpgrade,
   } from '@/api/modules';
   import useModal from '@/hooks/useModal';
+
+  import type { DataTableRowKey } from 'naive-ui';
+  import type { InternalRowData } from 'naive-ui/es/data-table/src/interface';
 
   const { t } = useI18n();
   const Message = useMessage();
@@ -612,6 +624,35 @@
     }
   }
 
+  // 批量分配归属
+  const checkedRowKeys = ref<DataTableRowKey[]>([]);
+  const selectedRows = ref<TenantPlanItem[]>([]);
+  const showBatchAssign = ref(false);
+
+  const actionConfig: BatchActionConfig = {
+    baseAction: [{ label: t('paidUser.batchAssign'), key: 'batchAssign' }],
+  };
+
+  function handleRowKeyChange(_keys: DataTableRowKey[], rows: InternalRowData[]) {
+    selectedRows.value = (rows ?? []) as unknown as TenantPlanItem[];
+  }
+
+  function handleBatchAction(item: ActionsItem) {
+    if (item.key === 'batchAssign') {
+      if (!selectedRows.value.length) {
+        Message.warning(t('paidUser.batchAssignEmpty'));
+        return;
+      }
+      showBatchAssign.value = true;
+    }
+  }
+
+  function handleBatchAssignSuccess() {
+    checkedRowKeys.value = [];
+    selectedRows.value = [];
+    tableRefreshId.value += 1;
+  }
+
   // 试用设置
   const showConfig = ref(false);
   const configLoading = ref(false);
@@ -664,6 +705,11 @@
 
   const columns: CrmDataTableColumn[] = [
     {
+      type: 'selection',
+      fixed: 'left',
+      width: 46,
+    },
+    {
       fixed: 'left',
       title: t('crmTable.order'),
       width: 50,
@@ -677,6 +723,20 @@
       key: 'orgName',
       width: 180,
       ellipsis: { tooltip: true },
+    },
+    {
+      title: t('paidUser.signManager'),
+      key: 'signManagerName',
+      width: 120,
+      ellipsis: { tooltip: true },
+      render: (row: TenantPlanItem) => row.signManagerName || '-',
+    },
+    {
+      title: t('paidUser.followManager'),
+      key: 'followManagerName',
+      width: 120,
+      ellipsis: { tooltip: true },
+      render: (row: TenantPlanItem) => row.followManagerName || '-',
     },
     {
       title: t('paidUser.version'),
@@ -783,6 +843,8 @@
   const crmTableRef = ref<InstanceType<typeof CrmTable>>();
 
   watch(tableRefreshId, () => {
+    checkedRowKeys.value = [];
+    selectedRows.value = [];
     loadList();
   });
 

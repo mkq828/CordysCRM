@@ -19,6 +19,8 @@ import cn.cordys.crm.follow.dto.request.FollowUpPlanPageRequest;
 import cn.cordys.crm.follow.dto.response.FollowUpPlanListResponse;
 import cn.cordys.crm.follow.mapper.ExtFollowUpPlanMapper;
 import cn.cordys.crm.follow.service.FollowUpPlanService;
+import cn.cordys.crm.platform.dto.response.PlatformBankAccountResponse;
+import cn.cordys.crm.platform.service.PlatformBankAccountService;
 import cn.cordys.crm.platform.service.PlatformContractService;
 import cn.cordys.crm.system.constants.NotificationConstants;
 import cn.cordys.crm.system.domain.Module;
@@ -28,6 +30,10 @@ import cn.cordys.crm.system.domain.User;
 import cn.cordys.crm.system.dto.request.PersonalInfoRequest;
 import cn.cordys.crm.system.dto.request.PersonalPasswordRequest;
 import cn.cordys.crm.system.dto.request.SendEmailDTO;
+import cn.cordys.crm.system.dto.request.TenantPlanApplyRequest;
+import cn.cordys.crm.system.dto.response.EditionResponse;
+import cn.cordys.crm.system.dto.response.TenantPlanApplicationResponse;
+import cn.cordys.crm.system.dto.response.TenantPlanQuoteResponse;
 import cn.cordys.crm.system.dto.response.TenantSubscriptionResponse;
 import cn.cordys.crm.system.dto.response.UserResponse;
 import cn.cordys.crm.system.mapper.ExtOrganizationUserMapper;
@@ -80,6 +86,10 @@ public class PersonalCenterService {
     private EditionService editionService;
     @Resource
     private PlatformContractService platformContractService;
+    @Resource
+    private PlatformBankAccountService platformBankAccountService;
+    @Resource
+    private TenantPlanApplicationService tenantPlanApplicationService;
 
     public UserResponse getUserDetail(String id, String orgId) {
         if (Strings.CS.equals(id, InternalUser.ADMIN.getValue())) {
@@ -112,6 +122,41 @@ public class PersonalCenterService {
         response.setContract(platformContractService.getActiveByOrganizationId(organizationId));
         response.setHistories(tenantPlanService.listHistories(organizationId));
         return response;
+    }
+
+    /**
+     * 启用中的版本列表（租户自助续费/升级选择目标版本）
+     */
+    public List<EditionResponse> listPlanEditions() {
+        return editionService.listEnabledEditions();
+    }
+
+    /**
+     * 续费/升级报价
+     */
+    public TenantPlanQuoteResponse quote(String organizationId, String targetEdition) {
+        return tenantPlanService.quote(organizationId, targetEdition);
+    }
+
+    /**
+     * 提交续费/升级申请
+     */
+    public void applyPlan(TenantPlanApplyRequest request, String userId, String organizationId) {
+        tenantPlanApplicationService.apply(request, organizationId, userId);
+    }
+
+    /**
+     * 本租户续费/升级申请记录
+     */
+    public List<TenantPlanApplicationResponse> listPlanApplications(String organizationId) {
+        return tenantPlanApplicationService.listByOrganization(organizationId);
+    }
+
+    /**
+     * 平台收款账户（租户自助续费/升级展示收款码与对公信息）
+     */
+    public List<PlatformBankAccountResponse> listPlanPaymentAccounts() {
+        return platformBankAccountService.list();
     }
 
     /**

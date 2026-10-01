@@ -1,5 +1,8 @@
 import type { CordysAxios } from '@lib/shared/api/http/Axios';
 import {
+  tenantPlanApplicationApproveUrl,
+  tenantPlanApplicationCancelUrl,
+  tenantPlanApplicationListUrl,
   tenantPlanConfigUrl,
   tenantPlanDemoUrl,
   tenantPlanDetailUrl,
@@ -10,6 +13,9 @@ import {
 } from '@lib/shared/api/requrls/system/tenant-plan';
 import type { CommonList } from '@lib/shared/models/common';
 import type {
+  TenantPlanApplicationApproveParams,
+  TenantPlanApplicationItem,
+  TenantPlanApplicationQueryParams,
   TenantPlanConfig,
   TenantPlanDemoParams,
   TenantPlanDetail,
@@ -62,6 +68,21 @@ export default function useTenantPlanApi(CDR: CordysAxios) {
     return CDR.post({ url: tenantPlanConfigUrl, data });
   }
 
+  // 续费/升级申请-列表
+  function applicationList(data: TenantPlanApplicationQueryParams) {
+    return CDR.post<CommonList<TenantPlanApplicationItem>>({ url: tenantPlanApplicationListUrl, data });
+  }
+
+  // 续费/升级申请-核销
+  function applicationApprove(data: TenantPlanApplicationApproveParams) {
+    return CDR.post({ url: tenantPlanApplicationApproveUrl, data });
+  }
+
+  // 续费/升级申请-驳回
+  function applicationCancel(data: TenantPlanApplicationApproveParams) {
+    return CDR.post({ url: tenantPlanApplicationCancelUrl, data });
+  }
+
   return {
     pageList,
     detail,
@@ -71,5 +92,8 @@ export default function useTenantPlanApi(CDR: CordysAxios) {
     toggleDemo,
     getConfig,
     updateConfig,
+    applicationList,
+    applicationApprove,
+    applicationCancel,
   };
 }

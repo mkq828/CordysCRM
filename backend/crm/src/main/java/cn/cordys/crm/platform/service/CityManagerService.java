@@ -15,6 +15,7 @@ import cn.cordys.crm.platform.constants.PlatformCityManagerStatus;
 import cn.cordys.crm.platform.domain.PlatformCityManager;
 import cn.cordys.crm.platform.dto.request.CityManagerAddRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerAssignRequest;
+import cn.cordys.crm.platform.dto.request.CityManagerBatchAssignRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerOrgEditRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerPageRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerReassignRequest;
@@ -205,6 +206,55 @@ public class CityManagerService {
             org.setUpdateTime(now);
             org.setUpdateUser(operatorId);
             organizationMapper.updateById(org);
+        }
+    }
+
+    /**
+     * 批量分配租户归属（签约/跟进经理可同时批量调整）：离职时可把多家租户一次分给多个在职合伙人。
+     * 每条约目只更新非空字段（签约/跟进任一为空则保持原值）。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @OperationLog(module = LogModule.CITY_MANAGER, type = LogType.UPDATE, resourceName = "城市经理批量分配归属", resourceId = "{#request.items.size()}")
+    public void batchAssign(CityManagerBatchAssignRequest request, String operatorId) {
+        List<CityManagerBatchAssignRequest.Item> items = request.getItems();
+        if (CollectionUtils.isEmpty(items)) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        for (CityManagerBatchAssignRequest.Item item : items) {
+            if (StringUtils.isBlank(item.getOrganizationId())) {
+                continue;
+            }
+            // 目标经理必须在职（签约/跟进任一指了离职经理都拒绝整批）
+            ensureManagerEnabled(item.getSignManagerId());
+            ensureManagerEnabled(item.getFollowManagerId());
+
+            Organization org = organizationMapper.selectByPrimaryKey(item.getOrganizationId());
+            if (org == null) {
+                continue;
+            }
+            if (StringUtils.isNotBlank(item.getSignManagerId())) {
+                org.setSignManagerId(item.getSignManagerId());
+            }
+            if (StringUtils.isNotBlank(item.getFollowManagerId())) {
+                org.setFollowManagerId(item.getFollowManagerId());
+            }
+            org.setUpdateTime(now);
+            org.setUpdateUser(operatorId);
+            organizationMapper.updateById(org);
+        }
+    }
+
+    /**
+     * 校验目标经理存在且在职（离职经理不可再分配归属）
+     */
+    private void ensureManagerEnabled(String managerId) {
+        if (StringUtils.isBlank(managerId)) {
+            return;
+        }
+        PlatformCityManager target = cityManagerMapper.selectByPrimaryKey(managerId);
+        if (target == null || PlatformCityManagerStatus.DISABLED.name().equals(target.getStatus())) {
+            throw new GenericException(Translator.get("city.manager.not.available"));
         }
     }
 

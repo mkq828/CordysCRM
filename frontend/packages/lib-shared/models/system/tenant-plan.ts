@@ -29,6 +29,10 @@ export interface TenantPlanItem {
   demo?: boolean;
   lastLoginTime?: number;
   remainingDays?: number;
+  signManagerId?: string;
+  followManagerId?: string;
+  signManagerName?: string;
+  followManagerName?: string;
   createTime: number;
   updateTime?: number;
 }
@@ -106,4 +110,69 @@ export interface TenantPlanDetail {
   aiQuota?: number;
   aiUsedCalls?: number;
   histories?: TenantPlanHistoryItem[];
+}
+
+// 续费/升级报价类型
+export type TenantPlanQuoteType = 'RENEW' | 'UPGRADE' | 'DOWNGRADE';
+
+// 续费/升级报价
+export interface TenantPlanQuote {
+  type: TenantPlanQuoteType;
+  currentVersion?: string;
+  currentVersionName?: string;
+  targetVersion: string;
+  targetVersionName: string;
+  remainDays?: number;
+  validityDays?: number;
+  amount?: number;
+  priceDetail?: string;
+}
+
+// 续费/升级申请状态
+export type TenantPlanApplicationStatus = 'PENDING' | 'APPROVED' | 'CANCELLED';
+
+// 续费/升级申请（租户/管理端共用）
+export interface TenantPlanApplicationItem {
+  id: string;
+  organizationId: string;
+  orgName: string;
+  currentVersion?: string;
+  currentVersionName?: string;
+  targetVersion: string;
+  targetVersionName?: string;
+  amount?: number;
+  priceDetail?: string;
+  validityDays?: number;
+  paymentType: string;
+  voucherIds?: string;
+  status: TenantPlanApplicationStatus;
+  contractId?: string;
+  remark?: string;
+  verifyRemark?: string;
+  accountName?: string;
+  accountNo?: string;
+  bankName?: string;
+  qrcode?: string;
+  createTime: number;
+}
+
+// 提交续费/升级申请参数
+export interface TenantPlanApplyParams {
+  targetEdition: string;
+  paymentType: string;
+  voucherIds?: string;
+  remark?: string;
+}
+
+// 核销/驳回申请参数
+export interface TenantPlanApplicationApproveParams {
+  id: string;
+  contractId?: string;
+  remark?: string;
+}
+
+// 申请分页查询参数（管理端）
+export interface TenantPlanApplicationQueryParams extends TableQueryParams {
+  status?: TenantPlanApplicationStatus;
+  keyword?: string;
 }

@@ -47,6 +47,18 @@ public class TenantPlanResponse {
     @Schema(description = "是否演示租户")
     private Boolean demo;
 
+    @Schema(description = "签约城市经理ID")
+    private String signManagerId;
+
+    @Schema(description = "跟进城市经理ID")
+    private String followManagerId;
+
+    @Schema(description = "签约城市经理名")
+    private String signManagerName;
+
+    @Schema(description = "跟进城市经理名")
+    private String followManagerName;
+
     @Schema(description = "最后一次登录时间")
     private Long lastLoginTime;
 

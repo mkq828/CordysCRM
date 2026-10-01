@@ -61,6 +61,7 @@ export default {
     'menu.platformAdmin.registerAudit': '注册审核',
     'menu.platformAdmin.paidUser': '付费用户',
     'menu.platformAdmin.edition': '版本套餐',
+    'menu.platformAdmin.planApplication': '续费申请',
     'menu.platformAdmin.log': '系统日志',
     'menu.platformAdmin.bugReport': '问题反馈',
     'navbar.action.locale': '切换为中文',

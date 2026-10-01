@@ -13,4 +13,7 @@ public class RegisterApproveRequest {
     @NotBlank(message = "{register.application.id.not_blank}")
     @Schema(description = "申请单ID")
     private String id;
+
+    @Schema(description = "审核备注（通过选填）")
+    private String remark;
 }

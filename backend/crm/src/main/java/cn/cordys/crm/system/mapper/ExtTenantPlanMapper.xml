@@ -18,6 +18,8 @@
                o.name as org_name,
                o.org_type,
                o.is_demo as demo,
+               o.sign_manager_id,
+               o.follow_manager_id,
                (select u.phone
                 from sys_user u
                 where u.last_organization_id = tp.organization_id
@@ -52,7 +54,11 @@
                     or exists (select 1
                                from sys_user u2
                                where u2.last_organization_id = tp.organization_id
-                                 and u2.phone like concat('%', #{request.keyword}, '%')))
+                                 and u2.phone like concat('%', #{request.keyword}, '%'))
+                    or exists (select 1
+                               from platform_city_manager m
+                               where (m.id = o.sign_manager_id or m.id = o.follow_manager_id)
+                                 and m.name like concat('%', #{request.keyword}, '%')))
             </if>
         </where>
         <include refid="sorts">

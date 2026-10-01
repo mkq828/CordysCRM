@@ -42,6 +42,7 @@
         @page-size-change="propsEvent.pageSizeChange"
         @sorter-change="propsEvent.sorterChange"
         @filter-change="propsEvent.filterChange"
+        @refresh="propsEvent.refresh"
       />
     </CrmCard>
 
@@ -62,6 +63,9 @@
           <n-descriptions-item :label="t('registerAudit.verifyStatus')">{{
             statusLabel(detail.verifyStatus)
           }}</n-descriptions-item>
+          <n-descriptions-item :label="t('registerAudit.remainDays')" :span="2">
+            {{ detail.remainDays == null ? '-' : detail.remainDays }}
+          </n-descriptions-item>
           <template v-if="detail.type === 'ENTERPRISE'">
             <n-descriptions-item :label="t('registerAudit.unifiedSocialCreditCode')" :span="2">
               {{ detail.unifiedSocialCreditCode || '-' }}
@@ -89,38 +93,35 @@
         </n-descriptions>
       </n-spin>
       <template #footer>
-        <div class="flex justify-end gap-[12px]">
-          <template v-if="detail?.verifyStatus === 'PENDING'">
-            <n-button type="error" @click="rejectFromDetail">{{ t('registerAudit.reject') }}</n-button>
-            <n-button type="primary" @click="approveFromDetail">{{ t('registerAudit.approve') }}</n-button>
-          </template>
-          <n-button v-else @click="showDetail = false">{{ t('common.close') }}</n-button>
-        </div>
-      </template>
-    </n-modal>
-
-    <!-- 驳回弹窗 -->
-    <n-modal
-      v-model:show="showReject"
-      preset="card"
-      :title="t('registerAudit.rejectTitle')"
-      class="w-[480px]"
-      :mask-closable="false"
-    >
-      <n-input
-        v-model:value="rejectRemark"
-        type="textarea"
-        :rows="3"
-        maxlength="500"
-        show-count
-        :placeholder="t('registerAudit.rejectPlaceholder')"
-      />
-      <template #footer>
-        <div class="flex justify-end gap-[12px]">
-          <n-button @click="showReject = false">{{ t('common.cancel') }}</n-button>
-          <n-button type="primary" :loading="rejectLoading" @click="confirmReject">
-            {{ t('common.confirm') }}
-          </n-button>
+        <template v-if="detail?.verifyStatus === 'PENDING'">
+          <div class="flex w-full flex-col gap-[12px]">
+            <div class="flex items-start gap-[8px]">
+              <span class="w-[72px] shrink-0 pt-[6px] text-right text-[13px] text-[var(--text-n3)]">{{
+                t('registerAudit.verifyRemark')
+              }}</span>
+              <n-input
+                v-model:value="verifyRemark"
+                type="textarea"
+                :rows="2"
+                maxlength="255"
+                show-count
+                class="flex-1"
+                :placeholder="t('registerAudit.verifyRemarkPlaceholder')"
+              />
+            </div>
+            <div class="flex w-full items-center justify-end gap-[12px]">
+              <n-button secondary @click="showDetail = false">{{ t('common.cancel') }}</n-button>
+              <n-button type="error" :loading="rejectLoading" @click="rejectFromDetail">{{
+                t('registerAudit.reject')
+              }}</n-button>
+              <n-button type="primary" :loading="approveLoading" @click="approveFromDetail">{{
+                t('registerAudit.approve')
+              }}</n-button>
+            </div>
+          </div>
+        </template>
+        <div v-else class="flex justify-end">
+          <n-button @click="showDetail = false">{{ t('common.close') }}</n-button>
         </div>
       </template>
     </n-modal>
@@ -262,10 +263,16 @@
   const detailLoading = ref(false);
   const detail = ref<RegisterAuditItem | null>(null);
 
+  // 审核备注（通过选填、拒绝必填）
+  const verifyRemark = ref('');
+  const approveLoading = ref(false);
+  const rejectLoading = ref(false);
+
   async function openDetail(row: RegisterAuditItem) {
     showDetail.value = true;
     detailLoading.value = true;
     detail.value = null;
+    verifyRemark.value = '';
     try {
       detail.value = await registerDetail(row.id);
     } catch (error) {
@@ -276,55 +283,35 @@
     }
   }
 
-  // 审核通过（在详情弹窗内点「通过」）
-  function approveFromDetail() {
+  // 审核通过（详情弹窗内点「通过」，备注选填）
+  async function approveFromDetail() {
     if (!detail.value) return;
-    openModal({
-      type: 'default',
-      title: t('registerAudit.approveTip'),
-      content: t('registerAudit.approveTipContent'),
-      positiveText: t('common.confirm'),
-      negativeText: t('common.cancel'),
-      onPositiveClick: async () => {
-        try {
-          await registerApprove({ id: detail.value!.id });
-          Message.success(t('registerAudit.approveSuccess'));
-          showDetail.value = false;
-          tableRefreshId.value += 1;
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error(error);
-        }
-      },
-    });
+    approveLoading.value = true;
+    try {
+      await registerApprove({ id: detail.value.id, remark: verifyRemark.value.trim() || undefined });
+      Message.success(t('registerAudit.approveSuccess'));
+      showDetail.value = false;
+      tableRefreshId.value += 1;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    } finally {
+      approveLoading.value = false;
+    }
   }
 
-  // 驳回
-  const showReject = ref(false);
-  const rejectRemark = ref('');
-  const rejectLoading = ref(false);
-  const rejectTarget = ref<RegisterAuditItem | null>(null);
-
-  // 审核拒绝（详情弹窗内点「拒绝」，跳转拒绝弹窗填原因）
-  function rejectFromDetail() {
+  // 审核拒绝（详情弹窗内点「拒绝」，备注必填）
+  async function rejectFromDetail() {
     if (!detail.value) return;
-    rejectTarget.value = detail.value;
-    rejectRemark.value = '';
-    showDetail.value = false;
-    showReject.value = true;
-  }
-
-  async function confirmReject() {
-    if (!rejectTarget.value) return;
-    if (!rejectRemark.value.trim()) {
-      Message.warning(t('registerAudit.rejectRequired'));
+    if (!verifyRemark.value.trim()) {
+      Message.warning(t('registerAudit.verifyRemarkRequired'));
       return;
     }
     rejectLoading.value = true;
     try {
-      await registerReject({ id: rejectTarget.value.id, remark: rejectRemark.value.trim() });
+      await registerReject({ id: detail.value.id, remark: verifyRemark.value.trim() });
       Message.success(t('registerAudit.rejectSuccess'));
-      showReject.value = false;
+      showDetail.value = false;
       tableRefreshId.value += 1;
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -508,6 +495,12 @@
         row.planStatus === 'FREE'
           ? h(NTag, { type: 'warning', size: 'small' }, { default: () => t('registerAudit.planStatus.free') })
           : '-',
+    },
+    {
+      title: t('registerAudit.remainDays'),
+      key: 'remainDays',
+      width: 120,
+      render: (row: RegisterAuditItem) => (row.remainDays == null ? '-' : row.remainDays),
     },
     {
       title: t('registerAudit.usageDays'),

@@ -65,11 +65,13 @@ public class PlatformBankAccountService {
                 account.setAccountName(request.getAccountName());
                 account.setAccountNo(request.getAccountNo());
                 account.setBankName(request.getBankName());
+                account.setQrcode(request.getQrcode());
                 bankAccountMapper.insert(account);
             } else {
                 account.setAccountName(request.getAccountName());
                 account.setAccountNo(request.getAccountNo());
                 account.setBankName(request.getBankName());
+                account.setQrcode(request.getQrcode());
                 account.setUpdateTime(now);
                 account.setUpdateUser(operatorId);
                 bankAccountMapper.updateById(account);
@@ -85,6 +87,7 @@ public class PlatformBankAccountService {
             response.setAccountName(account.getAccountName());
             response.setAccountNo(account.getAccountNo());
             response.setBankName(account.getBankName());
+            response.setQrcode(account.getQrcode());
         }
         return response;
     }

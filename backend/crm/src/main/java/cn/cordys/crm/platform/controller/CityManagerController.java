@@ -5,6 +5,7 @@ import cn.cordys.common.pager.Pager;
 import cn.cordys.common.permission.CsPermission;
 import cn.cordys.crm.platform.dto.request.CityManagerAddRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerAssignRequest;
+import cn.cordys.crm.platform.dto.request.CityManagerBatchAssignRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerOrgEditRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerPageRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerReassignRequest;
@@ -64,6 +65,13 @@ public class CityManagerController {
     @Operation(summary = "城市经理-离职二次分配")
     public void reassign(@Validated @RequestBody CityManagerReassignRequest request) {
         cityManagerService.reassign(request, SessionUtils.getUserId());
+    }
+
+    @PostMapping("/batch-assign")
+    @CsPermission(PermissionConstants.CITY_MANAGER_MANAGE)
+    @Operation(summary = "城市经理-批量分配租户归属")
+    public void batchAssign(@Validated @RequestBody CityManagerBatchAssignRequest request) {
+        cityManagerService.batchAssign(request, SessionUtils.getUserId());
     }
 
     @GetMapping("/org-options")

@@ -62,6 +62,7 @@ export default {
     'menu.platformAdmin.registerAudit': 'Register Audit',
     'menu.platformAdmin.paidUser': 'Paid Users',
     'menu.platformAdmin.edition': 'Editions',
+    'menu.platformAdmin.planApplication': 'Renew Applications',
     'menu.platformAdmin.log': 'Logs',
     'menu.platformAdmin.bugReport': 'Bug Report',
     'navbar.action.locale': 'Switch to English',

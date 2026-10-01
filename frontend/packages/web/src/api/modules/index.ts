@@ -657,6 +657,11 @@ export const {
   testConfigEmail,
   getPersonalInfo,
   getSubscription,
+  getPlanEditions,
+  getPlanQuote,
+  applyPlan,
+  getPlanApplicationList,
+  getPlanPaymentAccounts,
   getThirdTypeList,
   switchThirdParty,
   updateAuthStatus,
@@ -1001,6 +1006,9 @@ export const {
   toggleDemo: tenantPlanToggleDemo,
   getConfig: tenantPlanGetConfig,
   updateConfig: tenantPlanUpdateConfig,
+  applicationList: tenantPlanApplicationList,
+  applicationApprove: tenantPlanApplicationApprove,
+  applicationCancel: tenantPlanApplicationCancel,
 } = tenantPlanApi;
 
 export const {
@@ -1027,6 +1035,8 @@ export const {
   revenueOverview: platformRevenueOverview,
   getConfig: platformGetConfig,
   updateConfig: platformUpdateConfig,
+  getSystemInfo: platformGetSystemInfo,
+  updateSystemInfo: platformUpdateSystemInfo,
   bankAccountList: platformBankAccountList,
   bankAccountSave: platformBankAccountSave,
 } = platformFinanceApi;
@@ -1048,6 +1058,7 @@ export const {
   disable: cityManagerDisable,
   assign: cityManagerAssign,
   reassign: cityManagerReassign,
+  batchAssign: cityManagerBatchAssign,
   orgOptions: cityManagerOrgOptions,
   myOrgs: cityManagerMyOrgs,
   performanceOverview: cityManagerPerformanceOverview,

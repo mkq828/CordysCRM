@@ -4,9 +4,14 @@ import cn.cordys.common.pager.PagerWithOption;
 import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.follow.dto.request.FollowUpPlanPageRequest;
 import cn.cordys.crm.follow.dto.response.FollowUpPlanListResponse;
+import cn.cordys.crm.platform.dto.response.PlatformBankAccountResponse;
 import cn.cordys.crm.system.dto.request.PersonalInfoRequest;
 import cn.cordys.crm.system.dto.request.PersonalPasswordRequest;
 import cn.cordys.crm.system.dto.request.SendEmailDTO;
+import cn.cordys.crm.system.dto.request.TenantPlanApplyRequest;
+import cn.cordys.crm.system.dto.response.EditionResponse;
+import cn.cordys.crm.system.dto.response.TenantPlanApplicationResponse;
+import cn.cordys.crm.system.dto.response.TenantPlanQuoteResponse;
 import cn.cordys.crm.system.dto.response.TenantSubscriptionResponse;
 import cn.cordys.crm.system.dto.response.UserResponse;
 import cn.cordys.crm.system.service.PersonalCenterService;
@@ -40,6 +45,36 @@ public class PersonalCenterController {
     @Operation(summary = "当前租户套餐与合同")
     public TenantSubscriptionResponse getSubscription() {
         return personalCenterService.getSubscription(OrganizationContext.getOrganizationId());
+    }
+
+    @GetMapping("/plan/editions")
+    @Operation(summary = "可选版本列表（租户自助续费/升级）")
+    public List<EditionResponse> listPlanEditions() {
+        return personalCenterService.listPlanEditions();
+    }
+
+    @GetMapping("/plan/quote")
+    @Operation(summary = "续费/升级报价")
+    public TenantPlanQuoteResponse quote(@RequestParam("targetEdition") String targetEdition) {
+        return personalCenterService.quote(OrganizationContext.getOrganizationId(), targetEdition);
+    }
+
+    @PostMapping("/plan/apply")
+    @Operation(summary = "提交续费/升级申请")
+    public void apply(@Validated @RequestBody TenantPlanApplyRequest request) {
+        personalCenterService.applyPlan(request, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
+    }
+
+    @GetMapping("/plan/application/list")
+    @Operation(summary = "本租户续费/升级申请记录")
+    public List<TenantPlanApplicationResponse> listPlanApplications() {
+        return personalCenterService.listPlanApplications(OrganizationContext.getOrganizationId());
+    }
+
+    @GetMapping("/plan/payment-accounts")
+    @Operation(summary = "收款账户（租户自助续费/升级展示收款码与对公信息）")
+    public List<PlatformBankAccountResponse> listPlanPaymentAccounts() {
+        return personalCenterService.listPlanPaymentAccounts();
     }
 
 

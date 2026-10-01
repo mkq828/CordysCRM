@@ -3,6 +3,7 @@ import type { CordysAxios } from '@lib/shared/api/http/Axios';
 import {
   cityManagerAddUrl,
   cityManagerAssignUrl,
+  cityManagerBatchAssignUrl,
   cityManagerDisableUrl,
   cityManagerListUrl,
   cityManagerMyOrgsUrl,
@@ -14,6 +15,7 @@ import type { CommonList } from '@lib/shared/models/common';
 import type {
   CityManagerAddParams,
   CityManagerAssignParams,
+  CityManagerBatchAssignParams,
   CityManagerItem,
   CityManagerOrgItem,
   CityManagerPageParams,
@@ -38,6 +40,9 @@ export default function useCityManagerApi(CDR: CordysAxios) {
   function reassign(data: CityManagerReassignParams) {
     return CDR.post({ url: cityManagerReassignUrl, data });
   }
+  function batchAssign(data: CityManagerBatchAssignParams) {
+    return CDR.post({ url: cityManagerBatchAssignUrl, data });
+  }
   function orgOptions() {
     return CDR.get<CityManagerOrgItem[]>({ url: cityManagerOrgOptionsUrl });
   }
@@ -54,6 +59,7 @@ export default function useCityManagerApi(CDR: CordysAxios) {
     disable,
     assign,
     reassign,
+    batchAssign,
     orgOptions,
     myOrgs,
     performanceOverview,

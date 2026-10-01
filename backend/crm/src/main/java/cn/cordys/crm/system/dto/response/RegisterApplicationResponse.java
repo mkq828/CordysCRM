@@ -60,6 +60,9 @@ public class RegisterApplicationResponse {
     @Schema(description = "套餐到期时间(毫秒)")
     private Long planExpireTime;
 
+    @Schema(description = "剩余可用天数(套餐到期日-当前日期，未开通套餐为 null)")
+    private Long remainDays;
+
     @Schema(description = "累计使用天数(实际登录天数)")
     private Long usageDays;
 

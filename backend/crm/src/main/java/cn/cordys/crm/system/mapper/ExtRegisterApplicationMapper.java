@@ -45,4 +45,14 @@ public interface ExtRegisterApplicationMapper {
      * 分页查询申请单列表（含开通账号的使用天数、最后登录时间、启用状态）
      */
     List<RegisterApplicationResponse> pageList(@Param("request") RegisterApplicationPageRequest request);
+
+    /**
+     * 按申请单 ID 查询套餐信息（套餐ID/版本/状态/到期时间），用于详情页补充剩余可用天数
+     */
+    RegisterApplicationResponse selectPlanByApplicationId(@Param("id") String id);
+
+    /**
+     * 查询该手机号最近一条「已驳回」注册申请的驳回原因（无则返回 null）
+     */
+    String selectLatestRejectRemarkByPhone(@Param("phone") String phone);
 }

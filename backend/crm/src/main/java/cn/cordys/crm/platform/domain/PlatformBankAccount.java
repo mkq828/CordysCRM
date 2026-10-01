@@ -23,4 +23,7 @@ public class PlatformBankAccount extends BaseModel {
 
     @Schema(description = "开户行/平台")
     private String bankName;
+
+    @Schema(description = "收款码图片附件ID（仅 WECHAT 使用）")
+    private String qrcode;
 }

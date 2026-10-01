@@ -5,6 +5,7 @@ import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.Translator;
 import cn.cordys.crm.ai.service.AiQuotaService;
+import cn.cordys.crm.platform.util.PlatformManagerNames;
 import cn.cordys.crm.system.constants.TenantPlanStatus;
 import cn.cordys.crm.system.domain.Organization;
 import cn.cordys.crm.system.domain.OrganizationUser;
@@ -24,6 +25,7 @@ import cn.cordys.crm.system.dto.request.TenantPlanUpgradeRequest;
 import cn.cordys.crm.system.dto.response.TenantPlanConfigResponse;
 import cn.cordys.crm.system.dto.response.TenantPlanDetailResponse;
 import cn.cordys.crm.system.dto.response.TenantPlanHistoryResponse;
+import cn.cordys.crm.system.dto.response.TenantPlanQuoteResponse;
 import cn.cordys.crm.system.dto.response.TenantPlanResponse;
 import cn.cordys.crm.system.mapper.ExtTenantPlanMapper;
 import cn.cordys.mybatis.BaseMapper;
@@ -37,6 +39,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 租户套餐服务（付费用户管理）
@@ -114,10 +117,16 @@ public class TenantPlanService {
     public List<TenantPlanResponse> pageList(TenantPlanPageRequest request) {
         List<TenantPlanResponse> list = extTenantPlanMapper.pageList(request);
         long now = System.currentTimeMillis();
+        // 签约/跟进经理名按租户表实时解析（业绩口径以 sys_organization 为准）
+        Map<String, PlatformManagerNames.ManagerNames> managerNames = PlatformManagerNames.resolve(
+                list.stream().map(TenantPlanResponse::getOrganizationId).toList());
         for (TenantPlanResponse item : list) {
             if (item.getExpireTime() != null) {
                 item.setRemainingDays((long) Math.ceil((item.getExpireTime() - now) / (double) DAY_MILLIS));
             }
+            PlatformManagerNames.ManagerNames mn = managerNames.get(item.getOrganizationId());
+            item.setSignManagerName(mn == null ? null : mn.signManagerName());
+            item.setFollowManagerName(mn == null ? null : mn.followManagerName());
         }
         return list;
     }
@@ -140,12 +149,14 @@ public class TenantPlanService {
         long now = System.currentTimeMillis();
         String oldVersion = plan.getVersion();
         Long oldExpire = plan.getExpireTime();
+        boolean fromTrial = TenantPlanStatus.FREE.getValue().equals(plan.getStatus());
         plan.setVersion(edition.getCode());
         plan.setStatus(TenantPlanStatus.ACTIVE.getValue());
-        // 续费顺延：未过期从原到期日顺延，已过期/过宽限期则从当天重算
+        // 续费顺延：未过期从原到期日顺延，已过期/过宽限期则从当天重算；试用期转付费从当天起算不叠加试用剩余
         long expireTime = request.getExpireTime() != null
                 ? request.getExpireTime()
-                : (oldExpire != null && oldExpire > now ? oldExpire : now) + (long) getValidityDays(edition) * DAY_MILLIS;
+                : (fromTrial ? now : (oldExpire != null && oldExpire > now ? oldExpire : now))
+                        + (long) getValidityDays(edition) * DAY_MILLIS;
         plan.setExpireTime(expireTime);
         plan.setRemark(StringUtils.trim(request.getRemark()));
         plan.setUpdateTime(now);
@@ -179,9 +190,8 @@ public class TenantPlanService {
         Long oldExpire = plan.getExpireTime();
         plan.setVersion(edition.getCode());
         plan.setStatus(TenantPlanStatus.ACTIVE.getValue());
-        long expireTime = oldExpire != null
-                ? oldExpire
-                : now + (long) getValidityDays(edition) * DAY_MILLIS;
+        // 升级：从核对当天重新起算目标版本有效期（原剩余时长作废，剩余价值已在补差价中折抵）
+        long expireTime = now + (long) getValidityDays(edition) * DAY_MILLIS;
         plan.setUpdateTime(now);
         plan.setUpdateUser(operatorId);
         tenantPlanMapper.updateById(plan);
@@ -217,10 +227,14 @@ public class TenantPlanService {
         }
         String oldVersion = plan.getVersion();
         Long oldExpire = plan.getExpireTime();
+        boolean fromTrial = TenantPlanStatus.FREE.getValue().equals(plan.getStatus());
         plan.setVersion(edition.getCode());
         plan.setStatus(TenantPlanStatus.ACTIVE.getValue());
         int days = validityDays != null ? validityDays : getValidityDays(edition);
-        plan.setExpireTime((oldExpire != null && oldExpire > now ? oldExpire : now) + (long) days * DAY_MILLIS);
+        // 试用期转付费：从核对当天起算，不叠加试用剩余；付费期续费：从原到期日顺延
+        plan.setExpireTime(fromTrial
+                ? now + (long) days * DAY_MILLIS
+                : (oldExpire != null && oldExpire > now ? oldExpire : now) + (long) days * DAY_MILLIS);
         plan.setUpdateTime(now);
         plan.setUpdateUser(operatorId);
         if (isNew) {
@@ -237,6 +251,81 @@ public class TenantPlanService {
         if (!edition.getCode().equals(oldVersion)) {
             syncAdminRole(organizationId, operatorId);
         }
+    }
+
+    /**
+     * 续费/升级报价（租户自助选择版本时实时计算）
+     * <p>
+     * 同版本 = 续费（年价）；升更高版本 = 升级补差；降级 = 不补差。复用 {@link #resolveOpenPrice} / {@link #resolveUpgradePrice}。
+     * </p>
+     */
+    public TenantPlanQuoteResponse quote(String organizationId, String targetEditionCode) {
+        SysEdition target = editionService.getEditionByCode(targetEditionCode);
+        if (target == null) {
+            throw new GenericException(Translator.get("edition.not_found"));
+        }
+        long now = System.currentTimeMillis();
+        TenantPlan plan = getByOrganizationId(organizationId);
+        String currentCode = plan == null ? null : plan.getVersion();
+        Long oldExpire = plan == null ? null : plan.getExpireTime();
+        SysEdition current = editionService.getEditionByCode(currentCode);
+
+        TenantPlanQuoteResponse response = new TenantPlanQuoteResponse();
+        response.setCurrentVersion(currentCode);
+        response.setCurrentVersionName(current == null ? currentCode : current.getName());
+        response.setTargetVersion(target.getCode());
+        response.setTargetVersionName(target.getName());
+        response.setValidityDays(getValidityDays(target));
+        response.setRemainDays(oldExpire != null && oldExpire > now
+                ? (long) Math.ceil((oldExpire - now) / (double) DAY_MILLIS)
+                : 0);
+
+        int currentSort = current == null || current.getSort() == null ? 0 : current.getSort();
+        int targetSort = target.getSort() == null ? 0 : target.getSort();
+        PriceResult priceResult;
+        if (currentCode != null && targetSort < currentSort) {
+            response.setType("DOWNGRADE");
+            priceResult = new PriceResult(BigDecimal.ZERO, "降级不补差，成交价 ¥0");
+        } else if (currentCode != null && targetSort > currentSort) {
+            response.setType("UPGRADE");
+            priceResult = resolveUpgradePrice(target, currentCode, oldExpire, organizationId);
+        } else {
+            response.setType("RENEW");
+            priceResult = resolveOpenPrice(target, organizationId);
+        }
+        response.setAmount(priceResult.price());
+        response.setPriceDetail(priceResult.detail());
+        return response;
+    }
+
+    /**
+     * 按组织升级套餐（租户自助升级核销后调用，与 {@link #upgrade} 复用同一套逻辑，区别是按 organization_id 定位）
+     */
+    public void upgradeByOrganization(String organizationId, String targetEditionCode, String operatorId) {
+        SysEdition edition = editionService.getEditionByCode(targetEditionCode);
+        if (edition == null) {
+            throw new GenericException(Translator.get("edition.not_found"));
+        }
+        TenantPlan plan = getByOrganizationId(organizationId);
+        if (plan == null) {
+            throw new GenericException(Translator.get("tenant.plan.not_found"));
+        }
+        long now = System.currentTimeMillis();
+        String oldVersion = plan.getVersion();
+        Long oldExpire = plan.getExpireTime();
+        plan.setVersion(edition.getCode());
+        plan.setStatus(TenantPlanStatus.ACTIVE.getValue());
+        // 升级：从核对当天重新起算目标版本有效期（原剩余时长作废，剩余价值已在补差价中折抵）
+        long expireTime = now + (long) getValidityDays(edition) * DAY_MILLIS;
+        plan.setUpdateTime(now);
+        plan.setUpdateUser(operatorId);
+        tenantPlanMapper.updateById(plan);
+
+        PriceResult priceResult = resolveUpgradePrice(edition, oldVersion, oldExpire, organizationId);
+        editionService.writeSnapshot(organizationId, edition.getCode(), expireTime, priceResult.price(), operatorId);
+        recordHistory(organizationId, ACTION_UPGRADE, oldVersion, edition.getCode(), priceResult.price(),
+                expireTime, null, priceResult.detail(), operatorId, now);
+        syncAdminRole(organizationId, operatorId);
     }
 
     /**
@@ -565,31 +654,29 @@ public class TenantPlanService {
     }
 
     /**
-     * 升级/降级补差：补差 =（目标版年价 − 当前版年价）×（剩余天数 / 365）。
-     * 降级/平级不补差（记 0）；无剩余时长（已到期/无套餐）则按首年促销价。
+     * 升级补差：升级价 = 目标版本年价 − 剩余折合（当前版年价 × 剩余天数 / 365），升级后重新起算目标版本有效期。
+     * 无剩余时长（已到期/无套餐）则按首年促销价；成交价不低于 0。
      */
     private PriceResult resolveUpgradePrice(SysEdition target, String oldVersionCode, Long oldExpire, String organizationId) {
         SysEdition current = editionService.getEditionByCode(oldVersionCode);
         String currentName = current != null ? current.getName() : oldVersionCode;
         BigDecimal from = current != null && current.getYearPrice() != null ? current.getYearPrice() : BigDecimal.ZERO;
         BigDecimal to = target.getYearPrice() != null ? target.getYearPrice() : BigDecimal.ZERO;
-        BigDecimal diff = to.subtract(from);
         long now = System.currentTimeMillis();
         long remaining = (oldExpire != null && oldExpire > now)
                 ? (long) Math.ceil((oldExpire - now) / (double) DAY_MILLIS)
                 : 0;
-        if (diff.signum() <= 0) {
-            return new PriceResult(BigDecimal.ZERO,
-                    "降级/平级不补差，成交价 ¥0，剩余 " + remaining + " 天不变");
-        }
         if (remaining <= 0) {
             return resolveOpenPrice(target, organizationId);
         }
-        BigDecimal price = diff.multiply(BigDecimal.valueOf(remaining))
+        BigDecimal credit = from.multiply(BigDecimal.valueOf(remaining))
                 .divide(BigDecimal.valueOf(365), 2, RoundingMode.HALF_UP);
-        String detail = "补差 =（" + target.getName() + "年价 ¥" + money(to)
-                + " − " + currentName + "年价 ¥" + money(from)
-                + "）× 剩余 " + remaining + " 天 ÷ 365 = ¥" + money(price);
+        BigDecimal price = to.subtract(credit).max(BigDecimal.ZERO);
+        String detail = "升级价 = " + target.getName() + "年价 ¥" + money(to)
+                + " − 剩余折合 ¥" + money(credit)
+                + "（" + currentName + "年价 ¥" + money(from)
+                + " × 剩余 " + remaining + " 天 ÷ 365）= ¥" + money(price)
+                + "，升级后重新起算 " + getValidityDays(target) + " 天";
         return new PriceResult(price, detail);
     }
 

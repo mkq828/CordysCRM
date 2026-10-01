@@ -6,6 +6,7 @@ import {
   AddTermCategoryUrl,
   AddTermUrl,
   AdoptTermDiscoveryUrl,
+  ApplyPlanUrl,
   CancelCenterExportUrl,
   CreateAuthUrl,
   DeleteAgentTaskUrl,
@@ -37,6 +38,10 @@ import {
   GetPageConfigUrl,
   GetPersonalFollowUrl,
   GetPersonalUrl,
+  GetPlanApplicationListUrl,
+  GetPlanEditionsUrl,
+  GetPlanPaymentAccountsUrl,
+  GetPlanQuoteUrl,
   GetSubscriptionUrl,
   GetTenderConfigUrl,
   GetTermCategoryListUrl,
@@ -108,7 +113,10 @@ import type {
   AiModelStatusParams,
 } from '@lib/shared/models/system/aiModel';
 import type { AgentTaskExecutionRecordItem, AgentTaskItem, AgentTaskParams } from '@lib/shared/models/system/agentTask';
+import type { Edition } from '@lib/shared/models/system/edition';
 import { type DEToken, OrgUserInfo, type ValidateInfo } from '@lib/shared/models/system/org';
+import type { PlatformBankAccount } from '@lib/shared/models/system/platformFinance';
+import type { TenantPlanApplyParams, TenantPlanApplicationItem, TenantPlanQuote } from '@lib/shared/models/system/tenant-plan';
 import type {
   TermCategoryItem,
   TermCategoryParams,
@@ -248,6 +256,26 @@ export default function useProductApi(CDR: CordysAxios) {
   // 获取当前租户套餐与合同
   function getSubscription() {
     return CDR.get<TenantSubscription>({ url: GetSubscriptionUrl });
+  }
+  // 可选版本列表（续费/升级）
+  function getPlanEditions() {
+    return CDR.get<Edition[]>({ url: GetPlanEditionsUrl });
+  }
+  // 续费/升级报价
+  function getPlanQuote(targetEdition: string) {
+    return CDR.get<TenantPlanQuote>({ url: GetPlanQuoteUrl, params: { targetEdition } });
+  }
+  // 提交续费/升级申请
+  function applyPlan(data: TenantPlanApplyParams) {
+    return CDR.post({ url: ApplyPlanUrl, data });
+  }
+  // 本租户续费/升级申请记录
+  function getPlanApplicationList() {
+    return CDR.get<TenantPlanApplicationItem[]>({ url: GetPlanApplicationListUrl });
+  }
+  // 收款账户（租户自助续费/升级展示收款码与对公信息）
+  function getPlanPaymentAccounts() {
+    return CDR.get<PlatformBankAccount[]>({ url: GetPlanPaymentAccountsUrl });
   }
   // 更新个人信息
   function updatePersonalInfo(data: PersonalInfoRequest) {
@@ -527,6 +555,11 @@ export default function useProductApi(CDR: CordysAxios) {
     getThirdPartyResource,
     getPersonalInfo,
     getSubscription,
+    getPlanEditions,
+    getPlanQuote,
+    applyPlan,
+    getPlanApplicationList,
+    getPlanPaymentAccounts,
     updatePersonalInfo,
     sendEmailCode,
     updateUserPassword,

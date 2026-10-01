@@ -92,4 +92,24 @@
         order by ra.create_time desc
     </select>
 
+    <select id="selectPlanByApplicationId" resultType="cn.cordys.crm.system.dto.response.RegisterApplicationResponse">
+        select tp.id          as plan_id,
+               tp.version     as plan_version,
+               tp.status      as plan_status,
+               tp.expire_time as plan_expire_time
+        from sys_register_application ra
+                 left join sys_user su on su.id = ra.user_id
+                 left join tenant_plan tp on tp.organization_id = su.last_organization_id
+        where ra.id = #{id}
+    </select>
+
+    <select id="selectLatestRejectRemarkByPhone" resultType="java.lang.String">
+        select verify_remark
+        from sys_register_application
+        where phone = #{phone}
+          and verify_status = 'REJECTED'
+        order by create_time desc
+        limit 1
+    </select>
+
 </mapper>

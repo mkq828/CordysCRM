@@ -163,6 +163,15 @@
               />
               <div class="text-[12px] text-[var(--text-n4)]">{{ t('system.config.page.helpDocTip') }}</div>
             </n-form-item>
+            <n-form-item :label="t('system.config.page.operator')">
+              <n-input
+                v-model:value="operator"
+                allow-clear
+                :maxlength="100"
+                :placeholder="t('system.config.page.operatorPlaceholder')"
+              />
+              <div class="text-[12px] text-orange-500">{{ t('system.config.page.operatorTip') }}</div>
+            </n-form-item>
           </n-form>
         </div>
       </div>
@@ -200,7 +209,7 @@
   import Banner from '@/views/base/login/components/banner.vue';
   import LoginForm from '@/views/base/login/components/login-form.vue';
 
-  import { savePageConfig } from '@/api/modules';
+  import { platformGetSystemInfo, platformUpdateSystemInfo, savePageConfig } from '@/api/modules';
   import { defaultLoginImage, defaultLoginLogo, defaultPlatformLogo } from '@/config/business';
   import useFullScreen from '@/hooks/useFullScreen';
   import useAppStore from '@/store/modules/app';
@@ -214,6 +223,13 @@
 
   const pageLoading = ref(false);
   const pageConfig = ref<PageConfig>({ ...appStore.pageConfig, slogan: t(appStore.pageConfig.slogan) });
+  const operator = ref('');
+
+  async function loadOperator() {
+    const res = await platformGetSystemInfo();
+    operator.value = res.operator ?? '';
+  }
+  onMounted(loadOperator);
 
   const styleList = [
     {
@@ -440,6 +456,7 @@
     try {
       pageLoading.value = true;
       await savePageConfig(makeParams());
+      await platformUpdateSystemInfo({ operator: operator.value.trim() || undefined });
       Message.success(t('common.saveSuccess'));
       await sleep(300);
       window.location.reload();

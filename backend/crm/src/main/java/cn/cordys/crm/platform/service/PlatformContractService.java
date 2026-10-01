@@ -185,6 +185,13 @@ public class PlatformContractService {
      */
     public List<PlatformOrgOptionResponse> listOrgOptions() {
         Set<String> scope = scopedOrgIds();
+        // 已有有效合同（草稿/作废不计）的租户：前端据此判断「首份合同用首年价、续约用年价」
+        Set<String> orgsWithContract = contractMapper.selectListByLambda(new LambdaQueryWrapper<PlatformContract>()).stream()
+                .filter(c -> !PlatformContractStatus.DRAFT.name().equals(c.getStatus())
+                        && !PlatformContractStatus.VOIDED.name().equals(c.getStatus()))
+                .map(PlatformContract::getOrganizationId)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet());
         return DataAccessLayer.with(Organization.class)
                 .selectListByLambda(new LambdaQueryWrapper<Organization>()
                         .orderByDesc(Organization::getCreateTime)).stream()
@@ -198,6 +205,7 @@ public class PlatformContractService {
                     // 带出租户当前套餐版本，前端选中租户后默认回填版本
                     TenantPlan plan = tenantPlanService.getByOrganizationId(o.getId());
                     option.setEditionCode(plan == null ? null : plan.getVersion());
+                    option.setHasContract(orgsWithContract.contains(o.getId()));
                     return option;
                 })
                 .toList();
@@ -290,6 +298,10 @@ public class PlatformContractService {
             return;
         }
         org.setSignManagerId(request.getSignManagerId());
+        // 首次签约自动补跟进经理：谁签的谁跟进（仅在跟进经理为空时补，不覆盖已有跟进）
+        if (StringUtils.isBlank(org.getFollowManagerId())) {
+            org.setFollowManagerId(request.getSignManagerId());
+        }
         org.setUpdateTime(System.currentTimeMillis());
         org.setUpdateUser(operatorId);
         organizationMapper.updateById(org);

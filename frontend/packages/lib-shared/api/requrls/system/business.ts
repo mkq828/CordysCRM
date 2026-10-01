@@ -24,6 +24,11 @@ export const GetTenderConfigUrl = '/tender/application/config'; // 招投标-获
 // 个人中心
 export const GetPersonalUrl = '/personal/center/info';
 export const GetSubscriptionUrl = '/personal/center/subscription'; // 当前租户套餐与合同
+export const GetPlanEditionsUrl = '/personal/center/plan/editions'; // 可选版本列表（续费/升级）
+export const GetPlanQuoteUrl = '/personal/center/plan/quote'; // 续费/升级报价
+export const ApplyPlanUrl = '/personal/center/plan/apply'; // 提交续费/升级申请
+export const GetPlanApplicationListUrl = '/personal/center/plan/application/list'; // 本租户申请记录
+export const GetPlanPaymentAccountsUrl = '/personal/center/plan/payment-accounts'; // 收款账户（租户自助续费/升级）
 export const UpdatePersonalUrl = '/personal/center/update';
 export const SendEmailCodeUrl = '/personal/center/mail/code/send';
 export const UpdateUserPasswordUrl = '/personal/center/info/reset';

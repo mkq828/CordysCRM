@@ -19,8 +19,11 @@
         :special-height="64"
         class="mb-[16px]"
       >
-        <div class="flex font-medium text-[var(--text-n1)]">
-          <n-p>{{ t('system.personal.subscription') }}</n-p>
+        <div class="flex items-center gap-[12px] font-medium text-[var(--text-n1)]">
+          <n-p class="m-[0]">{{ t('system.personal.subscription') }}</n-p>
+          <n-button size="small" type="primary" ghost @click="showRenewModal = true">
+            {{ t('system.personal.renew.title') }}
+          </n-button>
         </div>
         <div
           class="mt-[16px] grid w-full grid-cols-4 gap-[8px] rounded-[var(--border-radius-small)] bg-[var(--text-n9)] p-[24px]"
@@ -128,6 +131,34 @@
             <div v-if="h.priceDetail" class="pl-[8px] text-[var(--text-n3)]">{{ h.priceDetail }}</div>
           </div>
         </div>
+
+        <div class="mt-[16px] flex font-medium text-[var(--text-n1)]">
+          <n-p>{{ t('system.personal.renewApplication.title') }}</n-p>
+        </div>
+        <div v-if="!applications.length" class="mt-[8px] text-[13px] text-[var(--text-n4)]">
+          {{ t('system.personal.renewApplication.empty') }}
+        </div>
+        <div v-else class="mt-[8px] flex flex-col gap-[8px]">
+          <div
+            v-for="app in applications"
+            :key="app.id"
+            class="cursor-pointer rounded border border-[var(--divider-color)] px-[12px] py-[8px] text-xs transition-colors hover:bg-[var(--primary-7)]"
+            @click="openApplicationDetail(app)"
+          >
+            <div class="flex items-center gap-[12px]">
+              <span>{{ appVersionChange(app) }}</span>
+              <span v-if="app.amount != null" class="text-orange-500">¥{{ fmtMoney(app.amount) }}</span>
+              <n-tag size="small" :bordered="false">{{ paymentTypeLabel(app.paymentType) }}</n-tag>
+              <n-tag size="small" :bordered="false" :type="appStatusTag(app.status)">{{
+                appStatusLabel(app.status)
+              }}</n-tag>
+              <span class="flex-1 text-right text-[var(--text-n4)]">{{ formatHistoryTime(app.createTime) }}</span>
+            </div>
+            <div v-if="app.verifyRemark" class="mt-[4px] text-orange-500">
+              {{ t('system.personal.renewApplication.verifyRemark') }}：{{ app.verifyRemark }}
+            </div>
+          </div>
+        </div>
       </CrmCard>
       <n-image-preview v-model:show="preview.show" :src="preview.src" />
       <CrmCard v-if="activeTab === PersonalEnum.INFO" hide-footer :special-height="64">
@@ -211,6 +242,8 @@
   </CrmDrawer>
   <EditPersonalInfoModal v-model:show="showEditPersonalModal" :integration="currentInfo" @init-sync="searchData()" />
   <EditPasswordModal v-model:show="showEditPasswordModal" @init-sync="searchData()" />
+  <SubscriptionRenewModal v-model:show="showRenewModal" @success="loadApplications" />
+  <ApplicationDetailModal v-model:show="showApplicationDetail" :application="detailApplication" />
 </template>
 
 <script setup lang="ts">
@@ -223,7 +256,7 @@
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import { PersonalInfoRequest, TenantSubscription } from '@lib/shared/models/system/business';
   import { OrgUserInfo } from '@lib/shared/models/system/org';
-  import { TenantPlanHistoryItem } from '@lib/shared/models/system/tenant-plan';
+  import { TenantPlanApplicationItem, TenantPlanHistoryItem } from '@lib/shared/models/system/tenant-plan';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmDrawer from '@/components/pure/crm-drawer/index.vue';
@@ -232,10 +265,12 @@
   import CrmAvatar from '@/components/business/crm-avatar/index.vue';
   import FollowDetail from '@/components/business/crm-follow-detail/index.vue';
   import apiKey from './apiKey.vue';
+  import ApplicationDetailModal from '@/views/system/business/components/applicationDetailModal.vue';
   import EditPasswordModal from '@/views/system/business/components/editPasswordModal.vue';
   import EditPersonalInfoModal from '@/views/system/business/components/editPersonalInfoModal.vue';
+  import SubscriptionRenewModal from '@/views/system/business/components/subscriptionRenewModal.vue';
 
-  import { downloadAttachment, getPersonalInfo, getSubscription } from '@/api/modules';
+  import { downloadAttachment, getPersonalInfo, getPlanApplicationList, getSubscription } from '@/api/modules';
   import { defaultUserInfo } from '@/config/business';
   import useModal from '@/hooks/useModal.js';
   import { useUserStore } from '@/store';
@@ -262,6 +297,7 @@
 
   // 租户套餐与合同（版本与授权）
   const subscription = ref<TenantSubscription>({});
+  const applications = ref<TenantPlanApplicationItem[]>([]);
   const preview = reactive<{ show: boolean; src: string }>({ show: false, src: '' });
 
   async function loadSubscription() {
@@ -271,6 +307,40 @@
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error);
+    }
+  }
+
+  async function loadApplications() {
+    if (userStore.isAdmin) return;
+    try {
+      applications.value = (await getPlanApplicationList()) || [];
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
+  }
+
+  function appVersionChange(app: TenantPlanApplicationItem) {
+    const from = app.currentVersionName || app.currentVersion;
+    const to = app.targetVersionName || app.targetVersion;
+    return from ? `${from} → ${to}` : to || '-';
+  }
+  function paymentTypeLabel(paymentType: string) {
+    return paymentType ? t(`system.personal.renew.paymentType.${paymentType}`) : '-';
+  }
+  function appStatusLabel(status: string) {
+    return status ? t(`system.personal.renewApplication.status.${status}`) : '-';
+  }
+  function appStatusTag(status: string) {
+    switch (status) {
+      case 'APPROVED':
+        return 'success';
+      case 'CANCELLED':
+        return 'error';
+      case 'PENDING':
+        return 'warning';
+      default:
+        return 'default';
     }
   }
 
@@ -363,6 +433,14 @@
 
   const showEditPersonalModal = ref<boolean>(false); // 已配置
   const showEditPasswordModal = ref<boolean>(false); // 已配置
+  const showRenewModal = ref<boolean>(false);
+  const showApplicationDetail = ref<boolean>(false);
+  const detailApplication = ref<TenantPlanApplicationItem | null>(null);
+
+  function openApplicationDetail(app: TenantPlanApplicationItem) {
+    detailApplication.value = app;
+    showApplicationDetail.value = true;
+  }
 
   const tabList = computed<TabPaneProps[]>(() => {
     return [
@@ -389,6 +467,7 @@
     if (activeTab.value === PersonalEnum.INFO) {
       personalInfo.value = await getPersonalInfo();
       loadSubscription();
+      loadApplications();
     }
   }
   function edit() {
