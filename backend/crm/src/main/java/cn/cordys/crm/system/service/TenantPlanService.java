@@ -5,7 +5,6 @@ import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.Translator;
 import cn.cordys.crm.ai.service.AiQuotaService;
-import cn.cordys.crm.system.constants.RegisterType;
 import cn.cordys.crm.system.constants.TenantPlanStatus;
 import cn.cordys.crm.system.domain.Organization;
 import cn.cordys.crm.system.domain.OrganizationUser;
@@ -43,7 +42,7 @@ import java.util.List;
  * 租户套餐服务（付费用户管理）
  * <p>
  * 负责试用期初始化、套餐开通/续费、到期判断与全局配置。
- * 版本从 {@link RegisterType} 枚举改为读 {@link SysEdition}（可配置），开通时写入版本快照。
+ * 版本从写死的注册类型枚举改为读 {@link SysEdition}（可配置），开通时写入版本快照。
  * </p>
  */
 @Service
@@ -299,23 +298,17 @@ public class TenantPlanService {
     }
 
     /**
-     * 同步管理员角色：按组织类型（企业 → org_admin，个人 → sales_staff），与版本解耦
+     * 同步管理员角色：统一为租户管理员（org_admin），与组织类型、版本解耦
      */
     private void syncAdminRole(String organizationId, String operatorId) {
         User adminUser = getAdminUser(organizationId);
         if (adminUser == null) {
             return;
         }
-        Organization organization = organizationMapper.selectByPrimaryKey(organizationId);
-        if (organization == null) {
-            return;
-        }
         long now = System.currentTimeMillis();
         userRoleMapper.deleteByLambda(new LambdaQueryWrapper<UserRole>()
                 .eq(UserRole::getUserId, adminUser.getId()));
-        String roleId = RegisterType.isEnterprise(organization.getOrgType())
-                ? InternalRole.ORG_ADMIN.getValue()
-                : InternalRole.SALES_STAFF.getValue();
+        String roleId = InternalRole.ORG_ADMIN.getValue();
         UserRole userRole = new UserRole();
         userRole.setId(IDGenerator.nextStr());
         userRole.setUserId(adminUser.getId());

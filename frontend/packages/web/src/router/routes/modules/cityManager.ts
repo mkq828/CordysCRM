@@ -3,7 +3,7 @@ import { CityManagerRouteEnum } from '@/enums/routeEnum';
 import { DEFAULT_LAYOUT } from '../base';
 import type { AppRouteRecordRaw } from '../types';
 
-// 城市经理（平台角色）：admin 走账号管理 + 业绩看板；city_manager 只走业绩看板。
+// 城市合伙人（平台角色）：admin 走账号管理 + 业绩看板；city_manager 只走业绩看板。
 // permissions 用专属 code（未写入后端权限种子），admin 短路可见；city_manager 命中 dashboard。
 const cityManager: AppRouteRecordRaw = {
   path: '/cityManager',

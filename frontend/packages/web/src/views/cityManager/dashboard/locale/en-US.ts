@@ -1,6 +1,6 @@
 export default {
   'cityManagerPerformance.groupBy': 'Group by',
-  'cityManagerPerformance.manager': 'City manager',
+  'cityManagerPerformance.manager': 'City partner',
   'cityManagerPerformance.refresh': 'Refresh',
   'cityManagerPerformance.name': 'Name',
   'cityManagerPerformance.signedCount': 'Signed customers',

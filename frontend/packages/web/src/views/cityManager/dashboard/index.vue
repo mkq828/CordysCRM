@@ -7,7 +7,7 @@
         <n-radio-button v-for="opt in groupByOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
       </n-radio-group>
       <div class="flex-1" />
-      <!-- 城市经理本人只能看自己，admin 才显示经理下拉 -->
+      <!-- 城市合伙人本人只能看自己，admin 才显示经理下拉 -->
       <n-select
         v-if="!isCityManager"
         v-model:value="managerId"

@@ -133,7 +133,7 @@ export default {
   'paidUser.markDemo': '标记演示',
   'paidUser.cancelDemo': '取消演示',
   'paidUser.markDemoTip': '确认标记为演示租户？',
-  'paidUser.markDemoTipContent': '标记后该租户的数据将不计入全局营收看板与城市经理业绩看板。',
+  'paidUser.markDemoTipContent': '标记后该租户的数据将不计入全局营收看板与城市合伙人业绩看板。',
   'paidUser.cancelDemoTip': '确认取消演示标记？',
   'paidUser.cancelDemoTipContent': '取消后该租户的数据将重新计入营收与业绩看板。',
   'paidUser.demoToggleSuccess': '操作成功',

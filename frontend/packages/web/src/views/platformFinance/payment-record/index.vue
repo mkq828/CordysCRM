@@ -686,7 +686,7 @@
 
   function buildActions(row: PlatformPaymentRecordItem): ActionsItem[] {
     const list: ActionsItem[] = [];
-    // 核销/撤回仅 admin：城市经理只登记/编辑/删除核销前的回款
+    // 核销/撤回仅 admin：城市合伙人只登记/编辑/删除核销前的回款
     if (!isCityManager.value) {
       if (row.verificationStatus === PlatformPaymentVerificationStatusEnum.PENDING) {
         list.push({ label: t('platformPayment.verify'), key: 'verify' });

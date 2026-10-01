@@ -257,7 +257,7 @@
 
   async function loadOptions() {
     try {
-      // 签约经理下拉是 admin 维护项（CITY_MANAGER:MANAGE），城市经理不调该接口、签约经理由后端继承租户归属
+      // 签约经理下拉是 admin 维护项（CITY_MANAGER:MANAGE），城市合伙人不调该接口、签约经理由后端继承租户归属
       const managersPromise = isCityManager.value
         ? Promise.resolve({ list: [] })
         : cityManagerPageList({ current: 1, pageSize: 500 });

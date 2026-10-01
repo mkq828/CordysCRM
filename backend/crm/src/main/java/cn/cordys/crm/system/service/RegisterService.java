@@ -367,13 +367,9 @@ public class RegisterService {
         organizationUser.setUpdateUser(operatorId);
         organizationUserMapper.insert(organizationUser);
 
-        // 5. 按注册类型直接挂载全局内置角色：企业 → 企业管理员（org_admin，全企业数据）；个人 → 销售专员（sales_staff，仅本人数据）。
-        //    直接引用全局内置角色，由平台 admin 在角色列表中统一维护权限，后续新增功能只需给这两个角色勾选即可联动生效。
-        if (enterprise) {
-            insertUserRole(userId, InternalRole.ORG_ADMIN.getValue(), operatorId, now);
-        } else {
-            insertUserRole(userId, InternalRole.SALES_STAFF.getValue(), operatorId, now);
-        }
+        // 5. 注册者一律挂「租户管理员」角色（org_admin，全企业数据），不分个人/企业；版本差异只由套餐版本控制功能模块与额度。
+        //    直接引用全局内置角色，由平台 admin 在角色列表中统一维护权限，后续新增功能只需给该角色勾选即可联动生效。
+        insertUserRole(userId, InternalRole.ORG_ADMIN.getValue(), operatorId, now);
 
         // 6. 转正营业执照附件（绑定到新组织）
         if (enterprise && StringUtils.isNotBlank(application.getBusinessLicenseAttachmentId())) {

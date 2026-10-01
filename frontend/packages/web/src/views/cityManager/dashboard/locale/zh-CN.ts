@@ -1,6 +1,6 @@
 export default {
   'cityManagerPerformance.groupBy': '统计维度',
-  'cityManagerPerformance.manager': '城市经理',
+  'cityManagerPerformance.manager': '城市合伙人',
   'cityManagerPerformance.refresh': '刷新',
   'cityManagerPerformance.name': '姓名',
   'cityManagerPerformance.signedCount': '签约客户数',
