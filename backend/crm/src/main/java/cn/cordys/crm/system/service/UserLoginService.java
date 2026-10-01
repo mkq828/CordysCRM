@@ -16,6 +16,7 @@ import cn.cordys.common.utils.IpRegionService;
 import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.system.constants.LoginType;
 import cn.cordys.crm.system.constants.OrganizationConfigConstants;
+import cn.cordys.crm.system.constants.RegisterResultCode;
 import cn.cordys.crm.system.domain.*;
 import cn.cordys.crm.system.dto.ThirdAuthConfigDTO;
 import cn.cordys.crm.platform.constants.PlatformCityManagerStatus;
@@ -23,6 +24,7 @@ import cn.cordys.crm.platform.domain.PlatformCityManager;
 import cn.cordys.crm.system.mapper.ExtOrganizationConfigDetailMapper;
 import cn.cordys.crm.system.mapper.ExtOrganizationConfigMapper;
 import cn.cordys.crm.system.mapper.ExtOrganizationMapper;
+import cn.cordys.crm.system.mapper.ExtRegisterApplicationMapper;
 import cn.cordys.crm.system.mapper.ExtUserMapper;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
@@ -63,6 +65,9 @@ public class UserLoginService {
 
     @Resource
     private ExtUserMapper extUserMapper;
+
+    @Resource
+    private ExtRegisterApplicationMapper extRegisterApplicationMapper;
 
     @Resource
     private RoleService roleService;
@@ -109,6 +114,15 @@ public class UserLoginService {
 
         // 校验图形验证码
         captchaService.validate(request.getCaptchaId(), request.getCaptchaCode());
+
+        // 注册申请被驳回后，登录时直接提示驳回原因（此时无账号，避免误报「账号或密码错误」）
+        UserDTO existingUser = extUserMapper.selectByPhoneOrEmail(username);
+        if (existingUser == null) {
+            String rejectRemark = extRegisterApplicationMapper.selectLatestRejectRemarkByPhone(username);
+            if (StringUtils.isNotBlank(rejectRemark)) {
+                throw new GenericException(RegisterResultCode.REGISTER_REJECTED, rejectRemark);
+            }
+        }
 
         Subject subject = SecurityUtils.getSubject();
         UsernamePasswordToken token = new UsernamePasswordToken(username, password);

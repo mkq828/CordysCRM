@@ -210,6 +210,9 @@ public class NotificationConstants {
         //租户套餐到期提醒（通知平台管理员）
         @Schema(description = "message.plan_expire_remind")
         String PLAN_EXPIRE_REMIND = "PLAN_EXPIRE_REMIND";
+        //租户提交续费/升级申请（通知平台管理员及时核销开通）
+        @Schema(description = "message.plan_apply_notify")
+        String TENANT_PLAN_APPLY = "TENANT_PLAN_APPLY";
         //租户AI单日成本超阈值熔断（通知平台管理员）
         @Schema(description = "message.ai_quota_break")
         String AI_QUOTA_BREAK = "AI_QUOTA_BREAK";
@@ -219,6 +222,12 @@ public class NotificationConstants {
         //企业注册审核驳回（短信通知租户）
         @Schema(description = "message.enterprise_register_rejected")
         String ENTERPRISE_REGISTER_REJECTED = "ENTERPRISE_REGISTER_REJECTED";
+        //续费/升级申请核销通过（通知租户管理员）
+        @Schema(description = "message.plan_apply_approved")
+        String TENANT_PLAN_APPROVED = "TENANT_PLAN_APPROVED";
+        //续费/升级申请驳回（通知租户管理员，含驳回原因）
+        @Schema(description = "message.plan_apply_rejected")
+        String TENANT_PLAN_REJECTED = "TENANT_PLAN_REJECTED";
     }
 
     public interface RelatedUser {
@@ -416,6 +425,10 @@ public class NotificationConstants {
         @Schema(description = "message.plan_expire_remind_text")
         String PLAN_EXPIRE_REMIND_TEXT = "PLAN_EXPIRE_REMIND_TEXT";
 
+        //租户「${name}」提交了续费/升级申请（目标版本 ${targetVersionName}，金额 ¥${amount}），请及时核销开通。
+        @Schema(description = "message.plan_apply_notify_text")
+        String TENANT_PLAN_APPLY_TEXT = "TENANT_PLAN_APPLY_TEXT";
+
         //租户「${name}」单日 AI 成本已超阈值，已触发熔断，请关注。
         @Schema(description = "message.ai_quota_break_text")
         String AI_QUOTA_BREAK_TEXT = "AI_QUOTA_BREAK_TEXT";
@@ -427,6 +440,14 @@ public class NotificationConstants {
         //你的企业「${name}」注册未通过审核：${remark}
         @Schema(description = "message.enterprise_register_rejected_text")
         String ENTERPRISE_REGISTER_REJECTED_TEXT = "ENTERPRISE_REGISTER_REJECTED_TEXT";
+
+        //你的「${name}」续费/升级申请已核销通过，套餐已开通。
+        @Schema(description = "message.plan_apply_approved_text")
+        String TENANT_PLAN_APPROVED_TEXT = "TENANT_PLAN_APPROVED_TEXT";
+
+        //你的「${name}」续费/升级申请未通过审核：${remark}
+        @Schema(description = "message.plan_apply_rejected_text")
+        String TENANT_PLAN_REJECTED_TEXT = "TENANT_PLAN_REJECTED_TEXT";
     }
 
 

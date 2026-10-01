@@ -27,6 +27,7 @@ import cn.cordys.crm.system.dto.request.RoleAddRequest;
 import cn.cordys.crm.system.dto.request.RoleUpdateRequest;
 import cn.cordys.crm.system.dto.response.RoleGetResponse;
 import cn.cordys.crm.system.dto.response.RoleListResponse;
+import cn.cordys.crm.system.mapper.ExtOrganizationUserMapper;
 import cn.cordys.crm.system.mapper.ExtRoleMapper;
 import cn.cordys.crm.system.mapper.ExtUserRoleMapper;
 import cn.cordys.mybatis.BaseMapper;
@@ -64,6 +65,8 @@ public class RoleService {
     private ExtRoleMapper extRoleMapper;
     @Resource
     private ExtUserRoleMapper extUserRoleMapper;
+    @Resource
+    private ExtOrganizationUserMapper extOrganizationUserMapper;
     @Resource
     private BaseMapper<UserRole> userRoleMapper;
     @Resource
@@ -294,8 +297,13 @@ public class RoleService {
     private void clearPermissionCacheByRoleId(String roleId, String orgId) {
         List<String> userIds = extUserRoleMapper.getUserIdsByRoleIds(List.of(roleId));
         userIds.forEach(userId -> {
-            // 清除用户的权限缓存
-            permissionCache.clearCache(userId, orgId);
+            // 内置角色（如 org_admin）跨组织共享：租户用户登录时权限缓存 key 是 userId:所属租户org，
+            // 只按当前上下文 org 清会漏掉租户 org，导致租户端改完权限后不生效（Redis 缓存最长 1 小时）。
+            Set<String> orgIds = new HashSet<>();
+            orgIds.add(orgId);
+            extOrganizationUserMapper.selectUserByUserIds(List.of(userId))
+                    .forEach(orgUser -> orgIds.add(orgUser.getOrganizationId()));
+            orgIds.forEach(o -> permissionCache.clearCache(userId, o));
         });
     }
 
