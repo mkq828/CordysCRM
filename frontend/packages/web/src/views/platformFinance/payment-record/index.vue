@@ -36,6 +36,7 @@
         @page-size-change="propsEvent.pageSizeChange"
         @sorter-change="propsEvent.sorterChange"
         @filter-change="propsEvent.filterChange"
+        @refresh="propsEvent.refresh"
       />
     </CrmCard>
 
@@ -223,6 +224,36 @@
               <n-input v-model:value="acc.accountName" :placeholder="t('platformPayment.accountName')" />
               <n-input v-model:value="acc.accountNo" :placeholder="t('platformPayment.accountNo')" />
               <n-input v-model:value="acc.bankName" :placeholder="t('platformPayment.bankNamePlaceholder')" />
+              <div
+                v-if="
+                  acc.accountType === PlatformPaymentTypeEnum.WECHAT ||
+                  acc.accountType === PlatformPaymentTypeEnum.ALIPAY
+                "
+                class="flex flex-col gap-[8px]"
+              >
+                <div class="text-[13px] text-[var(--text-n4)]">{{ t('platformPayment.qrcode') }}</div>
+                <div class="flex items-center gap-[12px]">
+                  <n-image
+                    v-if="acc.qrcode"
+                    :src="voucherUrl(acc.qrcode)"
+                    :width="120"
+                    :height="120"
+                    object-fit="contain"
+                    class="rounded border border-[var(--divider-color)]"
+                  />
+                  <n-upload
+                    :multiple="false"
+                    :max="1"
+                    :show-file-list="false"
+                    :custom-request="(o) => uploadQrcode(o, acc)"
+                  >
+                    <n-button>{{ t('platformPayment.uploadQrcode') }}</n-button>
+                  </n-upload>
+                  <n-button v-if="acc.qrcode" text type="error" @click="acc.qrcode = ''">
+                    {{ t('common.delete') }}
+                  </n-button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -325,6 +356,7 @@
     accountName: string;
     accountNo: string;
     bankName: string;
+    qrcode: string;
   }
   const bankAccounts = ref<BankAccountForm[]>([]);
 
@@ -336,6 +368,7 @@
         accountName: a.accountName || '',
         accountNo: a.accountNo || '',
         bankName: a.bankName || '',
+        qrcode: a.qrcode || '',
       }));
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -483,6 +516,19 @@
 
   function removeVoucher(options: { file: UploadFileInfo }) {
     delete uploadedVoucherIds.value[options.file.id];
+  }
+
+  async function uploadQrcode(options: UploadCustomRequestOptions, acc: BankAccountForm) {
+    try {
+      const res = await uploadTempAttachment(options.file.file as File);
+      const [attachmentId] = res.data;
+      acc.qrcode = attachmentId;
+      options.onFinish();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      options.onError();
+    }
   }
 
   async function confirmSave() {
@@ -672,6 +718,7 @@
           accountName: a.accountName,
           accountNo: a.accountNo,
           bankName: a.bankName,
+          qrcode: a.qrcode || undefined,
         }))
       );
       Message.success(t('platformPayment.configSaveSuccess'));

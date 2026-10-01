@@ -16,4 +16,5 @@ export default {
   'dashboard.loadFailed': '加载失败',
   'dashboard.unConfig': '未配置三方信息',
   'dashboard.goConfig': '去配置',
+  'dashboard.comingSoon': '经营大屏建设中，敬请期待',
 };

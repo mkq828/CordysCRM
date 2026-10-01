@@ -32,6 +32,7 @@
         @page-size-change="propsEvent.pageSizeChange"
         @sorter-change="propsEvent.sorterChange"
         @filter-change="propsEvent.filterChange"
+        @refresh="propsEvent.refresh"
       />
     </CrmCard>
 
@@ -181,7 +182,20 @@
 
 <script setup lang="ts">
   import { computed, h, onMounted, reactive, ref, watch } from 'vue';
-  import { NButton, NImage, NImagePreview, NInput, NInputNumber, NModal, NTag, NUpload, useMessage } from 'naive-ui';
+  import {
+    NButton,
+    NDropdown,
+    NIcon,
+    NImage,
+    NImagePreview,
+    NInput,
+    NInputNumber,
+    NModal,
+    NTag,
+    NUpload,
+    useMessage,
+  } from 'naive-ui';
+  import { DocumentTextOutline } from '@vicons/ionicons5';
   import dayjs from 'dayjs';
 
   import { PreviewAttachmentUrl } from '@lib/shared/api/requrls/system/module';
@@ -251,8 +265,10 @@
     { label: t('platformFinance.signType.ONLINE'), value: PlatformSignTypeEnum.ONLINE },
   ];
 
-  const orgOptions = ref<{ label: string; value: string; editionCode?: string }[]>([]);
-  const editionOptionsList = ref<{ label: string; value: string; yearPrice?: number; validityDays?: number }[]>([]);
+  const orgOptions = ref<{ label: string; value: string; editionCode?: string; hasContract?: boolean }[]>([]);
+  const editionOptionsList = ref<
+    { label: string; value: string; yearPrice?: number; firstYearPrice?: number; validityDays?: number }[]
+  >([]);
   const signManagerOptions = ref<{ label: string; value: string }[]>([]);
 
   async function loadOptions() {
@@ -270,11 +286,13 @@
         label: o.name,
         value: o.id,
         editionCode: o.editionCode,
+        hasContract: o.hasContract,
       }));
       editionOptionsList.value = (editions as Edition[]).map((e) => ({
         label: e.name,
         value: e.code,
         yearPrice: e.yearPrice,
+        firstYearPrice: e.firstYearPrice,
         validityDays: e.validityDays,
       }));
       signManagerOptions.value = (managers.list || [])
@@ -302,6 +320,8 @@
   // 新建/编辑
   const showForm = ref(false);
   const formMode = ref<'add' | 'edit'>('add');
+  // 当前选中的租户是否「首份合同」：首份用首年价，续约用年价
+  const isFirstContract = ref(false);
   const formLoading = ref(false);
   const form = reactive<Omit<PlatformContractSaveParams, 'amount'> & { id: string; amount: number | null }>({
     id: '',
@@ -329,6 +349,10 @@
 
   function isImage(type?: string) {
     return /(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(type || '');
+  }
+
+  function isPdf(type?: string) {
+    return /pdf$/i.test(type || '');
   }
 
   function attachmentUrl(id: string) {
@@ -363,6 +387,7 @@
 
   function openAdd() {
     formMode.value = 'add';
+    isFirstContract.value = false;
     Object.assign(form, {
       id: '',
       contractNo: '',
@@ -414,13 +439,15 @@
   function onEditionChange(code: string) {
     const edition = editionOptionsList.value.find((e) => e.value === code);
     if (!edition) return;
-    if (edition.yearPrice != null) form.amount = Number(edition.yearPrice);
+    const price = isFirstContract.value ? edition.firstYearPrice ?? edition.yearPrice : edition.yearPrice;
+    if (price != null) form.amount = Number(price);
     if (edition.validityDays != null) form.validityDays = Number(edition.validityDays);
   }
 
   // 选中租户后默认带出该租户当前套餐版本（及其金额/有效期）
   function onOrgChange(orgId: string) {
     const org = orgOptions.value.find((o) => o.value === orgId);
+    isFirstContract.value = !org?.hasContract;
     if (!org?.editionCode) {
       form.editionCode = '';
       return;
@@ -604,6 +631,53 @@
     }
   }
 
+  // 查看附件：图片内联预览、PDF 浏览器新标签页在线预览，其余（word/excel 等）下载查看
+  function openAttachment(att?: PlatformAttachment) {
+    if (!att) return;
+    if (isImage(att.type)) {
+      previewAttachment(att.id);
+    } else if (isPdf(att.type)) {
+      window.open(attachmentUrl(att.id), '_blank');
+    } else {
+      downloadAttachmentById(att.id, att.name || t('platformFinance.attachment'));
+    }
+  }
+
+  // 附件列紧凑展示：不显示长文件名，点击直接查看（多个则下拉选择）
+  function renderAttachmentCell(row: PlatformContractItem) {
+    const list = row.attachmentList || [];
+    const first = list[0];
+    const chip = h(
+      'div',
+      { class: 'flex cursor-pointer items-center gap-[6px] text-[var(--text-n2)] hover:text-[var(--primary)]' },
+      [
+        isImage(first.type)
+          ? h(NImage, {
+              src: attachmentUrl(first.id),
+              width: 22,
+              height: 22,
+              objectFit: 'cover',
+              class: 'rounded-[2px]',
+              previewDisabled: true,
+            })
+          : h(NIcon, { size: 16 }, { default: () => h(DocumentTextOutline) }),
+        h('span', { class: 'text-[12px]' }, t('platformFinance.attachmentCount', { count: list.length })),
+      ]
+    );
+    if (list.length === 1) {
+      return h('div', { onClick: () => openAttachment(first) }, [chip]);
+    }
+    return h(
+      NDropdown,
+      {
+        trigger: 'click',
+        options: list.map((att) => ({ label: att.name || t('platformFinance.attachment'), key: att.id })),
+        onSelect: (key: string) => openAttachment(list.find((a) => a.id === key)),
+      },
+      { default: () => chip }
+    );
+  }
+
   const columns: CrmDataTableColumn[] = [
     {
       fixed: 'left',
@@ -694,25 +768,7 @@
       render: (row: PlatformContractItem) => {
         const list = row.attachmentList || [];
         if (!list.length) return '-';
-        const first = list[0];
-        return h('div', { class: 'flex items-center gap-[6px]' }, [
-          isImage(first.type)
-            ? h(NImage, {
-                src: attachmentUrl(first.id),
-                width: 28,
-                height: 28,
-                objectFit: 'cover',
-                class: 'cursor-pointer rounded-[2px]',
-                previewDisabled: true,
-                onClick: () => previewAttachment(first.id),
-              })
-            : h('span', { class: 'text-[12px] text-[var(--text-n3)]' }, first.name || ''),
-          h(
-            'span',
-            { class: 'text-[12px] text-[var(--text-n3)]' },
-            t('platformFinance.attachmentCount', { count: list.length })
-          ),
-        ]);
+        return renderAttachmentCell(row);
       },
     },
     {

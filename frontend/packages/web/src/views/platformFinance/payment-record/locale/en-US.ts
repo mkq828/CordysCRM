@@ -49,4 +49,6 @@ export default {
   'platformPayment.accountName': 'Account Name',
   'platformPayment.accountNo': 'Account No.',
   'platformPayment.bankNamePlaceholder': 'Bank / Platform',
+  'platformPayment.qrcode': 'QR Code',
+  'platformPayment.uploadQrcode': 'Upload QR Code',
 };

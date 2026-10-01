@@ -23,6 +23,8 @@ export interface PlatformOrgOption {
   orgType?: string;
   // 租户当前套餐版本 code，选中租户后默认带出
   editionCode?: string;
+  // 是否已有有效合同（草稿/作废不计），用于首份合同用首年价、续约用年价
+  hasContract?: boolean;
 }
 
 // 平台合同下拉选项
@@ -140,6 +142,11 @@ export interface PlatformConfig {
   taxRate?: string;
 }
 
+// 平台系统信息（关于弹窗）：运营方名称
+export interface PlatformSystemInfo {
+  operator?: string;
+}
+
 // 平台收款账号：我方各收款方式的收款账户（每种方式一条）
 export interface PlatformBankAccount {
   id?: string;
@@ -147,6 +154,7 @@ export interface PlatformBankAccount {
   accountName?: string;
   accountNo?: string;
   bankName?: string;
+  qrcode?: string;
 }
 
 // 平台合同分页查询参数

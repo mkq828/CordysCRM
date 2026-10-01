@@ -24,6 +24,7 @@ import {
   platformPaymentRecordUpdateUrl,
   platformPaymentRecordVerifyUrl,
   platformRevenueOverviewUrl,
+  platformSystemInfoUrl,
 } from '@lib/shared/api/requrls/system/platformFinance';
 import type { CommonList } from '@lib/shared/models/common';
 import type {
@@ -46,6 +47,7 @@ import type {
   PlatformRevenueOverview,
   PlatformRevenueQueryParams,
   PlatformRevokeParams,
+  PlatformSystemInfo,
   PlatformVerifyParams,
 } from '@lib/shared/models/system/platformFinance';
 
@@ -129,6 +131,14 @@ export default function usePlatformFinanceApi(CDR: CordysAxios) {
     return CDR.post({ url: platformConfigUrl, data });
   }
 
+  // 平台系统信息（关于弹窗）
+  function getSystemInfo() {
+    return CDR.get<PlatformSystemInfo>({ url: platformSystemInfoUrl });
+  }
+  function updateSystemInfo(data: PlatformSystemInfo) {
+    return CDR.post({ url: platformSystemInfoUrl, data });
+  }
+
   // 平台收款账号
   function bankAccountList() {
     return CDR.get<PlatformBankAccount[]>({ url: platformBankAccountListUrl });
@@ -161,6 +171,8 @@ export default function usePlatformFinanceApi(CDR: CordysAxios) {
     revenueOverview,
     getConfig,
     updateConfig,
+    getSystemInfo,
+    updateSystemInfo,
     bankAccountList,
     bankAccountSave,
   };

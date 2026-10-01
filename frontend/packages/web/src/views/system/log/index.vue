@@ -104,6 +104,7 @@
         @page-size-change="propsEvent.pageSizeChange"
         @sorter-change="propsEvent.sorterChange"
         @filter-change="propsEvent.filterChange"
+        @refresh="propsEvent.refresh"
       />
     </CrmCard>
     <CrmCard
@@ -120,6 +121,7 @@
         @page-size-change="aiExecutionTablePropsEvent.pageSizeChange"
         @sorter-change="aiExecutionTablePropsEvent.sorterChange"
         @filter-change="aiExecutionTablePropsEvent.filterChange"
+        @refresh="aiExecutionTablePropsEvent.refresh"
       />
     </CrmCard>
     <LoginLog v-if="activeTab === 'login'" ref="loginLogRef" />

@@ -33,6 +33,7 @@
         @page-size-change="propsEvent.pageSizeChange"
         @sorter-change="propsEvent.sorterChange"
         @filter-change="propsEvent.filterChange"
+        @refresh="propsEvent.refresh"
       />
     </CrmCard>
 

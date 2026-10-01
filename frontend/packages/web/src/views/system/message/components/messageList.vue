@@ -44,7 +44,7 @@
 
   import { batchSaveMessageTask, getConfigSynchronization, getMessageTask, saveMessageTask } from '@/api/modules';
   import { platFormNameMap, platformType } from '@/config/business';
-  import { useAppStore } from '@/store';
+  import { useAppStore, useUserStore } from '@/store';
   import useLicenseStore from '@/store/modules/setting/license';
   import { hasAnyPermission } from '@/utils/permission';
 
@@ -53,6 +53,7 @@
   const { t } = useI18n();
   const licenseStore = useLicenseStore();
   const appStore = useAppStore();
+  const userStore = useUserStore();
 
   const enableSystemMessage = ref(false);
   const enableEmailMessage = ref(false);
@@ -305,56 +306,62 @@
         });
       },
     },
-    {
-      title: () => {
-        return h(SwitchPopConfirm, {
-          titleColumnText: t('system.message.emailReminder'),
-          value: enableEmailMessage.value,
-          loading: enableSystemLoading.value,
-          disabled: !hasAnyPermission(['SYSTEM_NOTICE:UPDATE']),
-          onChange: (cancel?: () => void) => toggleGlobalMessage('email', cancel),
-        });
-      },
-      key: 'emailReminder',
-      width: 200,
-      ellipsis: {
-        tooltip: true,
-      },
-      render: (row) => {
-        return h(SwitchPopConfirm, {
-          value: row.emailEnable as boolean,
-          loading: enableSystemLoading.value,
-          disabled: !hasAnyPermission(['SYSTEM_NOTICE:UPDATE']),
-          onChange: (cancel?: () => void) =>
-            handleToggleSystemMessage(row as unknown as MessageConfigItem, 'email', cancel),
-        });
-      },
-    },
-    {
-      title: () => {
-        return h(SwitchPopConfirm, {
-          titleColumnText: t('system.message.smsMessage'),
-          value: enableSmsMessage.value,
-          loading: enableSystemLoading.value,
-          disabled: !hasAnyPermission(['SYSTEM_NOTICE:UPDATE']),
-          onChange: (cancel?: () => void) => toggleGlobalMessage('sms', cancel),
-        });
-      },
-      key: 'smsMessage',
-      width: 200,
-      ellipsis: {
-        tooltip: true,
-      },
-      render: (row) => {
-        return h(SwitchPopConfirm, {
-          value: row.smsEnable as boolean,
-          loading: enableSystemLoading.value,
-          disabled: !hasAnyPermission(['SYSTEM_NOTICE:UPDATE']),
-          onChange: (cancel?: () => void) =>
-            handleToggleSystemMessage(row as unknown as MessageConfigItem, 'sms', cancel),
-        });
-      },
-    },
+    // 邮件/短信通道仅平台管理员可见：邮件要租户自配 SMTP、短信是平台级凭据且第一版未接入，
+    // 对租户是「空头开关」，直接隐藏，避免误导。
+    ...(userStore.isAdmin
+      ? ([
+          {
+            title: () => {
+              return h(SwitchPopConfirm, {
+                titleColumnText: t('system.message.emailReminder'),
+                value: enableEmailMessage.value,
+                loading: enableSystemLoading.value,
+                disabled: !hasAnyPermission(['SYSTEM_NOTICE:UPDATE']),
+                onChange: (cancel?: () => void) => toggleGlobalMessage('email', cancel),
+              });
+            },
+            key: 'emailReminder',
+            width: 200,
+            ellipsis: {
+              tooltip: true,
+            },
+            render: (row: any) => {
+              return h(SwitchPopConfirm, {
+                value: row.emailEnable as boolean,
+                loading: enableSystemLoading.value,
+                disabled: !hasAnyPermission(['SYSTEM_NOTICE:UPDATE']),
+                onChange: (cancel?: () => void) =>
+                  handleToggleSystemMessage(row as unknown as MessageConfigItem, 'email', cancel),
+              });
+            },
+          },
+          {
+            title: () => {
+              return h(SwitchPopConfirm, {
+                titleColumnText: t('system.message.smsMessage'),
+                value: enableSmsMessage.value,
+                loading: enableSystemLoading.value,
+                disabled: !hasAnyPermission(['SYSTEM_NOTICE:UPDATE']),
+                onChange: (cancel?: () => void) => toggleGlobalMessage('sms', cancel),
+              });
+            },
+            key: 'smsMessage',
+            width: 200,
+            ellipsis: {
+              tooltip: true,
+            },
+            render: (row: any) => {
+              return h(SwitchPopConfirm, {
+                value: row.smsEnable as boolean,
+                loading: enableSystemLoading.value,
+                disabled: !hasAnyPermission(['SYSTEM_NOTICE:UPDATE']),
+                onChange: (cancel?: () => void) =>
+                  handleToggleSystemMessage(row as unknown as MessageConfigItem, 'sms', cancel),
+              });
+            },
+          },
+        ] as DataTableColumn[])
+      : []),
     ...(isEnableNoticeConfig.value
       ? [
           {

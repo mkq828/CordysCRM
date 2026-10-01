@@ -17,4 +17,5 @@ export default {
   'dashboard.loadFailed': 'Load Failed',
   'dashboard.unConfig': 'Not Configured Third-Party Information',
   'dashboard.goConfig': 'Go to Configuration',
+  'dashboard.comingSoon': 'Business dashboard coming soon',
 };

@@ -288,6 +288,10 @@ export default function useTable<T>(
       setPagination(1);
       loadList();
     },
+    // 刷新触发（右上角刷新按钮）
+    refresh: async () => {
+      await loadList();
+    },
   });
 
   return {

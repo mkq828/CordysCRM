@@ -81,18 +81,32 @@ public class AttachmentService {
     }
 
     /**
-     * 获取文件流
+     * 获取文件流（下载用，Content-Disposition=attachment）
      *
      * @param attachmentId 附件ID
      *
      * @return 文件流
      */
     public ResponseEntity<org.springframework.core.io.Resource> getResource(String attachmentId) {
+        return getResource(attachmentId, false);
+    }
+
+    /**
+     * 获取文件流
+     *
+     * @param attachmentId 附件ID
+     * @param preview 是否预览：为 true 且文件是图片/PDF 时返回内联（浏览器直接渲染），其余仍走下载
+     *
+     * @return 文件流
+     */
+    public ResponseEntity<org.springframework.core.io.Resource> getResource(String attachmentId, boolean preview) {
         Attachment attachment = attachmentMapper.selectByPrimaryKey(attachmentId);
         FileRequest request;
         ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.ok();
         try {
             InputStream fileStream;
+            String fileName;
+            long size;
             if (attachment == null) {
                 // get pic from temp dir
                 request = new FileRequest(DefaultRepositoryDir.getTempFileDir(attachmentId), StorageType.LOCAL.name(), null);
@@ -101,10 +115,9 @@ public class AttachmentService {
                     return null;
                 }
                 File file = folderFiles.getFirst();
+                fileName = file.getName();
+                size = file.length();
                 fileStream = new FileInputStream(file);
-                responseBuilder.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodeName(file.getName()))
-                        .contentLength(file.length())
-                        .contentType(isSvg(file.getName()) ? MediaType.parseMediaType("image/svg+xml") : MediaType.parseMediaType("application/octet-stream"));
             } else {
                 // get attachment from transferred dir
                 request = new FileRequest(DefaultRepositoryDir.getTransferFileDir(attachment.getOrganizationId(), attachment.getResourceId(), attachment.getId()), StorageType.LOCAL.name(), attachment.getName());
@@ -112,10 +125,15 @@ public class AttachmentService {
                 if (fileStream == null) {
                     throw new GenericException("The file does not exist or has been deleted");
                 }
-                responseBuilder.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodeName(attachment.getName()))
-                        .contentLength(attachment.getSize())
-                        .contentType(isSvg(attachment.getName()) ? MediaType.parseMediaType("image/svg+xml") : MediaType.parseMediaType("application/octet-stream"));
+                fileName = attachment.getName();
+                size = attachment.getSize();
             }
+            MediaType contentType = resolveContentType(fileName);
+            boolean inline = preview && (MediaType.APPLICATION_PDF.equals(contentType) || "image".equals(contentType.getType()));
+            responseBuilder.header(HttpHeaders.CONTENT_DISPOSITION,
+                            (inline ? "inline" : "attachment") + "; filename*=UTF-8''" + encodeName(fileName))
+                    .contentLength(size)
+                    .contentType(contentType);
             return responseBuilder
                     .body(new InputStreamResource(fileStream));
         } catch (Exception e) {
@@ -124,16 +142,33 @@ public class AttachmentService {
         }
     }
 
-
     /**
-     * 判断是否svg文件
-     *
-     * @param fileName 文件名
-     *
-     * @return 是否svg
+     * 按扩展名解析响应 Content-Type（图片/PDF 给精确类型以便浏览器内联渲染，其余回退 octet-stream 走下载）
      */
-    private boolean isSvg(String fileName) {
-        return fileName.endsWith(".svg") || fileName.endsWith(".SVG");
+    private MediaType resolveContentType(String fileName) {
+        String lower = fileName == null ? "" : fileName.toLowerCase();
+        if (lower.endsWith(".pdf")) {
+            return MediaType.APPLICATION_PDF;
+        }
+        if (lower.endsWith(".svg")) {
+            return MediaType.parseMediaType("image/svg+xml");
+        }
+        if (lower.endsWith(".png")) {
+            return MediaType.IMAGE_PNG;
+        }
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+            return MediaType.IMAGE_JPEG;
+        }
+        if (lower.endsWith(".gif")) {
+            return MediaType.IMAGE_GIF;
+        }
+        if (lower.endsWith(".webp")) {
+            return MediaType.parseMediaType("image/webp");
+        }
+        if (lower.endsWith(".bmp")) {
+            return MediaType.parseMediaType("image/bmp");
+        }
+        return MediaType.APPLICATION_OCTET_STREAM;
     }
 
     /**

@@ -49,4 +49,6 @@ export default {
   'platformPayment.accountName': '户名',
   'platformPayment.accountNo': '账号',
   'platformPayment.bankNamePlaceholder': '开户行 / 平台（银行卡填开户行，支付宝/微信填平台名）',
+  'platformPayment.qrcode': '收款码图片',
+  'platformPayment.uploadQrcode': '上传收款码',
 };

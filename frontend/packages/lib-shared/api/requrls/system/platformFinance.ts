@@ -24,5 +24,6 @@ export const platformInvoiceVoidUrl = '/platform/invoice/void'; // 平台发票-
 
 export const platformRevenueOverviewUrl = '/platform/revenue/overview'; // 平台营收看板-总览
 export const platformConfigUrl = '/platform/config'; // 平台收款设置-查询(GET)/保存(POST)
+export const platformSystemInfoUrl = '/platform/system-info'; // 平台系统信息-查询(GET)/保存(POST)
 export const platformBankAccountListUrl = '/platform/bank-account/list'; // 平台收款账号-列表
 export const platformBankAccountSaveUrl = '/platform/bank-account/save'; // 平台收款账号-保存

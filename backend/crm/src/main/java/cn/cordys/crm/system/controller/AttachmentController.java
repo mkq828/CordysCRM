@@ -31,7 +31,7 @@ public class AttachmentController {
     @GetMapping("/preview/{id}")
     @Operation(summary = "预览附件")
     public ResponseEntity<org.springframework.core.io.Resource> preview(@PathVariable String id) {
-        return attachmentService.getResource(id);
+        return attachmentService.getResource(id, true);
     }
 
     @GetMapping("/download/{id}")
