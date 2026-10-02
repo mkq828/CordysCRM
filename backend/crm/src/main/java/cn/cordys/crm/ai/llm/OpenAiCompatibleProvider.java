@@ -13,6 +13,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,12 +46,7 @@ public abstract class OpenAiCompatibleProvider implements LlmProvider {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", request.getModel());
         body.put("messages", request.getMessages().stream()
-                .map(m -> {
-                    Map<String, Object> msg = new LinkedHashMap<>();
-                    msg.put("role", m.getRole());
-                    msg.put("content", m.getContent());
-                    return msg;
-                })
+                .map(this::buildMessage)
                 .toList());
         body.put("stream", true);
         body.put("stream_options", Map.of("include_usage", true));
@@ -109,6 +105,35 @@ public abstract class OpenAiCompatibleProvider implements LlmProvider {
             }
         }
         return usage;
+    }
+
+    /** 构造单条消息；带图片时 content 用 OpenAI 多模态数组（text + image_url） */
+    private Map<String, Object> buildMessage(LlmMessage m) {
+        Map<String, Object> msg = new LinkedHashMap<>();
+        msg.put("role", m.getRole());
+        msg.put("content", buildContent(m));
+        return msg;
+    }
+
+    private Object buildContent(LlmMessage m) {
+        List<String> images = m.getImageUrls();
+        if (images == null || images.isEmpty()) {
+            return m.getContent();
+        }
+        List<Map<String, Object>> parts = new ArrayList<>();
+        if (m.getContent() != null && !m.getContent().isEmpty()) {
+            Map<String, Object> textPart = new LinkedHashMap<>();
+            textPart.put("type", "text");
+            textPart.put("text", m.getContent());
+            parts.add(textPart);
+        }
+        for (String dataUrl : images) {
+            Map<String, Object> imagePart = new LinkedHashMap<>();
+            imagePart.put("type", "image_url");
+            imagePart.put("image_url", Map.of("url", dataUrl));
+            parts.add(imagePart);
+        }
+        return parts;
     }
 
     private long toLong(Object value) {

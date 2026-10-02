@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * AI 销售会话军师（功能 1）：粘贴文本 / 截图 OCR → 结构化分析（意向评分、成交信号、异议点、
+ * AI 销售会话军师（功能 1）：粘贴文本 / 截图（多模态模型直接读图）→ 结构化分析（意向评分、成交信号、异议点、
  * 情绪、竞品提及、流失风险、候选话术）。复用 AgentChatService 的额度→模型→provider→计费四步链路，
  * 但自行构造 system+user、累积 chunk、按 {@code ai_advisor} 记账。
  */
@@ -79,7 +79,7 @@ public class SalesAdvisorService {
     private BaseMapper<Parameter> parameterMapper;
 
     /**
-     * 分析销售会话。截图（若有）先走 OCR 识别文本并入内容，再走四步链路调用模型并解析结构化结果。
+     * 分析销售会话。截图（若有）直接作为图片喂给多模态视觉模型，再走四步链路调用模型并解析结构化结果。
      */
     public SalesAdvisorAnalyzeResponse analyze(String organizationId, SalesAdvisorAnalyzeRequest request) {
         if (StringUtils.isBlank(request.getMessage())
@@ -87,21 +87,13 @@ public class SalesAdvisorService {
             throw new GenericException("请粘贴聊天记录或上传截图");
         }
 
-        // 1. 拼接输入：截图 OCR 文本 + 粘贴文本
+        // 1. 拼接输入：截图直接作为图片喂给多模态视觉模型（豆包），粘贴文本作为补充说明
         String userContent = request.getMessage() == null ? "" : request.getMessage().trim();
-        if (request.getPicIds() != null && !request.getPicIds().isEmpty()) {
-            String ocrText = recognizeScreenshots(request.getPicIds());
-            StringBuilder sb = new StringBuilder();
-            if (StringUtils.isNotBlank(ocrText)) {
-                sb.append("【截图识别文本】\n").append(ocrText);
+        List<String> imageUrls = new ArrayList<>();
+        if (request.getPicIds() != null) {
+            for (String picId : request.getPicIds()) {
+                imageUrls.add(readImageDataUrl(picId));
             }
-            if (StringUtils.isNotBlank(userContent)) {
-                if (sb.length() > 0) {
-                    sb.append("\n\n");
-                }
-                sb.append("【粘贴的聊天记录】\n").append(userContent);
-            }
-            userContent = sb.toString();
         }
 
         // 2. 模型候选 + 额度校验
@@ -128,9 +120,7 @@ public class SalesAdvisorService {
                 llmRequest.setModel(model.getModelName());
                 llmRequest.setBaseUrl(model.getApiUrl());
                 llmRequest.setApiKey(model.getApiKey());
-                llmRequest.setMessages(List.of(
-                        new LlmMessage("system", SYSTEM_PROMPT),
-                        new LlmMessage("user", userContent)));
+                llmRequest.setMessages(buildMessages(userContent, imageUrls));
 
                 LlmUsage usage = provider.chatStream(llmRequest, chunk -> {
                     emitted.set(true);
@@ -153,6 +143,21 @@ public class SalesAdvisorService {
         log.error("军师全部 AI 模型调用失败，候选数={}", models.size(), lastError);
         throw new GenericException(lastError == null || lastError.getMessage() == null
                 ? "AI 服务异常，请稍后重试" : lastError.getMessage());
+    }
+
+    /** 构造 system + user 消息；带截图时 user 消息携带图片（多模态） */
+    private List<LlmMessage> buildMessages(String userContent, List<String> imageUrls) {
+        List<LlmMessage> messages = new ArrayList<>();
+        messages.add(new LlmMessage("system", SYSTEM_PROMPT));
+        if (imageUrls.isEmpty()) {
+            messages.add(new LlmMessage("user", userContent));
+        } else {
+            String text = StringUtils.isBlank(userContent)
+                    ? "请识别以下聊天记录截图，分析其中销售与客户的对话，并按系统要求输出结构化 JSON。"
+                    : userContent;
+            messages.add(new LlmMessage("user", text, imageUrls));
+        }
+        return messages;
     }
 
     // ==================== 结果解析 ====================
@@ -240,6 +245,7 @@ public class SalesAdvisorService {
 
     // ==================== 截图 OCR ====================
 
+    /** 截图 OCR 通道（已停用）：主路径改为多模态模型直接读图；保留作企微图片通道/纯文本模型降级兜底参考 */
     private String recognizeScreenshots(List<String> picIds) {
         String serviceUrl = getParam(PARAM_OCR_SERVICE_URL);
         if (StringUtils.isBlank(serviceUrl)) {
@@ -252,14 +258,14 @@ public class SalesAdvisorService {
         return sb.toString().trim();
     }
 
-    private String readImageBase64(String picId) {
+    private byte[] readImageBytes(String picId) {
         try {
             ResponseEntity<org.springframework.core.io.Resource> res = attachmentService.getResource(picId);
             if (res == null || res.getBody() == null) {
                 throw new GenericException("截图文件不存在，请重新上传");
             }
             try (InputStream in = res.getBody().getInputStream()) {
-                return Base64.getEncoder().encodeToString(in.readAllBytes());
+                return in.readAllBytes();
             }
         } catch (GenericException e) {
             throw e;
@@ -267,6 +273,39 @@ public class SalesAdvisorService {
             log.error("读取截图失败, picId={}", picId, e);
             throw new GenericException("读取截图失败，请重新上传");
         }
+    }
+
+    private String readImageBase64(String picId) {
+        return Base64.getEncoder().encodeToString(readImageBytes(picId));
+    }
+
+    /** 读附件并转成 data URL（data:<mime>;base64,...），供多模态视觉模型直接读图 */
+    private String readImageDataUrl(String picId) {
+        byte[] bytes = readImageBytes(picId);
+        return "data:" + detectImageMime(bytes) + ";base64," + Base64.getEncoder().encodeToString(bytes);
+    }
+
+    /** 按文件头魔数探测图片 MIME，兜底 image/png */
+    private String detectImageMime(byte[] bytes) {
+        if (bytes == null || bytes.length < 4) {
+            return "image/png";
+        }
+        int b0 = bytes[0] & 0xFF;
+        int b1 = bytes[1] & 0xFF;
+        if (b0 == 0xFF && b1 == 0xD8) {
+            return "image/jpeg";
+        }
+        if (b0 == 0x89 && bytes[1] == 'P' && bytes[2] == 'N' && bytes[3] == 'G') {
+            return "image/png";
+        }
+        if (bytes[0] == 'G' && bytes[1] == 'I' && bytes[2] == 'F') {
+            return "image/gif";
+        }
+        if (bytes.length >= 12 && bytes[0] == 'R' && bytes[1] == 'I' && bytes[2] == 'F' && bytes[3] == 'F'
+                && bytes[8] == 'W' && bytes[9] == 'E' && bytes[10] == 'B' && bytes[11] == 'P') {
+            return "image/webp";
+        }
+        return "image/png";
     }
 
     /** 调 PaddleOCR hubserving 的 /predict/ocr_system，返回拼接的识别文本 */
