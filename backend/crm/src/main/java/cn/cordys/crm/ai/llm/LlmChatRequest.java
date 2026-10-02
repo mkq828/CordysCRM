@@ -21,4 +21,13 @@ public class LlmChatRequest {
     private String apiKey;
 
     private List<LlmMessage> messages;
+
+    /** 采样温度（可选，来自模型配置 model_params.temperature） */
+    private Double temperature;
+
+    /** top_p 采样（可选，来自模型配置 model_params.top_p） */
+    private Double topP;
+
+    /** 最大输出 token 数（可选，来自模型配置 model_params.max_tokens） */
+    private Integer maxTokens;
 }

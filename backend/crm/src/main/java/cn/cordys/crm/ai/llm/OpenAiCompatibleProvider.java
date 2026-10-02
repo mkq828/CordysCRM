@@ -50,6 +50,15 @@ public abstract class OpenAiCompatibleProvider implements LlmProvider {
                 .toList());
         body.put("stream", true);
         body.put("stream_options", Map.of("include_usage", true));
+        if (request.getTemperature() != null) {
+            body.put("temperature", request.getTemperature());
+        }
+        if (request.getTopP() != null) {
+            body.put("top_p", request.getTopP());
+        }
+        if (request.getMaxTokens() != null) {
+            body.put("max_tokens", request.getMaxTokens());
+        }
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(url))

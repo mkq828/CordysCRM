@@ -4,6 +4,8 @@ import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.pager.PageUtils;
 import cn.cordys.common.pager.Pager;
 import cn.cordys.common.uid.IDGenerator;
+import cn.cordys.common.util.JSON;
+import cn.cordys.crm.ai.llm.LlmChatRequest;
 import cn.cordys.crm.ai.model.domain.AgentModel;
 import cn.cordys.crm.ai.model.dto.request.AgentModelPageRequest;
 import cn.cordys.crm.ai.model.dto.request.AgentModelSaveRequest;
@@ -15,6 +17,7 @@ import cn.cordys.mybatis.BaseMapper;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,7 @@ import java.util.Map;
  * AI 模型配置服务（租户级，agent_model 表）。
  */
 @Service
+@Slf4j
 public class AgentModelService {
 
     /** provider -> 默认 baseUrl（api_url 留空时兜底），仅 OpenAI 兼容协议厂商 */
@@ -188,5 +192,41 @@ public class AgentModelService {
             throw new GenericException("请填写 API 请求地址");
         }
         return defaultUrl;
+    }
+
+    /**
+     * 把模型配置里的 model_params（temperature / top_p / max_tokens）解析并应用到对话请求。
+     * 字段缺失或解析失败时静默跳过，模型使用厂商默认参数。
+     *
+     * @param request 对话请求，就地填充采样参数
+     * @param model   租户模型配置
+     */
+    public void applyModelParams(LlmChatRequest request, AgentModel model) {
+        String params = model.getModelParams();
+        if (StringUtils.isBlank(params)) {
+            return;
+        }
+        try {
+            Map<String, Object> map = JSON.parseToMap(params);
+            request.setTemperature(asDouble(map.get("temperature")));
+            request.setTopP(asDouble(map.get("top_p")));
+            request.setMaxTokens(asInteger(map.get("max_tokens")));
+        } catch (Exception e) {
+            log.warn("解析模型参数失败，model={}, params={}", model.getModelName(), params, e);
+        }
+    }
+
+    private Double asDouble(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return value instanceof Number number ? number.doubleValue() : Double.valueOf(value.toString());
+    }
+
+    private Integer asInteger(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return value instanceof Number number ? number.intValue() : Integer.valueOf(value.toString());
     }
 }

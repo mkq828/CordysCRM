@@ -73,6 +73,7 @@ public class AgentChatService {
                 llmRequest.setModel(model.getModelName());
                 llmRequest.setBaseUrl(model.getApiUrl());
                 llmRequest.setApiKey(model.getApiKey());
+                agentModelService.applyModelParams(llmRequest, model);
                 llmRequest.setMessages(List.of(new LlmMessage("user", request.getMessage())));
 
                 LlmUsage usage = provider.chatStream(llmRequest, guardedChunk);
