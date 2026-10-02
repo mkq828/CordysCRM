@@ -49,6 +49,7 @@ export default {
     'menu.cityManagerAccount': 'Partner Accounts',
     'menu.cityManagerDashboard': 'Performance',
     'menu.aiQuota': 'My AI Quota',
+    'menu.salesScript': 'Sales Scripts',
     'menu.platformAiQuota': 'AI Quota Mgmt',
     'menu.customForm': 'Custom Form',
     'menu.suggestion': 'Suggestions',

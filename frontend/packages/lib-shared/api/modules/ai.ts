@@ -18,6 +18,12 @@ import {
   AgentMcpConfigImportUrl,
   AgentMcpConfigListUrl,
   SalesAdvisorAnalyzeUrl,
+  AiSalesScriptPageUrl,
+  AiSalesScriptCategoriesUrl,
+  AiSalesScriptAddUrl,
+  AiSalesScriptUpdateUrl,
+  AiSalesScriptDeleteUrl,
+  AiSalesScriptRetrieveUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -43,6 +49,11 @@ import type {
   AgentActionSuggestionItem,
   SalesAdvisorAnalyzeParams,
   SalesAdvisorAnalyzeResult,
+  AiSalesScript,
+  AiSalesScriptPageParams,
+  AiSalesScriptSaveParams,
+  AiSalesScriptRetrieveParams,
+  ScriptRecommend,
   SmartFocusParams,
 } from '../../models/ai';
 
@@ -414,6 +425,30 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post<SalesAdvisorAnalyzeResult>({ url: SalesAdvisorAnalyzeUrl, data });
   }
 
+  function getAiSalesScriptPage(data: AiSalesScriptPageParams) {
+    return CDR.post<CommonList<AiSalesScript>>({ url: AiSalesScriptPageUrl, data });
+  }
+
+  function getAiSalesScriptCategories() {
+    return CDR.get<string[]>({ url: AiSalesScriptCategoriesUrl });
+  }
+
+  function addAiSalesScript(data: AiSalesScriptSaveParams) {
+    return CDR.post({ url: AiSalesScriptAddUrl, data });
+  }
+
+  function updateAiSalesScript(data: AiSalesScriptSaveParams) {
+    return CDR.post({ url: AiSalesScriptUpdateUrl, data });
+  }
+
+  function deleteAiSalesScript(id: string) {
+    return CDR.get({ url: `${AiSalesScriptDeleteUrl}/${id}` });
+  }
+
+  function retrieveAiSalesScript(data: AiSalesScriptRetrieveParams) {
+    return CDR.post<ScriptRecommend[]>({ url: AiSalesScriptRetrieveUrl, data });
+  }
+
   return {
     streamAgentChat,
     cancelAgentChat,
@@ -440,5 +475,11 @@ export default function useAiApi(CDR: CordysAxios) {
     ignoreAgentActionApprove,
     confirmAgentActionApprove,
     analyzeSalesAdvisor,
+    getAiSalesScriptPage,
+    getAiSalesScriptCategories,
+    addAiSalesScript,
+    updateAiSalesScript,
+    deleteAiSalesScript,
+    retrieveAiSalesScript,
   };
 }

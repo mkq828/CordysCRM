@@ -190,3 +190,48 @@ export interface SalesAdvisorAnalyzeResult {
   suggestedScripts?: string[];
   rawAnalysis?: string;
 }
+
+/** 销售话术库-话术条目 */
+export interface AiSalesScript {
+  id?: string;
+  category?: string;
+  title?: string;
+  content?: string;
+  source?: string;
+  createTime?: number;
+  updateTime?: number;
+  createUser?: string;
+  updateUser?: string;
+}
+
+/** 销售话术库-分页查询参数 */
+export interface AiSalesScriptPageParams {
+  current?: number;
+  pageSize?: number;
+  keyword?: string;
+  category?: string;
+}
+
+/** 销售话术库-新增/更新参数 */
+export interface AiSalesScriptSaveParams {
+  id?: string;
+  category?: string;
+  title: string;
+  content: string;
+  source?: string;
+}
+
+/** 销售话术库-检索参数 */
+export interface AiSalesScriptRetrieveParams {
+  scenario: string;
+  category?: string;
+  topK?: number;
+}
+
+/** 销售话术库-检索推荐结果 */
+export interface ScriptRecommend {
+  title?: string;
+  content?: string;
+  source?: string;
+  originalContent?: string;
+}

@@ -48,6 +48,7 @@ export default {
     'menu.cityManagerAccount': '合伙人账号',
     'menu.cityManagerDashboard': '业绩看板',
     'menu.aiQuota': '我的 AI 额度',
+    'menu.salesScript': '销售话术库',
     'menu.platformAiQuota': 'AI 额度管理',
     'menu.settings.businessSetting': '企业设置',
     'menu.settings.license': 'License',

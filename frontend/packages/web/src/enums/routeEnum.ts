@@ -131,6 +131,11 @@ export enum AiQuotaRouteEnum {
   AI_QUOTA_INDEX = 'aiQuotaIndex',
 }
 
+export enum ScriptRouteEnum {
+  SCRIPT = 'salesScript',
+  SCRIPT_INDEX = 'salesScriptIndex',
+}
+
 export enum PlatformAiQuotaRouteEnum {
   PLATFORM_AI_QUOTA = 'platformAiQuota',
   PLATFORM_AI_QUOTA_INDEX = 'platformAiQuotaIndex',
@@ -159,6 +164,7 @@ export const AppRouteEnum = {
   ...CustomFormRouteEnum,
   ...SuggestionRouteEnum,
   ...AiQuotaRouteEnum,
+  ...ScriptRouteEnum,
   ...PlatformAiQuotaRouteEnum,
   ...PlatformAdminRouteEnum,
 };

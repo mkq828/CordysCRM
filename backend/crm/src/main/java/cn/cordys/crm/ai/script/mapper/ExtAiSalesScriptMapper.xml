@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.cordys.crm.ai.script.mapper.ExtAiSalesScriptMapper">
+
+    <select id="selectPage" resultType="cn.cordys.crm.ai.script.dto.response.AiSalesScriptResponse">
+        select
+            id,
+            category,
+            title,
+            content,
+            source,
+            create_user,
+            create_time,
+            update_user,
+            update_time
+        from ai_sales_script
+        where organization_id = #{orgId}
+        <if test="category != null and category != ''">
+            and category = #{category}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (title like concat('%', #{keyword}, '%') or content like concat('%', #{keyword}, '%'))
+        </if>
+        order by update_time desc
+    </select>
+
+    <select id="selectCategories" resultType="java.lang.String">
+        select distinct category
+        from ai_sales_script
+        where organization_id = #{orgId}
+          and category is not null
+          and category != ''
+        order by category
+    </select>
+
+    <select id="selectCandidates" resultType="cn.cordys.crm.ai.script.domain.AiSalesScript">
+        select
+            id,
+            organization_id,
+            category,
+            title,
+            content,
+            source,
+            create_user,
+            create_time,
+            update_user,
+            update_time
+        from ai_sales_script
+        where organization_id = #{orgId}
+        <if test="category != null and category != ''">
+            and category = #{category}
+        </if>
+        order by update_time desc
+        limit #{limit}
+    </select>
+
+</mapper>

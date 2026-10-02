@@ -50,6 +50,9 @@ public final class AiQuotaConstant {
     /** AI 销售会话军师（功能 1） */
     public static final String AI_ADVISOR = "ai_advisor";
 
+    /** 销售话术库 RAG 检索（功能 2） */
+    public static final String AI_SALES_RAG = "ai_sales_rag";
+
     public static final List<String> AI_FEATURE_CODES = List.of(
             "ai_advisor", "ai_acquire", "ai_sales_rag", "ai_video", "wecom_auto_analysis",
             "ai_ppt", "lead_crawl", "dm_profile", "ai_employee", "ai_kb", "digital_human");

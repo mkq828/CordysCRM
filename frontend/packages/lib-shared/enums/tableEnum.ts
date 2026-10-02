@@ -35,6 +35,7 @@ export enum TableKeyEnum {
   OPPORTUNITY_QUOTATION = 'opportunityQuotation',
   LOG = 'log',
   AI_EXECUTION_LOG = 'aiExecutionLog',
+  AI_SALES_SCRIPT = 'aiSalesScript',
   LOGIN_LOG = 'loginLog',
   FOLLOW_PLAN = 'followPlan',
   FOLLOW_RECORD = 'followRecord',
