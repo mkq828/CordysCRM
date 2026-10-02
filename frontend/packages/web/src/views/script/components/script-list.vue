@@ -17,6 +17,13 @@
           @update:value="handleCategoryChange"
         />
         <div class="flex-1" />
+        <CrmImportButton
+          :api-type="ImportTypeExcludeFormDesignEnum.SALES_SCRIPT_IMPORT"
+          :title="t('script.importTitle')"
+          :hide-import-updates="true"
+          :hide-import-updates-tooltip="true"
+          @import-success="handleImportSuccess"
+        />
         <n-button type="primary" @click="openAdd">{{ t('script.addScript') }}</n-button>
       </div>
     </CrmCard>
@@ -38,14 +45,17 @@
     <n-modal v-model:show="showForm" preset="card" :title="formTitle" class="!w-[560px]" :mask-closable="false">
       <n-form ref="formRef" :model="form" label-placement="left" :rules="rules" label-width="72">
         <n-form-item :label="t('script.category')" path="category">
-          <n-select
-            v-model:value="form.category"
-            filterable
-            tag
-            clearable
-            :options="categoryOptions"
-            :placeholder="t('script.selectCategory')"
-          />
+          <div class="w-full">
+            <n-select
+              v-model:value="form.category"
+              filterable
+              tag
+              clearable
+              :options="categoryOptions"
+              :placeholder="t('script.selectCategory')"
+            />
+            <div class="mt-[4px] text-[12px] text-orange-500">{{ t('script.categoryHint') }}</div>
+          </div>
         </n-form-item>
         <n-form-item :label="t('script.title')" path="title">
           <n-input v-model:value="form.title" :maxlength="128" :placeholder="t('script.titlePlaceholder')" />
@@ -77,6 +87,7 @@
   import { h } from 'vue';
   import { NButton, NForm, NFormItem, NInput, NModal, NSelect, NTag, useMessage } from 'naive-ui';
 
+  import { ImportTypeExcludeFormDesignEnum } from '@lib/shared/enums/commonEnum';
   import { TableKeyEnum } from '@lib/shared/enums/tableEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import { characterLimit } from '@lib/shared/method';
@@ -88,6 +99,7 @@
   import CrmTable from '@/components/pure/crm-table/index.vue';
   import type { CrmDataTableColumn } from '@/components/pure/crm-table/type';
   import useTable from '@/components/pure/crm-table/useTable';
+  import CrmImportButton from '@/components/business/crm-import-button/index.vue';
   import CrmOperationButton from '@/components/business/crm-operation-button/index.vue';
 
   import {
@@ -98,6 +110,8 @@
     updateAiSalesScript,
   } from '@/api/modules';
   import useModal from '@/hooks/useModal';
+
+  import { buildScriptCategoryOptions } from '../constants';
 
   const { t } = useI18n();
   const Message = useMessage();
@@ -110,8 +124,9 @@
   async function loadCategories() {
     try {
       const res = await getAiSalesScriptCategories();
-      categoryOptions.value = (res || []).map((item) => ({ label: item, value: item }));
+      categoryOptions.value = buildScriptCategoryOptions(res || []);
     } catch (error) {
+      categoryOptions.value = buildScriptCategoryOptions();
       // eslint-disable-next-line no-console
       console.error(error);
     }
@@ -298,6 +313,11 @@
 
   function handleCategoryChange() {
     search();
+  }
+
+  function handleImportSuccess() {
+    tableRefreshId.value += 1;
+    loadCategories();
   }
 
   onMounted(() => {

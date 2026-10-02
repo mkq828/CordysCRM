@@ -27,3 +27,6 @@ export const AiSalesScriptAddUrl = '/agent/script/add'; // 销售话术库-新�
 export const AiSalesScriptUpdateUrl = '/agent/script/update'; // 销售话术库-更新话术
 export const AiSalesScriptDeleteUrl = '/agent/script/delete'; // 销售话术库-删除话术（拼 /{id}）
 export const AiSalesScriptRetrieveUrl = '/agent/script/retrieve'; // 销售话术库-检索并改写
+export const AiSalesScriptImportTemplateUrl = '/agent/script/import/template'; // 销售话术库-下载导入模板
+export const AiSalesScriptImportPreCheckUrl = '/agent/script/import/pre-check'; // 销售话术库-导入预校验
+export const AiSalesScriptImportUrl = '/agent/script/import'; // 销售话术库-导入

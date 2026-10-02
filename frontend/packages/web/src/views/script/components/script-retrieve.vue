@@ -80,6 +80,8 @@
 
   import { getAiSalesScriptCategories, retrieveAiSalesScript } from '@/api/modules';
 
+  import { buildScriptCategoryOptions } from '../constants';
+
   const { t } = useI18n();
   const Message = useMessage();
 
@@ -93,8 +95,9 @@
   async function loadCategories() {
     try {
       const res = await getAiSalesScriptCategories();
-      categoryOptions.value = (res || []).map((item) => ({ label: item, value: item }));
+      categoryOptions.value = buildScriptCategoryOptions(res || []);
     } catch (error) {
+      categoryOptions.value = buildScriptCategoryOptions();
       // eslint-disable-next-line no-console
       console.error(error);
     }

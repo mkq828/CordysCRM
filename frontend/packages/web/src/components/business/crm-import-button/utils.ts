@@ -5,6 +5,7 @@ import { ValidateInfo } from '@lib/shared/models/system/org';
 
 import {
   downloadAccountTemplate,
+  downloadAiSalesScriptTemplate,
   downloadBusinessTitleTemplate,
   downloadContactTemplate,
   downloadContractInvoicedTemplate,
@@ -21,6 +22,7 @@ import {
   downloadProductTemplate,
   downloadTermTemplate,
   importAccount,
+  importAiSalesScript,
   importBusinessTitle,
   importContact,
   importContract,
@@ -37,6 +39,7 @@ import {
   importProductPrice,
   importTerm,
   preCheckImportAccount,
+  preCheckImportAiSalesScript,
   preCheckImportBusinessTitle,
   preCheckImportContact,
   preCheckImportContract,
@@ -70,7 +73,8 @@ export type ImportApiType =
   | FormDesignKeyEnum.CUSTOM_FORM
   | FormDesignKeyEnum.CONTRACT
   | FormDesignKeyEnum.ORDER
-  | ImportTypeExcludeFormDesignEnum.TERM_IMPORT;
+  | ImportTypeExcludeFormDesignEnum.TERM_IMPORT
+  | ImportTypeExcludeFormDesignEnum.SALES_SCRIPT_IMPORT;
 
 export interface importRequestType {
   preCheck: (params: ImportRequestParams) => Promise<{ data: ValidateInfo }>;
@@ -163,5 +167,10 @@ export const importApiMap: Record<ImportApiType, importRequestType> = {
     preCheck: (params) => preCheckImportCustomForm(params.uploadParams),
     save: (params) => importCustomForm(params.uploadParams),
     download: downloadCustomFormTemplate,
+  },
+  [ImportTypeExcludeFormDesignEnum.SALES_SCRIPT_IMPORT]: {
+    preCheck: (params) => preCheckImportAiSalesScript(params.uploadParams),
+    save: (params) => importAiSalesScript(params.uploadParams),
+    download: downloadAiSalesScriptTemplate,
   },
 };

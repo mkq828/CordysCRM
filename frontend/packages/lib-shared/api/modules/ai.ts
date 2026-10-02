@@ -24,6 +24,9 @@ import {
   AiSalesScriptUpdateUrl,
   AiSalesScriptDeleteUrl,
   AiSalesScriptRetrieveUrl,
+  AiSalesScriptImportTemplateUrl,
+  AiSalesScriptImportPreCheckUrl,
+  AiSalesScriptImportUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -32,7 +35,8 @@ import {
 import { useI18n } from '../../hooks/useI18n';
 import { getToken } from '../../method/auth';
 import type { CordysAxios } from '../http/Axios';
-import type { CommonList, TableQueryParams } from '../../models/common';
+import type { CommonList, ImportUploadParams, TableQueryParams } from '../../models/common';
+import type { ValidateInfo } from '../../models/system/org';
 import type {
   AgentChatCancelParams,
   AgentChatConfirmData,
@@ -449,6 +453,21 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post<ScriptRecommend[]>({ url: AiSalesScriptRetrieveUrl, data });
   }
 
+  function downloadAiSalesScriptTemplate() {
+    return CDR.get(
+      { url: AiSalesScriptImportTemplateUrl, responseType: 'blob' },
+      { isTransformResponse: false, isReturnNativeResponse: true }
+    );
+  }
+
+  function preCheckImportAiSalesScript(params: ImportUploadParams) {
+    return CDR.uploadFile<{ data: ValidateInfo }>({ url: AiSalesScriptImportPreCheckUrl }, params, 'file');
+  }
+
+  function importAiSalesScript(params: ImportUploadParams) {
+    return CDR.uploadFile({ url: AiSalesScriptImportUrl }, params, 'file');
+  }
+
   return {
     streamAgentChat,
     cancelAgentChat,
@@ -481,5 +500,8 @@ export default function useAiApi(CDR: CordysAxios) {
     updateAiSalesScript,
     deleteAiSalesScript,
     retrieveAiSalesScript,
+    downloadAiSalesScriptTemplate,
+    preCheckImportAiSalesScript,
+    importAiSalesScript,
   };
 }

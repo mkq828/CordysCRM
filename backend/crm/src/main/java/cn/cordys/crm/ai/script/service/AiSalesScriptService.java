@@ -19,20 +19,31 @@ import cn.cordys.crm.ai.script.dto.request.AiSalesScriptRetrieveRequest;
 import cn.cordys.crm.ai.script.dto.request.AiSalesScriptSaveRequest;
 import cn.cordys.crm.ai.script.dto.response.AiSalesScriptResponse;
 import cn.cordys.crm.ai.script.dto.response.ScriptRecommendResponse;
+import cn.cordys.crm.ai.script.excel.AiSalesScriptExcelData;
+import cn.cordys.crm.ai.script.excel.AiSalesScriptImportListener;
 import cn.cordys.crm.ai.script.mapper.ExtAiSalesScriptMapper;
 import cn.cordys.crm.ai.service.AiQuotaService;
+import cn.cordys.crm.system.dto.response.ImportResponse;
+import cn.cordys.excel.utils.EasyExcelExporter;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.security.SessionUtils;
+import cn.idev.excel.EasyExcel;
+import cn.idev.excel.FastExcelFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -160,6 +171,7 @@ public class AiSalesScriptService {
                 llmRequest.setModel(model.getModelName());
                 llmRequest.setBaseUrl(model.getApiUrl());
                 llmRequest.setApiKey(model.getApiKey());
+                agentModelService.applyModelParams(llmRequest, model);
                 llmRequest.setMessages(buildMessages(request.getScenario().trim(), candidates, topK));
 
                 LlmUsage usage = provider.chatStream(llmRequest, chunk -> {
@@ -183,6 +195,61 @@ public class AiSalesScriptService {
         log.error("话术检索全部 AI 模型调用失败，候选数={}", models.size(), lastError);
         throw new GenericException(lastError == null || lastError.getMessage() == null
                 ? "AI 服务异常，请稍后重试" : lastError.getMessage());
+    }
+
+    // ==================== Excel 导入 ====================
+
+    /** 下载话术导入模板（分类/标题/内容/出处四列表头） */
+    public void downloadImportTemplate(HttpServletResponse response) {
+        try {
+            new EasyExcelExporter().buildExportResponse(response, "销售话术导入模板");
+            EasyExcel.write(response.getOutputStream(), AiSalesScriptExcelData.class)
+                    .sheet("话术")
+                    .doWrite(Collections.emptyList());
+        } catch (IOException e) {
+            log.error("下载话术导入模板失败", e);
+            throw new GenericException("模板下载失败，请重试");
+        }
+    }
+
+    /** 导入预校验：仅校验并返回成功/失败明细，不落库 */
+    public ImportResponse importPreCheck(MultipartFile file, String orgId, String userId) {
+        return doImport(file, orgId, userId, false);
+    }
+
+    /** 实际导入：校验通过的话术批量落库 */
+    @Transactional(rollbackFor = Exception.class)
+    public ImportResponse realImport(MultipartFile file, String orgId, String userId) {
+        return doImport(file, orgId, userId, true);
+    }
+
+    private ImportResponse doImport(MultipartFile file, String orgId, String userId, boolean persist) {
+        if (file == null || file.isEmpty()) {
+            throw new GenericException("请上传导入文件");
+        }
+        try {
+            AiSalesScriptImportListener listener = new AiSalesScriptImportListener(orgId, userId);
+            FastExcelFactory.read(file.getInputStream(), listener)
+                    .headRowNumber(1)
+                    .ignoreEmptyRow(true)
+                    .sheet()
+                    .doRead();
+            if (persist) {
+                for (AiSalesScript script : listener.getDataList()) {
+                    scriptMapper.insert(script);
+                }
+            }
+            return ImportResponse.builder()
+                    .errorMessages(listener.getErrList())
+                    .successCount(listener.getDataList().size())
+                    .failCount(listener.getErrList().size())
+                    .build();
+        } catch (GenericException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("话术导入失败", e);
+            throw new GenericException("导入失败，请检查文件数据");
+        }
     }
 
     // ==================== 内部方法 ====================
