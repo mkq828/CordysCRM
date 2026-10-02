@@ -196,11 +196,11 @@
           </div>
 
           <!-- 候选话术 -->
-          <div v-if="result.suggestedScripts?.length" class="flex flex-col gap-[8px]">
+          <div v-if="scriptCards.length" class="flex flex-col gap-[8px]">
             <span class="text-[13px] font-semibold text-[var(--text-n1)]">{{
               t('workbench.smart.advisorScripts')
             }}</span>
-            <div v-for="(item, index) in result.suggestedScripts" :key="index" class="advisor-script-card">
+            <div v-for="(item, index) in scriptCards" :key="index" class="advisor-script-card">
               <div class="flex items-start gap-[10px]">
                 <span
                   class="mt-[2px] flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-[6px] text-[12px] font-bold text-white"
@@ -208,8 +208,31 @@
                 >
                   {{ index + 1 }}
                 </span>
-                <span class="flex-1 text-[13px] leading-[1.6] text-[var(--text-n2)]">{{ item }}</span>
-                <n-button size="tiny" quaternary @click="copyScript(item)">
+                <div class="flex-1">
+                  <div v-if="item.title" class="flex flex-wrap items-center gap-[6px]">
+                    <span class="text-[13px] font-semibold text-[var(--text-n1)]">{{ item.title }}</span>
+                    <n-tag v-if="item.source" size="small" :bordered="false" type="info">
+                      {{ item.source }}
+                    </n-tag>
+                  </div>
+                  <div class="mt-[4px] text-[13px] leading-[1.6] text-[var(--text-n2)]">{{ item.content }}</div>
+                  <div v-if="item.originalContent" class="mt-[6px]">
+                    <n-button size="tiny" quaternary @click="toggleOriginal(index)">
+                      {{
+                        showOriginal[index]
+                          ? t('workbench.smart.advisorHideOriginal')
+                          : t('workbench.smart.advisorOriginal')
+                      }}
+                    </n-button>
+                    <div
+                      v-if="showOriginal[index]"
+                      class="mt-[4px] rounded-[6px] bg-[var(--fill-2)] p-[8px] text-[12px] leading-[1.6] text-[var(--text-n3)]"
+                    >
+                      {{ item.originalContent }}
+                    </div>
+                  </div>
+                </div>
+                <n-button size="tiny" quaternary @click="copyScript(item.content)">
                   {{ t('workbench.smart.advisorCopy') }}
                 </n-button>
               </div>
@@ -265,6 +288,32 @@
   const pics = ref<Pic[]>([]);
 
   const canAnalyze = computed(() => !analyzing.value && (message.value.trim() !== '' || pics.value.length > 0));
+
+  interface ScriptCard {
+    title?: string;
+    content: string;
+    source?: string;
+    originalContent?: string;
+  }
+
+  const showOriginal = ref<Record<number, boolean>>({});
+
+  const scriptCards = computed<ScriptCard[]>(() => {
+    const recommendations = result.value?.scriptRecommendations;
+    if (recommendations?.length) {
+      return recommendations.map((item) => ({
+        title: item.title,
+        content: item.content || '',
+        source: item.source,
+        originalContent: item.originalContent,
+      }));
+    }
+    return (result.value?.suggestedScripts || []).map((content) => ({ content }));
+  });
+
+  function toggleOriginal(index: number) {
+    showOriginal.value[index] = !showOriginal.value[index];
+  }
 
   const intentNum = computed(() => {
     const raw = result.value?.intentScore;
@@ -377,6 +426,7 @@
     }
     try {
       analyzing.value = true;
+      showOriginal.value = {};
       result.value = await analyzeSalesAdvisor({
         message: message.value.trim() || undefined,
         picIds: pics.value.map((pic) => pic.id),

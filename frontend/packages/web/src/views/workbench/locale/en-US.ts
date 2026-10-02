@@ -118,4 +118,6 @@ export default {
   'workbench.smart.advisorRiskLow': 'Low risk',
   'workbench.smart.advisorCopy': 'Copy',
   'workbench.smart.advisorCopied': 'Copied',
+  'workbench.smart.advisorOriginal': 'Original',
+  'workbench.smart.advisorHideOriginal': 'Hide original',
 };

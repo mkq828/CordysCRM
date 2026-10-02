@@ -12,6 +12,9 @@ import cn.cordys.crm.ai.llm.LlmProviderFactory;
 import cn.cordys.crm.ai.llm.LlmUsage;
 import cn.cordys.crm.ai.model.domain.AgentModel;
 import cn.cordys.crm.ai.model.service.AgentModelService;
+import cn.cordys.crm.ai.script.dto.request.AiSalesScriptRetrieveRequest;
+import cn.cordys.crm.ai.script.dto.response.ScriptRecommendResponse;
+import cn.cordys.crm.ai.script.service.AiSalesScriptService;
 import cn.cordys.crm.system.domain.Parameter;
 import cn.cordys.crm.system.service.AttachmentService;
 import cn.cordys.mybatis.BaseMapper;
@@ -77,6 +80,8 @@ public class SalesAdvisorService {
     private AttachmentService attachmentService;
     @Resource
     private BaseMapper<Parameter> parameterMapper;
+    @Resource
+    private AiSalesScriptService aiSalesScriptService;
 
     /**
      * 分析销售会话。截图（若有）直接作为图片喂给多模态视觉模型，再走四步链路调用模型并解析结构化结果。
@@ -120,6 +125,7 @@ public class SalesAdvisorService {
                 llmRequest.setModel(model.getModelName());
                 llmRequest.setBaseUrl(model.getApiUrl());
                 llmRequest.setApiKey(model.getApiKey());
+                agentModelService.applyModelParams(llmRequest, model);
                 llmRequest.setMessages(buildMessages(userContent, imageUrls));
 
                 LlmUsage usage = provider.chatStream(llmRequest, chunk -> {
@@ -128,7 +134,9 @@ public class SalesAdvisorService {
                 });
                 aiQuotaService.record(organizationId, AiQuotaConstant.AI_ADVISOR, model.getModelName(),
                         usage.getInputTokens(), usage.getOutputTokens(), userId);
-                return parseAnalysis(content.toString());
+                SalesAdvisorAnalyzeResponse analysis = parseAnalysis(content.toString());
+                enrichWithScriptLibrary(analysis, organizationId, request);
+                return analysis;
             } catch (Exception e) {
                 lastError = e;
                 if (emitted.get()) {
@@ -241,6 +249,58 @@ public class SalesAdvisorService {
         }
         String s = node.asText();
         return StringUtils.isBlank(s) ? List.of() : List.of(s.trim());
+    }
+
+    // ==================== 话术库增强 ====================
+
+    /** 候选话术优先取话术库：检索成功则用带出处/原文的改写结果，否则保留模型自拟的 suggestedScripts */
+    private void enrichWithScriptLibrary(SalesAdvisorAnalyzeResponse analysis, String organizationId,
+            SalesAdvisorAnalyzeRequest request) {
+        List<ScriptRecommendResponse> recommendations = retrieveLibraryScripts(organizationId, request,
+                analysis.getObjections());
+        if (recommendations.isEmpty()) {
+            return;
+        }
+        analysis.setScriptRecommendations(recommendations);
+        List<String> contents = new ArrayList<>();
+        for (ScriptRecommendResponse recommendation : recommendations) {
+            contents.add(recommendation.getContent());
+        }
+        analysis.setSuggestedScripts(contents);
+    }
+
+    /** 兜底检索话术库：话术库为空 / 检索失败时返回空列表，不阻断会话军师主流程 */
+    private List<ScriptRecommendResponse> retrieveLibraryScripts(String organizationId, SalesAdvisorAnalyzeRequest request,
+            List<String> objections) {
+        String scenario = buildScriptScenario(request.getMessage(), objections);
+        if (StringUtils.isBlank(scenario)) {
+            return List.of();
+        }
+        AiSalesScriptRetrieveRequest retrieveRequest = new AiSalesScriptRetrieveRequest();
+        retrieveRequest.setScenario(scenario);
+        retrieveRequest.setTopK(3);
+        try {
+            return aiSalesScriptService.retrieve(retrieveRequest, organizationId);
+        } catch (Exception e) {
+            log.warn("会话军师检索话术库失败，回退模型自拟话术: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    /** 用粘贴文本 + 客户异议点拼出话术检索场景（异议点是选话术的关键信号） */
+    private String buildScriptScenario(String message, List<String> objections) {
+        List<String> parts = new ArrayList<>();
+        if (StringUtils.isNotBlank(message)) {
+            parts.add(message.trim());
+        }
+        if (objections != null) {
+            for (String objection : objections) {
+                if (StringUtils.isNotBlank(objection)) {
+                    parts.add("客户异议：" + objection.trim());
+                }
+            }
+        }
+        return String.join("；", parts);
     }
 
     // ==================== 截图 OCR ====================

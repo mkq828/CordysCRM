@@ -188,6 +188,7 @@ export interface SalesAdvisorAnalyzeResult {
   competitorMentions?: string[];
   churnRisk?: string;
   suggestedScripts?: string[];
+  scriptRecommendations?: ScriptRecommend[];
   rawAnalysis?: string;
 }
 

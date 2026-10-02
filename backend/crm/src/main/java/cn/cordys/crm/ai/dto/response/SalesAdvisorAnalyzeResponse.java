@@ -1,5 +1,6 @@
 package cn.cordys.crm.ai.dto.response;
 
+import cn.cordys.crm.ai.script.dto.response.ScriptRecommendResponse;
 import lombok.Data;
 
 import java.util.List;
@@ -30,6 +31,9 @@ public class SalesAdvisorAnalyzeResponse {
 
     /** 候选跟进话术 */
     private List<String> suggestedScripts;
+
+    /** 话术库检索推荐（带标题/出处/原文），检索成功时优先于 suggestedScripts */
+    private List<ScriptRecommendResponse> scriptRecommendations;
 
     /** 结构化解析失败时的原文回退（模型未按 JSON 输出时） */
     private String rawAnalysis;
