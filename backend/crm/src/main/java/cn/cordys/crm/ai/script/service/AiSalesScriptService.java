@@ -4,6 +4,7 @@ import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.pager.PageUtils;
 import cn.cordys.common.pager.Pager;
 import cn.cordys.common.uid.IDGenerator;
+import cn.cordys.common.util.Translator;
 import cn.cordys.crm.ai.constant.AiQuotaConstant;
 import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
 import cn.cordys.crm.ai.llm.LlmChatRequest;
@@ -19,7 +20,6 @@ import cn.cordys.crm.ai.script.dto.request.AiSalesScriptRetrieveRequest;
 import cn.cordys.crm.ai.script.dto.request.AiSalesScriptSaveRequest;
 import cn.cordys.crm.ai.script.dto.response.AiSalesScriptResponse;
 import cn.cordys.crm.ai.script.dto.response.ScriptRecommendResponse;
-import cn.cordys.crm.ai.script.excel.AiSalesScriptExcelData;
 import cn.cordys.crm.ai.script.excel.AiSalesScriptImportListener;
 import cn.cordys.crm.ai.script.mapper.ExtAiSalesScriptMapper;
 import cn.cordys.crm.ai.service.AiQuotaService;
@@ -199,11 +199,17 @@ public class AiSalesScriptService {
 
     // ==================== Excel 导入 ====================
 
-    /** 下载话术导入模板（分类/标题/内容/出处四列表头） */
+    /** 下载话术导入模板（显式写表头：分类/标题/内容/出处，文件名为本地化名称，对齐线索库模板） */
     public void downloadImportTemplate(HttpServletResponse response) {
+        List<List<String>> head = List.of(
+                List.of("分类"),
+                List.of("标题"),
+                List.of("内容"),
+                List.of("出处"));
+        new EasyExcelExporter().buildExportResponse(response, Translator.get("ai.script.import_tpl.name"));
         try {
-            new EasyExcelExporter().buildExportResponse(response, "销售话术导入模板");
-            EasyExcel.write(response.getOutputStream(), AiSalesScriptExcelData.class)
+            EasyExcel.write(response.getOutputStream())
+                    .head(head)
                     .sheet("话术")
                     .doWrite(Collections.emptyList());
         } catch (IOException e) {
