@@ -108,4 +108,12 @@ export default {
   'workbench.smart.advisorToFollow': '一键转跟进',
   'workbench.smart.advisorAnalyzeAgain': '重新分析',
   'workbench.smart.advisorNoResult': '暂无分析结果',
+  'workbench.smart.advisorIntentHigh': '强烈意向',
+  'workbench.smart.advisorIntentMedium': '观望中',
+  'workbench.smart.advisorIntentLow': '待激活',
+  'workbench.smart.advisorRiskHigh': '高风险',
+  'workbench.smart.advisorRiskMedium': '中风险',
+  'workbench.smart.advisorRiskLow': '低风险',
+  'workbench.smart.advisorCopy': '复制',
+  'workbench.smart.advisorCopied': '已复制',
 };

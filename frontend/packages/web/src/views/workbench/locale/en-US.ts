@@ -110,4 +110,12 @@ export default {
   'workbench.smart.advisorToFollow': 'Save as follow-up',
   'workbench.smart.advisorAnalyzeAgain': 'Analyze again',
   'workbench.smart.advisorNoResult': 'No result yet',
+  'workbench.smart.advisorIntentHigh': 'Strong intent',
+  'workbench.smart.advisorIntentMedium': 'Considering',
+  'workbench.smart.advisorIntentLow': 'Inactive',
+  'workbench.smart.advisorRiskHigh': 'High risk',
+  'workbench.smart.advisorRiskMedium': 'Medium risk',
+  'workbench.smart.advisorRiskLow': 'Low risk',
+  'workbench.smart.advisorCopy': 'Copy',
+  'workbench.smart.advisorCopied': 'Copied',
 };
