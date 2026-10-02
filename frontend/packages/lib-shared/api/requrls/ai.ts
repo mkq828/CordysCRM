@@ -20,3 +20,4 @@ export const AgentActionSuggestionSubmitUrl = '/agent-action-suggestion/submit';
 export const AgentActionApprovePageUrl = '/agent-action-approve/page'; // AI 方案审核分页查询
 export const AgentActionApproveIgnoreUrl = '/agent-action-approve/ignore'; // 忽略或拒绝审核
 export const AgentActionApproveConfirmUrl = '/agent-action-approve/confirm'; // 确认审核并异步提交执行
+export const SalesAdvisorAnalyzeUrl = '/agent/advisor/analyze'; // AI 销售会话军师-结构化分析

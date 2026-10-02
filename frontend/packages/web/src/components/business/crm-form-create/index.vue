@@ -103,6 +103,7 @@
     needInitDetail?: boolean; // 是否需要初始化详情
     initialSourceName?: string; // 初始化详情时的名称
     otherSaveParams?: Record<string, any>;
+    initialValues?: Record<string, any>; // 新建表单时预填的字段值
     linkFormInfo?: Record<string, any>; // 关联表单信息
     linkFormKey?: FormDesignKeyEnum;
     linkScenario?: FormLinkScenarioEnum; // 关联表单场景
@@ -133,6 +134,7 @@
     sourceId,
     initialSourceName,
     otherSaveParams,
+    initialValues,
     linkFormInfo,
     linkFormKey,
     linkScenario,
@@ -160,6 +162,7 @@
     needInitDetail,
     initialSourceName,
     otherSaveParams,
+    initialValues,
     linkFormInfo,
     linkFormKey,
     linkScenario,

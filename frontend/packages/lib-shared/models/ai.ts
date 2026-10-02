@@ -172,3 +172,21 @@ export interface AgentActionApproveItem {
   createTime?: number;
   content?: string;
 }
+
+/** AI 销售会话军师分析请求：粘贴文本 + 可选截图附件 id */
+export interface SalesAdvisorAnalyzeParams {
+  message?: string;
+  picIds?: string[];
+}
+
+/** AI 销售会话军师结构化分析结果 */
+export interface SalesAdvisorAnalyzeResult {
+  intentScore?: string;
+  signals?: string[];
+  objections?: string[];
+  emotion?: string;
+  competitorMentions?: string[];
+  churnRisk?: string;
+  suggestedScripts?: string[];
+  rawAnalysis?: string;
+}

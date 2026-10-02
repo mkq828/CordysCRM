@@ -11,6 +11,7 @@
           @submit="handleComposerSubmit"
         />
       </AiChatProvider>
+      <SalesAdvisor />
       <n-spin
         v-if="dataOverviewAIRenderString || dataOverviewLoading"
         :show="dataOverviewLoading && Boolean(dataOverviewAIRenderString)"
@@ -196,6 +197,7 @@
     createAiChatRuntime,
   } from '@/components/business/ai-chat';
   import AiMarkdownBlock from '@/components/business/ai-chat/blocks/AiMarkdownBlock.vue';
+  import SalesAdvisor from './components/salesAdvisor.vue';
 
   import {
     confirmAgentActionApprove,

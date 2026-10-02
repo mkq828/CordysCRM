@@ -876,6 +876,7 @@ export const {
   getAgentActionApprovePage,
   ignoreAgentActionApprove,
   confirmAgentActionApprove,
+  analyzeSalesAdvisor,
   getAgentConversationPage,
   getAgentConversationDetail,
   deleteAgentConversation,

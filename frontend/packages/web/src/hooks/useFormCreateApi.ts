@@ -51,6 +51,7 @@ export interface FormCreateApiProps {
   needInitDetail?: Ref<boolean>;
   initialSourceName?: Ref<string | undefined>; // 特殊字段初始化需要的资源名称
   otherSaveParams?: Ref<Record<string, any> | undefined>;
+  initialValues?: Ref<Record<string, any> | undefined>; // 新建表单时预填的字段值（按 businessKey 或字段 id 匹配）
   linkFormInfo?: Ref<Record<string, any> | undefined>; // 关联表单信息
   linkFormKey?: Ref<FormDesignKeyEnum | undefined>; // 关联表单key
   linkScenario?: Ref<FormLinkScenarioEnum | undefined>; // 关联表单场景
@@ -1485,6 +1486,13 @@ export default function useFormCreateApi(props: FormCreateApiProps) {
       const defaultValue = initFormCreateFieldDefaultValue(item);
       if (['', null, undefined].includes(formDetail.value[item.id])) {
         formDetail.value[item.id] = defaultValue;
+      }
+      // 新建表单时按 businessKey 或字段 id 预填初始值（如会话军师转跟进预填 content）
+      const initialValues = props.initialValues?.value || {};
+      if (item.businessKey && initialValues[item.businessKey] !== undefined) {
+        formDetail.value[item.id] = initialValues[item.businessKey];
+      } else if (initialValues[item.id] !== undefined) {
+        formDetail.value[item.id] = initialValues[item.id];
       }
       replaceRule(item);
       if (Object.keys(props.linkFormInfo?.value || {}).length && linkScenario) {

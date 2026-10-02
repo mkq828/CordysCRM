@@ -32,6 +32,7 @@
       :link-form-key="props.linkFormKey"
       :link-scenario="props.linkScenario"
       :customFormId="props.customFormId"
+      :initial-values="props.initialValues"
       class="!pt-[16px]"
       @cancel="handleBack"
       @saved="handleSaved"
@@ -65,6 +66,7 @@
     linkFormKey?: FormDesignKeyEnum;
     linkScenario?: FormLinkScenarioEnum; // 关联表单场景
     customFormId?: string;
+    initialValues?: Record<string, any>; // 新建表单时预填的字段值
   }>();
   const emit = defineEmits<{
     (e: 'saved', res: any, isUpdateReview?: boolean, isContinue?: boolean): void;

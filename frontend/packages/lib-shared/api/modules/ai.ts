@@ -17,6 +17,7 @@ import {
   AgentMcpConfigDeleteUrl,
   AgentMcpConfigImportUrl,
   AgentMcpConfigListUrl,
+  SalesAdvisorAnalyzeUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -40,6 +41,8 @@ import type {
   AgentMcpConfigItem,
   AgentActionApproveItem,
   AgentActionSuggestionItem,
+  SalesAdvisorAnalyzeParams,
+  SalesAdvisorAnalyzeResult,
   SmartFocusParams,
 } from '../../models/ai';
 
@@ -407,6 +410,10 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post({ url: `${AgentActionApproveConfirmUrl}/${id}` });
   }
 
+  function analyzeSalesAdvisor(data: SalesAdvisorAnalyzeParams) {
+    return CDR.post<SalesAdvisorAnalyzeResult>({ url: SalesAdvisorAnalyzeUrl, data });
+  }
+
   return {
     streamAgentChat,
     cancelAgentChat,
@@ -432,5 +439,6 @@ export default function useAiApi(CDR: CordysAxios) {
     getAgentActionApprovePage,
     ignoreAgentActionApprove,
     confirmAgentActionApprove,
+    analyzeSalesAdvisor,
   };
 }
