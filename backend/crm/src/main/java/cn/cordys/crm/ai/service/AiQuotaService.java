@@ -25,6 +25,7 @@ import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
 import cn.cordys.crm.ai.dto.response.AiQuotaTrendPoint;
 import cn.cordys.crm.ai.dto.response.AiTenantQuotaRow;
 import cn.cordys.crm.ai.dto.response.TenantQuotaOverviewResponse;
+import cn.cordys.crm.platform.util.PlatformSessionUtils;
 import cn.cordys.crm.system.constants.NotificationConstants;
 import cn.cordys.crm.system.domain.Organization;
 import cn.cordys.crm.system.domain.Parameter;
@@ -119,6 +120,8 @@ public class AiQuotaService {
             status = STATUS_CIRCUIT_BROKEN;
         } else if (readRateExceeded(organizationId)) {
             status = STATUS_RATE_LIMITED;
+        } else if (isPlatformInternalUser()) {
+            status = STATUS_NORMAL;
         } else {
             status = resolveStatus(organizationId, BigDecimal.ZERO);
         }
@@ -147,6 +150,9 @@ public class AiQuotaService {
         BigDecimal costCalls = calcCostCalls(inputTokens, outputTokens);
         result.setCostCalls(costCalls);
         String status = resolveStatus(organizationId, costCalls);
+        if (isPlatformInternalUser()) {
+            status = STATUS_NORMAL;
+        }
         if (STATUS_HARD_LIMITED.equals(status)) {
             result.setStatus(status);
             return result;
@@ -165,6 +171,9 @@ public class AiQuotaService {
      * 超限抛异常；null 或 &lt;=0 表示不限制。今日已消耗按 ai_usage_record 当日 total_tokens 累计。
      */
     public void checkModelDailyLimit(String organizationId, AgentModel model, String userId) {
+        if (isPlatformInternalUser()) {
+            return;
+        }
         if (model == null) {
             return;
         }
@@ -546,6 +555,14 @@ public class AiQuotaService {
     }
 
     // ==================== 私有：额度判定 ====================
+
+    /**
+     * 平台侧账号（admin / 城市经理）豁免业务额度：测试与演示不受租户月度配额、模型每日 token 上限约束；
+     * 限流与熔断等防失控保护仍生效。
+     */
+    private boolean isPlatformInternalUser() {
+        return PlatformSessionUtils.isAdmin() || PlatformSessionUtils.isCityManager();
+    }
 
     /**
      * 根据「已用 + 本次增量」判定额度状态。
