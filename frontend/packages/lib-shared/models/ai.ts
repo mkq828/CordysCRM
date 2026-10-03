@@ -311,3 +311,8 @@ export interface AiKnowledgeAnswerResult {
   answer?: string;
   citations?: AiKnowledgeCitation[];
 }
+
+/** 企业知识库-出处片段长度设置 */
+export interface AiKnowledgeConfig {
+  snippetMax: number;
+}

@@ -38,3 +38,4 @@ export const AiKnowledgeDocUploadUrl = '/agent/kb/doc/upload'; // 企业知识�
 export const AiKnowledgeDocDeleteUrl = '/agent/kb/doc/delete'; // 企业知识库-删除文档（拼 /{id}）
 export const AiKnowledgeAskUrl = '/agent/kb/ask'; // 企业知识库-检索问答
 export const AiKnowledgeAskStreamUrl = '/agent/kb/ask/stream'; // 企业知识库-流式检索问答
+export const AiKnowledgeConfigUrl = '/agent/kb/config'; // 企业知识库-出处片段长度设置（GET 读 / POST 存）

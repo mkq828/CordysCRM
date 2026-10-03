@@ -26,6 +26,7 @@ import cn.cordys.crm.ai.llm.LlmUsage;
 import cn.cordys.crm.ai.model.domain.AgentModel;
 import cn.cordys.crm.ai.model.service.AgentModelService;
 import cn.cordys.crm.ai.service.AiQuotaService;
+import cn.cordys.crm.system.domain.Parameter;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.security.SessionUtils;
 import com.github.pagehelper.Page;
@@ -73,8 +74,10 @@ public class AiKnowledgeService {
 
     private static final int DEFAULT_TOP_K = 4;
 
-    /** 出处片段最大长度（字符），避免整段 500 字 chunk 直接暴露 */
-    private static final int SNIPPET_MAX = 200;
+    /** 出处片段最大长度默认值（字符），实际值可在系统参数 sys_parameter 的 ai.kb.snippet_max 配置 */
+    private static final int DEFAULT_SNIPPET_MAX = 200;
+
+    private static final String SNIPPET_MAX_PARAM_KEY = "ai.kb.snippet_max";
 
     /** 提问分词时过滤的常见停用词 */
     private static final Set<String> STOP_WORDS = Set.of(
@@ -105,6 +108,8 @@ public class AiKnowledgeService {
     private AgentModelService agentModelService;
     @Resource
     private LlmProviderFactory llmProviderFactory;
+    @Resource
+    private BaseMapper<Parameter> parameterMapper;
 
     // ==================== 文档维护 ====================
 
@@ -338,12 +343,13 @@ public class AiKnowledgeService {
         return resp;
     }
 
-    /** 从块内抽取与问题关键词相关的句子作为出处片段；无关键词命中时退回开头一段（均截断到 200 字） */
+    /** 从块内抽取与问题关键词相关的句子作为出处片段；无关键词命中时退回开头一段（均截断到配置长度） */
     private String snippetOf(String content, List<String> keywords) {
         String text = content == null ? "" : content.trim();
         if (text.isEmpty()) {
             return "";
         }
+        int max = snippetMax();
         if (!keywords.isEmpty()) {
             String[] sentences = text.split("(?<=[。！？!?；;])");
             StringBuilder sb = new StringBuilder();
@@ -353,20 +359,52 @@ public class AiKnowledgeService {
                         sb.append(" ");
                     }
                     sb.append(sentence.trim());
-                    if (sb.length() >= SNIPPET_MAX) {
+                    if (sb.length() >= max) {
                         break;
                     }
                 }
             }
             if (sb.length() > 0) {
-                return trimTo(sb.toString(), SNIPPET_MAX);
+                return trimTo(sb.toString(), max);
             }
         }
-        return trimTo(text, SNIPPET_MAX);
+        return trimTo(text, max);
+    }
+
+    /** 读取出处片段长度（sys_parameter 的 ai.kb.snippet_max），未配置或非法时回退默认 200 */
+    private int snippetMax() {
+        try {
+            Parameter param = parameterMapper.selectByPrimaryKey(SNIPPET_MAX_PARAM_KEY);
+            if (param != null && StringUtils.isNotBlank(param.getParamValue())) {
+                int value = Integer.parseInt(param.getParamValue().trim());
+                return value > 0 ? value : DEFAULT_SNIPPET_MAX;
+            }
+        } catch (Exception e) {
+            log.warn("解析知识库出处片段长度参数失败，使用默认值 {}", DEFAULT_SNIPPET_MAX, e);
+        }
+        return DEFAULT_SNIPPET_MAX;
     }
 
     private String trimTo(String text, int max) {
         return text.length() <= max ? text : text.substring(0, max) + "…";
+    }
+
+    // ==================== 系统设置 ====================
+
+    /** 读取出处片段长度（字），供前端设置回显 */
+    public int getSnippetMax() {
+        return snippetMax();
+    }
+
+    /** 更新出处片段长度（字），写入系统参数 sys_parameter（沿用 AiQuotaService.setParam 的删除后插入范式） */
+    public void updateSnippetMax(int max) {
+        int value = max > 0 ? max : DEFAULT_SNIPPET_MAX;
+        parameterMapper.deleteByPrimaryKey(SNIPPET_MAX_PARAM_KEY);
+        Parameter param = new Parameter();
+        param.setParamKey(SNIPPET_MAX_PARAM_KEY);
+        param.setParamValue(String.valueOf(value));
+        param.setType("text");
+        parameterMapper.insert(param);
     }
 
     private AiKnowledgeDoc checkDoc(String id, String orgId) {

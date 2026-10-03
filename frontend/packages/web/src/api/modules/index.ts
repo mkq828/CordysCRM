@@ -891,6 +891,8 @@ export const {
   uploadKnowledgeDoc,
   deleteAiKnowledgeDoc,
   askKnowledge,
+  getAiKnowledgeConfig,
+  saveAiKnowledgeConfig,
   downloadAiSalesScriptTemplate,
   preCheckImportAiSalesScript,
   importAiSalesScript,

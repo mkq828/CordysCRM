@@ -10,8 +10,10 @@ import cn.cordys.crm.ai.controller.SseEventWriter;
 import cn.cordys.crm.ai.conversation.service.AgentConversationService;
 import cn.cordys.crm.ai.dto.response.AiStreamResult;
 import cn.cordys.crm.ai.knowledge.dto.request.AiKnowledgeAskRequest;
+import cn.cordys.crm.ai.knowledge.dto.request.AiKnowledgeConfigRequest;
 import cn.cordys.crm.ai.knowledge.dto.request.AiKnowledgeDocPageRequest;
 import cn.cordys.crm.ai.knowledge.dto.response.AiKnowledgeAnswerResponse;
+import cn.cordys.crm.ai.knowledge.dto.response.AiKnowledgeConfigResponse;
 import cn.cordys.crm.ai.knowledge.dto.response.AiKnowledgeDocResponse;
 import cn.cordys.crm.ai.knowledge.service.AiKnowledgeService;
 import cn.cordys.crm.ai.llm.LlmUsage;
@@ -71,6 +73,19 @@ public class AiKnowledgeController extends BaseAiStreamController {
     @Operation(summary = "知识库-检索问答")
     public AiKnowledgeAnswerResponse ask(@RequestBody AiKnowledgeAskRequest request) {
         return aiKnowledgeService.ask(request, OrganizationContext.getOrganizationId());
+    }
+
+    @GetMapping("/config")
+    @Operation(summary = "知识库-读取出处片段长度设置")
+    public AiKnowledgeConfigResponse config() {
+        return new AiKnowledgeConfigResponse(aiKnowledgeService.getSnippetMax());
+    }
+
+    @PostMapping("/config")
+    @Operation(summary = "知识库-更新出处片段长度设置")
+    public void updateConfig(@RequestBody AiKnowledgeConfigRequest request) {
+        int max = request.getSnippetMax() == null ? 0 : request.getSnippetMax();
+        aiKnowledgeService.updateSnippetMax(max);
     }
 
     @PostMapping(value = "/ask/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

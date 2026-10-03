@@ -35,6 +35,7 @@ import {
   AiKnowledgeDocDeleteUrl,
   AiKnowledgeAskUrl,
   AiKnowledgeAskStreamUrl,
+  AiKnowledgeConfigUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -72,6 +73,7 @@ import type {
   AiKnowledgeDocPageParams,
   AiKnowledgeAskParams,
   AiKnowledgeAnswerResult,
+  AiKnowledgeConfig,
   SmartFocusParams,
 } from '../../models/ai';
 
@@ -505,6 +507,14 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post<AiKnowledgeAnswerResult>({ url: AiKnowledgeAskUrl, data });
   }
 
+  function getAiKnowledgeConfig() {
+    return CDR.get<AiKnowledgeConfig>({ url: AiKnowledgeConfigUrl });
+  }
+
+  function saveAiKnowledgeConfig(data: AiKnowledgeConfig) {
+    return CDR.post({ url: AiKnowledgeConfigUrl, data });
+  }
+
   function downloadAiSalesScriptTemplate() {
     return CDR.get(
       { url: AiSalesScriptImportTemplateUrl, responseType: 'blob' },
@@ -560,6 +570,8 @@ export default function useAiApi(CDR: CordysAxios) {
     uploadKnowledgeDoc,
     deleteAiKnowledgeDoc,
     askKnowledge,
+    getAiKnowledgeConfig,
+    saveAiKnowledgeConfig,
     downloadAiSalesScriptTemplate,
     preCheckImportAiSalesScript,
     importAiSalesScript,
