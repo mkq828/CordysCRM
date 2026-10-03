@@ -2,6 +2,7 @@ import { useI18n } from '@lib/shared/hooks/useI18n';
 
 import router from '@/router';
 import { NO_RESOURCE_ROUTE_NAME, WHITE_LIST } from '@/router/constants';
+import useAppStore from '@/store/modules/app';
 import useUserStore from '@/store/modules/user';
 import { getFirstRouteNameByPermission, routerNameHasPermission } from '@/utils/permission';
 
@@ -43,8 +44,12 @@ export default function useUser() {
     return WHITE_LIST.some((e) => e.path.includes(currentRoute.path));
   };
 
-  const goUserHasPermissionPage = () => {
+  const goUserHasPermissionPage = async () => {
     const { redirect, ...othersQuery } = router.currentRoute.value.query;
+
+    // 登录后先拉取当前组织的模块配置，避免使用 localStorage 里陈旧的 moduleConfigList（可能是上一个
+    // 组织/账号残留、缺首页），导致 getFirstRouteNameByPermission 误判跳回登录页。
+    await useAppStore().initModuleConfig();
 
     const currentRouteName = getFirstRouteNameByPermission(router.getRoutes());
     const redirectHasPermission =

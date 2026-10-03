@@ -66,15 +66,22 @@ export function topLevelMenuHasPermission(route: RouteLocationNormalized | Route
   return hasAnyPermission(route.meta?.permissions || []);
 }
 
-// 有权限的第一个路由名，如果没有找到则返回IndexRoute
+// 有权限的第一个路由名，如果没有找到则返回首页路由
 export function getFirstRouteNameByPermission(routerList: RouteRecordNormalized[]) {
-  const currentRoute = routerList.filter((item) => hasAnyPermission(item.meta.permissions || []))[0]; // 排除没有权限的路由
-
   const appStore = useAppStore();
   // 首页模块开启默认首页，否则有权限的第一个路由
-  return appStore.moduleConfigList.find((e) => e.moduleKey === ModuleConfigEnum.HOME && e.enable)
-    ? WorkbenchRouteEnum.WORKBENCH
-    : currentRoute?.name;
+  if (appStore.moduleConfigList.find((e) => e.moduleKey === ModuleConfigEnum.HOME && e.enable)) {
+    return WorkbenchRouteEnum.WORKBENCH;
+  }
+
+  // 过滤无名字的路由（根路由 /）与免登录页面（login/register/notFound/noResource），
+  // 取有权限的第一个具名业务路由；否则返回 undefined，router.push({ name: undefined })
+  // 会落到根路由 / 的 redirect:login，导致登录后仍停在登录页。
+  const currentRoute = routerList.find(
+    (item) => !!item.name && item.meta?.requiresAuth !== false && hasAnyPermission(item.meta?.permissions || [])
+  );
+  // 都没有则兜底首页，保证永不返回 undefined
+  return currentRoute?.name || WorkbenchRouteEnum.WORKBENCH;
 }
 
 // 判断当前路由名有没有权限
