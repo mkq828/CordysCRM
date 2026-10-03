@@ -59,6 +59,9 @@ public final class AiQuotaConstant {
     /** 企业知识库检索问答（功能 4） */
     public static final String AI_KB = "ai_kb";
 
+    /** 客户画像分析（功能 13，查看型：只挂 G3 权限开关，不挂 G2 额度） */
+    public static final String AI_CUSTOMER_PROFILE = "ai_customer_profile";
+
     public static final List<String> AI_FEATURE_CODES = List.of(
             "ai_advisor", "ai_acquire", "ai_sales_rag", "ai_video", "wecom_auto_analysis",
             "ai_ppt", "lead_crawl", "dm_profile", "ai_employee", "ai_kb", "digital_human");

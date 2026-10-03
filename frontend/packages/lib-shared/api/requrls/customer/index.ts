@@ -3,6 +3,7 @@ export const UpdateCustomerUrl = '/account/update'; // 更新客户
 export const GetCustomerListUrl = '/account/page'; // 分页查询客户
 export const AddCustomerUrl = '/account/add'; // 添加客户
 export const GetCustomerUrl = '/account/get'; // 获取客户详情
+export const GetCustomerProfileUrl = '/account/profile'; // 获取客户画像
 export const DeleteCustomerUrl = '/account/delete'; // 删除客户
 export const BatchDeleteCustomerUrl = '/account/batch/delete'; // 批量删除客户
 export const BatchTransferCustomerUrl = '/account/batch/transfer'; // 批量转移客户

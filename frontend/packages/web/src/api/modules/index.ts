@@ -497,6 +497,7 @@ export const {
   getCustomerInvoiceList,
   getCustomerOrderList,
   getCustomerInvoiceStatistic,
+  getCustomerProfile,
 } = customerApi;
 
 export const {

@@ -18,4 +18,7 @@ public class SalesAdvisorAnalyzeRequest {
 
     /** 会话 ID（可空，用于流式对话记录关联；为空时服务端新建会话） */
     private String conversationId;
+
+    /** 关联客户 ID（可空；分析完成后把结论沉淀到 ai_analysis_result，供客户画像回读） */
+    private String customerId;
 }

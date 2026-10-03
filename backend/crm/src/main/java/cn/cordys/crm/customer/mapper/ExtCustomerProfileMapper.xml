@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.cordys.crm.customer.mapper.ExtCustomerProfileMapper">
+
+    <select id="followSummary" resultType="cn.cordys.crm.customer.dto.response.ProfileFollowSummary">
+        select count(1) as count,
+               (select content
+                from follow_up_record
+                where customer_id = #{customerId}
+                  and organization_id = #{orgId}
+                order by follow_time desc
+                limit 1) as latestContent,
+               (select follow_time
+                from follow_up_record
+                where customer_id = #{customerId}
+                  and organization_id = #{orgId}
+                order by follow_time desc
+                limit 1) as latestFollowTime
+        from follow_up_record
+        where customer_id = #{customerId}
+          and organization_id = #{orgId}
+    </select>
+
+    <select id="opportunitySummary" resultType="cn.cordys.crm.customer.dto.response.ProfileCountAmount">
+        select count(1) as count, ifnull(sum(amount), 0) as amount
+        from opportunity
+        where customer_id = #{customerId}
+          and organization_id = #{orgId}
+    </select>
+
+    <select id="opportunityStageDistribution" resultType="cn.cordys.crm.customer.dto.response.ProfileOpportunityStageCount">
+        select stage as stage, count(1) as count
+        from opportunity
+        where customer_id = #{customerId}
+          and organization_id = #{orgId}
+        group by stage
+        order by count(1) desc
+    </select>
+
+    <select id="orderSummary" resultType="cn.cordys.crm.customer.dto.response.ProfileCountAmount">
+        select count(1) as count, ifnull(sum(amount), 0) as amount
+        from sales_order
+        where customer_id = #{customerId}
+          and organization_id = #{orgId}
+    </select>
+
+    <select id="contractSummary" resultType="cn.cordys.crm.customer.dto.response.ProfileCountAmount">
+        select count(1) as count, ifnull(sum(amount), 0) as amount
+        from contract
+        where customer_id = #{customerId}
+          and organization_id = #{orgId}
+    </select>
+
+    <select id="paidAmount" resultType="java.math.BigDecimal">
+        select ifnull(sum(cpr.record_amount), 0)
+        from contract_payment_record cpr
+                 join contract c on c.id = cpr.contract_id
+        where c.customer_id = #{customerId}
+          and cpr.organization_id = #{orgId}
+          and cpr.verification_status = 'DONE'
+    </select>
+
+</mapper>

@@ -25,8 +25,10 @@ import cn.cordys.crm.customer.domain.Customer;
 import cn.cordys.crm.customer.dto.request.*;
 import cn.cordys.crm.customer.dto.response.CustomerGetResponse;
 import cn.cordys.crm.customer.dto.response.CustomerListResponse;
+import cn.cordys.crm.customer.dto.response.CustomerProfileResponse;
 import cn.cordys.crm.customer.service.CustomerCollaborationService;
 import cn.cordys.crm.customer.service.CustomerExportService;
+import cn.cordys.crm.customer.service.CustomerProfileService;
 import cn.cordys.crm.customer.service.CustomerService;
 import cn.cordys.crm.opportunity.dto.response.OpportunityListResponse;
 import cn.cordys.crm.opportunity.service.OpportunityService;
@@ -93,6 +95,8 @@ public class CustomerController {
     private OrderService orderService;
     @Resource
     private CustomerCollaborationService customerCollaborationService;
+    @Resource
+    private CustomerProfileService customerProfileService;
 
     @GetMapping("/module/form")
     @RequiresPermissions(value = {PermissionConstants.CUSTOMER_MANAGEMENT_READ, PermissionConstants.CUSTOMER_MANAGEMENT_POOL_READ}, logical = Logical.OR)
@@ -116,6 +120,13 @@ public class CustomerController {
     @Operation(summary = "客户详情")
     public CustomerGetResponse get(@PathVariable String id) {
         return customerService.getWithDataPermissionCheck(id, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
+    }
+
+    @GetMapping("/profile/{id}")
+    @CsPermission(PermissionConstants.CUSTOMER_MANAGEMENT_READ) // 行级权限在 service 内校验
+    @Operation(summary = "客户画像（360° 只读聚合 + AI 洞察）")
+    public CustomerProfileResponse profile(@PathVariable String id) {
+        return customerProfileService.profile(id, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
     }
 
     @PostMapping("/add")

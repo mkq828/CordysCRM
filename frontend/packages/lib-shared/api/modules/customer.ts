@@ -82,6 +82,7 @@ import {
   GetCustomerOpenSeaListUrl,
   GetCustomerOpportunityListUrl,
   GetCustomerOptionsUrl,
+  GetCustomerProfileUrl,
   GetCustomerRelationListUrl,
   GetCustomerTabUrl,
   GetCustomerUrl,
@@ -162,6 +163,7 @@ import type {
   CustomerOpenSeaListItem,
   CustomerOpportunityTableParams,
   CustomerOptionsItem,
+  CustomerProfileResponse,
   CustomerTabHidden,
   CustomerTableParams,
   FollowDetailItem,
@@ -216,6 +218,11 @@ export default function useProductApi(CDR: CordysAxios) {
   // 获取客户详情
   function getCustomer(id: string, approvalTaskId?: string) {
     return CDR.get<CustomerDetail>({ url: `${GetCustomerUrl}/${id}`, params: { approvalTaskId } });
+  }
+
+  // 获取客户画像（360° 只读聚合 + AI 洞察）
+  function getCustomerProfile(id: string) {
+    return CDR.get<CustomerProfileResponse>({ url: `${GetCustomerProfileUrl}/${id}` });
   }
 
   // 删除客户
@@ -723,11 +730,7 @@ export default function useProductApi(CDR: CordysAxios) {
   }
 
   function preCheckImportPoolAccount(params: ImportUploadParams) {
-    return CDR.uploadFile<{ data: ValidateInfo }>(
-      { url: PreCheckPoolAccountImportUrl },
-      params,
-      'file'
-    );
+    return CDR.uploadFile<{ data: ValidateInfo }>({ url: PreCheckPoolAccountImportUrl }, params, 'file');
   }
 
   function downloadPoolAccountTemplate() {
@@ -741,11 +744,7 @@ export default function useProductApi(CDR: CordysAxios) {
   }
 
   function importPoolAccount(params: ImportUploadParams) {
-    return CDR.uploadFile(
-      { url: ImportPoolAccountUrl },
-      params,
-      'file'
-    );
+    return CDR.uploadFile({ url: ImportPoolAccountUrl }, params, 'file');
   }
 
   // 联系人导入
@@ -839,6 +838,7 @@ export default function useProductApi(CDR: CordysAxios) {
     getCustomerContactTab,
     getCustomerFormConfig,
     getCustomer,
+    getCustomerProfile,
     deleteCustomer,
     getGlobalCustomerList,
     getGlobalOpenSeaCustomerList,

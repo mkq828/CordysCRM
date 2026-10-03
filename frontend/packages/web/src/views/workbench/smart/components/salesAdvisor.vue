@@ -25,6 +25,17 @@
             <div class="text-[13px] text-orange-500">{{ t('workbench.smart.advisorDesc') }}</div>
 
             <div class="mt-[16px] flex flex-col gap-[16px]">
+              <n-select
+                v-model:value="customerId"
+                clearable
+                filterable
+                remote
+                :loading="customerLoading"
+                :placeholder="t('workbench.smart.advisorCustomerPlaceholder')"
+                :options="customerOptions"
+                @search="handleSearchCustomer"
+              />
+
               <n-input
                 v-model:value="message"
                 type="textarea"
@@ -137,8 +148,17 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, ref } from 'vue';
-  import { NButton, NEmpty, NInput, NTag, NUpload, type UploadCustomRequestOptions, useMessage } from 'naive-ui';
+  import { computed, onMounted, ref } from 'vue';
+  import {
+    NButton,
+    NEmpty,
+    NInput,
+    NSelect,
+    NTag,
+    NUpload,
+    type UploadCustomRequestOptions,
+    useMessage,
+  } from 'naive-ui';
   import dayjs from 'dayjs';
 
   import { FormDesignKeyEnum } from '@lib/shared/enums/formDesignEnum';
@@ -158,7 +178,7 @@
   import CrmFormCreateDrawer from '@/components/business/crm-form-create-drawer/index.vue';
   import AdvisorResult from './AdvisorResult.vue';
 
-  import { streamSalesAdvisor, uploadTempAttachment } from '@/api/modules';
+  import { getCustomerOptions, streamSalesAdvisor, uploadTempAttachment } from '@/api/modules';
   import useUserStore from '@/store/modules/user';
 
   const FEATURE_ADVISOR = 'ai_advisor';
@@ -177,6 +197,36 @@
     name: string;
   }
   const pics = ref<Pic[]>([]);
+
+  // 关联客户（可选）：分析结果会沉淀到该客户的 ai_analysis_result，供客户画像回读
+  const customerId = ref<string | null>(null);
+  const customerLoading = ref(false);
+  const customerOptions = ref<{ label: string; value: string }[]>([]);
+
+  async function loadCustomerOptions(keyword?: string) {
+    customerLoading.value = true;
+    try {
+      const res = await getCustomerOptions({ current: 1, pageSize: 10, keyword });
+      customerOptions.value = (res.list || []).map((item) => ({
+        label: item.name,
+        value: String(item.id),
+      }));
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    } finally {
+      customerLoading.value = false;
+    }
+  }
+
+  function handleSearchCustomer(keyword: string) {
+    loadCustomerOptions(keyword);
+  }
+
+  // 打开下拉时默认展示前 10 条，用户可输入关键字检索
+  onMounted(() => {
+    loadCustomerOptions();
+  });
 
   interface ThreadItem {
     id: string;
@@ -276,6 +326,7 @@
         message: message.value.trim() || undefined,
         picIds: pics.value.map((pic) => pic.id),
         conversationId: activeConversationId.value || undefined,
+        customerId: customerId.value || undefined,
       });
 
       // eslint-disable-next-line no-restricted-syntax -- 原生 async generator，无需 regenerator-runtime

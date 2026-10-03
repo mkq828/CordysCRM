@@ -1145,4 +1145,12 @@ public class CustomerService {
         Customer customer = customerMapper.selectByPrimaryKey(customerId);
         return Strings.CI.equals(customer.getOwner(), userId);
     }
+
+    /**
+     * 判断客户是否属于指定组织（供 AI 分析结果回写前的轻量校验）
+     */
+    public boolean existsInOrg(String customerId, String orgId) {
+        Customer customer = customerMapper.selectByPrimaryKey(customerId);
+        return customer != null && orgId.equals(customer.getOrganizationId());
+    }
 }

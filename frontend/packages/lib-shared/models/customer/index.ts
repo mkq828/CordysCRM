@@ -395,3 +395,39 @@ export interface CustomerInvoiceItem {
 export interface CustomerInvoicePageQueryParams extends TableQueryParams {
   customerId: string;
 }
+
+/** 客户画像-跟进汇总 */
+export interface ProfileFollowSummary {
+  count?: number;
+  latestContent?: string;
+  latestFollowTime?: number;
+}
+
+/** 客户画像-数量+金额汇总（商机/订单/合同） */
+export interface ProfileCountAmount {
+  count?: number;
+  amount?: number | string;
+}
+
+/** 客户画像-商机阶段分布 */
+export interface ProfileOpportunityStageCount {
+  stage?: string;
+  count?: number;
+}
+
+/** 客户画像（功能 13）：360° 只读聚合 + 会话军师 AI 洞察回读 */
+export interface CustomerProfileResponse {
+  available?: boolean;
+  customerName?: string;
+  ownerName?: string;
+  followTime?: number;
+  followerName?: string;
+  follow?: ProfileFollowSummary;
+  opportunity?: ProfileCountAmount;
+  opportunityStages?: ProfileOpportunityStageCount[];
+  order?: ProfileCountAmount;
+  contract?: ProfileCountAmount;
+  paidAmount?: number | string;
+  paymentRate?: number | string;
+  aiInsight?: Record<string, any> | null;
+}

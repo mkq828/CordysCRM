@@ -369,4 +369,16 @@ public class EditionService {
                 .eq(TenantEdition::getOrganizationId, organizationId));
         return list.isEmpty() ? null : list.getFirst();
     }
+
+    /**
+     * 判断租户是否拥有某 AI 功能（查看型功能只挂这一层 G3 权限开关，不挂 G2 额度）。
+     * 试用租户（无生效版本快照）视为放开；已开通租户按「版本→功能」实时映射判断，避免功能新增后老快照过期。
+     */
+    public boolean hasFeature(String organizationId, String featureCode) {
+        TenantEdition edition = getByOrganizationId(organizationId);
+        if (edition == null) {
+            return true;
+        }
+        return listFeatureCodesByEditionCode(edition.getEditionCode()).contains(featureCode);
+    }
 }

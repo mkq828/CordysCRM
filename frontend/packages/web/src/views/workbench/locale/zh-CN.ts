@@ -96,6 +96,7 @@ export default {
   'workbench.smart.advisorTitle': '会话军师',
   'workbench.smart.advisorDesc': '粘贴聊天记录或上传截图，AI 帮你分析客户意向、异议与应对话术',
   'workbench.smart.advisorPlaceholder': '粘贴与客户的聊天记录…',
+  'workbench.smart.advisorCustomerPlaceholder': '关联客户（可选，可输入搜索，结果将沉淀到客户画像）',
   'workbench.smart.advisorUploadTip': '上传聊天截图（可选，自动识别文字）',
   'workbench.smart.advisorAnalyze': '开始分析',
   'workbench.smart.advisorAnalyzing': '分析中…',

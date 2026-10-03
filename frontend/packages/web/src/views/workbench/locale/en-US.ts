@@ -98,6 +98,7 @@ export default {
   'workbench.smart.advisorTitle': 'Sales Advisor',
   'workbench.smart.advisorDesc': 'Paste the chat or upload a screenshot; AI analyzes intent, objections and replies',
   'workbench.smart.advisorPlaceholder': 'Paste the chat history with the customer…',
+  'workbench.smart.advisorCustomerPlaceholder': 'Link a customer (optional — type to search, results feed the profile)',
   'workbench.smart.advisorUploadTip': 'Upload a chat screenshot (optional, auto-recognized)',
   'workbench.smart.advisorAnalyze': 'Analyze',
   'workbench.smart.advisorAnalyzing': 'Analyzing…',

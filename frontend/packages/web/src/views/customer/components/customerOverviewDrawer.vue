@@ -39,8 +39,9 @@
     </template>
     <template #right>
       <div class="h-full pt-[16px]">
+        <customerProfilePanel v-if="activeTab === 'profile'" :source-id="props.sourceId" />
         <ContactTable
-          v-if="activeTab === 'contact'"
+          v-else-if="activeTab === 'contact'"
           :refresh-key="refreshKey"
           :source-id="props.sourceId"
           :initial-source-name="sourceName"
@@ -155,6 +156,7 @@
   import type { TabContentItem } from '@/components/business/crm-tab-setting/type';
   import TransferForm from '@/components/business/crm-transfer-modal/transferForm.vue';
   import collaborator from './collaborator.vue';
+  import customerProfilePanel from './customerProfilePanel.vue';
   import customerRelation from './customerRelation.vue';
   import ContractTimeline from '@/views/contract/contract/components/contractTimeline.vue';
   import ContractDetailDrawer from '@/views/contract/contract/components/detail.vue';
@@ -244,6 +246,11 @@
   const activeTab = ref('contact');
   const tabList = computed<TabContentItem[]>(() => {
     const fullList = [
+      {
+        name: 'profile',
+        tab: t('customer.profile'),
+        enable: true,
+      },
       {
         name: 'followRecord',
         tab: t('crmFollowRecord.followRecord'),

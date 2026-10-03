@@ -186,6 +186,7 @@ export interface SalesAdvisorAnalyzeParams {
   message?: string;
   picIds?: string[];
   conversationId?: string;
+  customerId?: string;
 }
 
 /** AI 销售会话军师结构化分析结果 */

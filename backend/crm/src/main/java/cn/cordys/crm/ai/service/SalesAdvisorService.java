@@ -1,6 +1,7 @@
 package cn.cordys.crm.ai.service;
 
 import cn.cordys.common.exception.GenericException;
+import cn.cordys.common.util.JSON;
 import cn.cordys.crm.ai.constant.AiQuotaConstant;
 import cn.cordys.crm.ai.dto.request.SalesAdvisorAnalyzeRequest;
 import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
@@ -16,6 +17,7 @@ import cn.cordys.crm.ai.model.service.AgentModelService;
 import cn.cordys.crm.ai.script.dto.request.AiSalesScriptRetrieveRequest;
 import cn.cordys.crm.ai.script.dto.response.ScriptRecommendResponse;
 import cn.cordys.crm.ai.script.service.AiSalesScriptService;
+import cn.cordys.crm.customer.service.CustomerService;
 import cn.cordys.crm.system.domain.Parameter;
 import cn.cordys.crm.system.service.AttachmentService;
 import cn.cordys.mybatis.BaseMapper;
@@ -84,6 +86,10 @@ public class SalesAdvisorService {
     private BaseMapper<Parameter> parameterMapper;
     @Resource
     private AiSalesScriptService aiSalesScriptService;
+    @Resource
+    private AiAnalysisResultService aiAnalysisResultService;
+    @Resource
+    private CustomerService customerService;
 
     /**
      * 分析销售会话。截图（若有）直接作为图片喂给多模态视觉模型，再走四步链路调用模型并解析结构化结果。
@@ -149,6 +155,7 @@ public class SalesAdvisorService {
                         usage.getInputTokens(), usage.getOutputTokens(), userId);
                 SalesAdvisorAnalyzeResponse analysis = parseAnalysis(streamer.text());
                 enrichWithScriptLibrary(analysis, organizationId, request);
+                persistAnalysisResult(organizationId, request.getCustomerId(), analysis, model.getModelName(), userId);
                 return new AiStreamResult<>(analysis, usage);
             } catch (Exception e) {
                 lastError = e;
@@ -164,6 +171,24 @@ public class SalesAdvisorService {
         log.error("军师全部 AI 模型调用失败，候选数={}", models.size(), lastError);
         throw new GenericException(lastError == null || lastError.getMessage() == null
                 ? "AI 服务异常，请稍后重试" : lastError.getMessage());
+    }
+
+    /** 关联客户时把结构化结论沉淀到 ai_analysis_result，供客户画像回读；失败不阻断军师主流程 */
+    private void persistAnalysisResult(String organizationId, String customerId,
+            SalesAdvisorAnalyzeResponse analysis, String modelCode, String userId) {
+        if (StringUtils.isBlank(customerId)) {
+            return;
+        }
+        try {
+            if (!customerService.existsInOrg(customerId, organizationId)) {
+                log.warn("会话军师关联的客户不存在或不属于当前租户，跳过画像沉淀, customerId={}", customerId);
+                return;
+            }
+            aiAnalysisResultService.save(organizationId, "customer", customerId,
+                    AiQuotaConstant.AI_ADVISOR, "会话军师分析", JSON.toJSONString(analysis), modelCode, userId);
+        } catch (Exception e) {
+            log.warn("会话军师分析结果沉淀画像失败, customerId={}", customerId, e);
+        }
     }
 
     /** 构造 system + user 消息；带截图时 user 消息携带图片（多模态） */
