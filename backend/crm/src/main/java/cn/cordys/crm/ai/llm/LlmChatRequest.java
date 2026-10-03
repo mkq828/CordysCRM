@@ -3,6 +3,7 @@ package cn.cordys.crm.ai.llm;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 一次模型对话请求。baseUrl / apiKey 由 {@link cn.cordys.crm.ai.model.service.AgentModelService} 按租户模型配置注入，
@@ -30,4 +31,7 @@ public class LlmChatRequest {
 
     /** 最大输出 token 数（可选，来自模型配置 model_params.max_tokens） */
     private Integer maxTokens;
+
+    /** 思考模式（可选，来自模型配置 model_params.thinking，如豆包 Seed 模型 {"type":"disabled"} 关闭深度思考提速） */
+    private Map<String, Object> thinking;
 }

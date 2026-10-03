@@ -202,6 +202,11 @@ public class AgentModelService {
      * @param model   租户模型配置
      */
     public void applyModelParams(LlmChatRequest request, AgentModel model) {
+        // 豆包 Seed 系列默认关闭深度思考：该系列默认 thinking=enabled，短问答都要先空转数秒、
+        // 长 JSON 任务空转可达上百秒，业务场景追求响应速度，故默认关闭；仍可显式配置 model_params.thinking 覆盖。
+        if (isDoubaoSeed(model)) {
+            request.setThinking(Map.of("type", "disabled"));
+        }
         String params = model.getModelParams();
         if (StringUtils.isBlank(params)) {
             return;
@@ -211,9 +216,20 @@ public class AgentModelService {
             request.setTemperature(asDouble(map.get("temperature")));
             request.setTopP(asDouble(map.get("top_p")));
             request.setMaxTokens(asInteger(map.get("max_tokens")));
+            Object thinking = map.get("thinking");
+            if (thinking instanceof Map<?, ?> thinkingMap) {
+                request.setThinking((Map<String, Object>) thinkingMap);
+            }
         } catch (Exception e) {
             log.warn("解析模型参数失败，model={}, params={}", model.getModelName(), params, e);
         }
+    }
+
+    /** 豆包 Seed 系列（doubao-seed-*）是深度思考模型，默认思考耗时极大，需按业务关闭 */
+    private boolean isDoubaoSeed(AgentModel model) {
+        return "豆包".equals(model.getProvider())
+                && StringUtils.isNotBlank(model.getModelName())
+                && model.getModelName().startsWith("doubao-seed");
     }
 
     private Double asDouble(Object value) {

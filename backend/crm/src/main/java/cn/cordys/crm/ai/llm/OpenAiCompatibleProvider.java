@@ -59,6 +59,9 @@ public abstract class OpenAiCompatibleProvider implements LlmProvider {
         if (request.getMaxTokens() != null) {
             body.put("max_tokens", request.getMaxTokens());
         }
+        if (request.getThinking() != null && !request.getThinking().isEmpty()) {
+            body.put("thinking", request.getThinking());
+        }
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(url))
