@@ -883,6 +883,7 @@ export const {
   updateAiSalesScript,
   deleteAiSalesScript,
   retrieveAiSalesScript,
+  generateAiContent,
   downloadAiSalesScriptTemplate,
   preCheckImportAiSalesScript,
   importAiSalesScript,

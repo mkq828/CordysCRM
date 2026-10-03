@@ -236,3 +236,24 @@ export interface ScriptRecommend {
   source?: string;
   originalContent?: string;
 }
+
+/** AI 获客内容生成-请求参数 */
+export interface AiContentGenerateParams {
+  industry: string;
+  product: string;
+  platform?: 'douyin' | 'xiaohongshu' | 'moments';
+  topicCount?: number;
+}
+
+/** AI 获客内容生成-单条内容 */
+export interface AiContentItem {
+  topic?: string;
+  copy?: string;
+  imageCopy?: string;
+}
+
+/** AI 获客内容生成-结果 */
+export interface AiContentGenerateResult {
+  contents?: AiContentItem[];
+  rawContent?: string;
+}

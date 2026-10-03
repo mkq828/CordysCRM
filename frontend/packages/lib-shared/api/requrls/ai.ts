@@ -30,3 +30,4 @@ export const AiSalesScriptRetrieveUrl = '/agent/script/retrieve'; // 销售话�
 export const AiSalesScriptImportTemplateUrl = '/agent/script/import/template'; // 销售话术库-下载导入模板
 export const AiSalesScriptImportPreCheckUrl = '/agent/script/import/pre-check'; // 销售话术库-导入预校验
 export const AiSalesScriptImportUrl = '/agent/script/import'; // 销售话术库-导入
+export const AiContentGenerateUrl = '/agent/content/generate'; // AI 获客内容-生成选题/文案/配图文案

@@ -50,6 +50,7 @@ export default {
     'menu.cityManagerDashboard': 'Performance',
     'menu.aiQuota': 'My AI Quota',
     'menu.salesScript': 'Sales Scripts',
+    'menu.aiContent': 'AI Content',
     'menu.platformAiQuota': 'AI Quota Mgmt',
     'menu.customForm': 'Custom Form',
     'menu.suggestion': 'Suggestions',

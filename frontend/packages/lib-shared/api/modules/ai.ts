@@ -27,6 +27,7 @@ import {
   AiSalesScriptImportTemplateUrl,
   AiSalesScriptImportPreCheckUrl,
   AiSalesScriptImportUrl,
+  AiContentGenerateUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -58,6 +59,8 @@ import type {
   AiSalesScriptSaveParams,
   AiSalesScriptRetrieveParams,
   ScriptRecommend,
+  AiContentGenerateParams,
+  AiContentGenerateResult,
   SmartFocusParams,
 } from '../../models/ai';
 
@@ -453,6 +456,10 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post<ScriptRecommend[]>({ url: AiSalesScriptRetrieveUrl, data });
   }
 
+  function generateAiContent(data: AiContentGenerateParams) {
+    return CDR.post<AiContentGenerateResult>({ url: AiContentGenerateUrl, data });
+  }
+
   function downloadAiSalesScriptTemplate() {
     return CDR.get(
       { url: AiSalesScriptImportTemplateUrl, responseType: 'blob' },
@@ -500,6 +507,7 @@ export default function useAiApi(CDR: CordysAxios) {
     updateAiSalesScript,
     deleteAiSalesScript,
     retrieveAiSalesScript,
+    generateAiContent,
     downloadAiSalesScriptTemplate,
     preCheckImportAiSalesScript,
     importAiSalesScript,
