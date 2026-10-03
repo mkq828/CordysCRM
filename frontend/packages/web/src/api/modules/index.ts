@@ -2,6 +2,7 @@ import createAxios from '@lib/shared/api/http';
 import useAgentApi from '@lib/shared/api/modules/agent';
 import useAiApi from '@lib/shared/api/modules/ai';
 import useAiQuotaApi from '@lib/shared/api/modules/aiQuota';
+import useCallReviewApi from '@lib/shared/api/modules/callReview';
 import useClueApi from '@lib/shared/api/modules/clue';
 import useContractApi from '@lib/shared/api/modules/contract';
 import useCustomerApi from '@lib/shared/api/modules/customer';
@@ -58,6 +59,7 @@ const messageApi = useMessageApi(CDR);
 const licenseApi = useLicenseApi(CDR);
 const customerApi = useCustomerApi(CDR);
 const businessApi = useBusinessApi(CDR);
+const callReviewApi = useCallReviewApi(CDR);
 const dashboardApi = useDashboard(CDR);
 const opportunityApi = useOpportunityApi(CDR);
 const contractApi = useContractApi(CDR);
@@ -1098,3 +1100,14 @@ export const {
   tenantQuotaSave: platformAiQuotaTenantQuotaSave,
   tenantQuotaReset: platformAiQuotaTenantQuotaReset,
 } = platformAiQuotaApi;
+
+export const {
+  getCallReviewAvailable,
+  getCallReviewPage,
+  getCallReviewDetail,
+  uploadCallReview,
+  retryCallReview,
+  getCallReviewConfig,
+  saveCallReviewConfig,
+  resetCallReviewConfigKey,
+} = callReviewApi;

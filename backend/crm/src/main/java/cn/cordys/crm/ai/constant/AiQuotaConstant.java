@@ -62,9 +62,12 @@ public final class AiQuotaConstant {
     /** 客户画像分析（功能 13，查看型：只挂 G3 权限开关，不挂 G2 额度） */
     public static final String AI_CUSTOMER_PROFILE = "ai_customer_profile";
 
+    /** 智能通话复盘（功能 9，录音转写不挂 G2 额度，AI 复盘挂 G2 额度 + G3 权限） */
+    public static final String AI_CALL_REVIEW = "ai_call_review";
+
     public static final List<String> AI_FEATURE_CODES = List.of(
             "ai_advisor", "ai_acquire", "ai_sales_rag", "ai_video", "wecom_auto_analysis",
-            "ai_ppt", "lead_crawl", "dm_profile", "ai_employee", "ai_kb", "digital_human");
+            "ai_ppt", "lead_crawl", "dm_profile", "ai_employee", "ai_kb", "digital_human", "ai_call_review");
 
     private AiQuotaConstant() {
     }

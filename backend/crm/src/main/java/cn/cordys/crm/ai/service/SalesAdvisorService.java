@@ -95,17 +95,26 @@ public class SalesAdvisorService {
      * 分析销售会话。截图（若有）直接作为图片喂给多模态视觉模型，再走四步链路调用模型并解析结构化结果。
      */
     public SalesAdvisorAnalyzeResponse analyze(String organizationId, SalesAdvisorAnalyzeRequest request) {
-        return doAnalyze(organizationId, request, chunk -> { }).result();
+        return analyze(organizationId, request, AiQuotaConstant.AI_ADVISOR);
+    }
+
+    /**
+     * 分析销售会话，按指定 featureCode 记账与沉淀（会话军师 / 智能通话复盘复用同一分析链路，
+     * 仅额度记账与画像标题随 featureCode 区分）。
+     */
+    public SalesAdvisorAnalyzeResponse analyze(String organizationId, SalesAdvisorAnalyzeRequest request,
+            String featureCode) {
+        return doAnalyze(organizationId, request, featureCode, chunk -> { }).result();
     }
 
     /** 流式分析：先流式输出「分析结论」叙述，再解析 JSON 结构化字段，返回结果与用量。 */
     public AiStreamResult<SalesAdvisorAnalyzeResponse> analyzeStream(String organizationId,
             SalesAdvisorAnalyzeRequest request, Consumer<String> onChunk) {
-        return doAnalyze(organizationId, request, onChunk);
+        return doAnalyze(organizationId, request, AiQuotaConstant.AI_ADVISOR, onChunk);
     }
 
     private AiStreamResult<SalesAdvisorAnalyzeResponse> doAnalyze(String organizationId,
-            SalesAdvisorAnalyzeRequest request, Consumer<String> onChunk) {
+            SalesAdvisorAnalyzeRequest request, String featureCode, Consumer<String> onChunk) {
         if (StringUtils.isBlank(request.getMessage())
                 && (request.getPicIds() == null || request.getPicIds().isEmpty())) {
             throw new GenericException("请粘贴聊天记录或上传截图");
@@ -151,11 +160,12 @@ public class SalesAdvisorService {
                     emitted.set(true);
                     streamer.accept(chunk);
                 });
-                aiQuotaService.record(organizationId, AiQuotaConstant.AI_ADVISOR, model.getModelName(),
+                aiQuotaService.record(organizationId, featureCode, model.getModelName(),
                         usage.getInputTokens(), usage.getOutputTokens(), userId);
                 SalesAdvisorAnalyzeResponse analysis = parseAnalysis(streamer.text());
                 enrichWithScriptLibrary(analysis, organizationId, request);
-                persistAnalysisResult(organizationId, request.getCustomerId(), analysis, model.getModelName(), userId);
+                persistAnalysisResult(organizationId, request.getCustomerId(), analysis, model.getModelName(), userId,
+                        featureCode);
                 return new AiStreamResult<>(analysis, usage);
             } catch (Exception e) {
                 lastError = e;
@@ -173,22 +183,27 @@ public class SalesAdvisorService {
                 ? "AI 服务异常，请稍后重试" : lastError.getMessage());
     }
 
-    /** 关联客户时把结构化结论沉淀到 ai_analysis_result，供客户画像回读；失败不阻断军师主流程 */
+    /** 关联客户时把结构化结论沉淀到 ai_analysis_result，供客户画像回读；失败不阻断主流程 */
     private void persistAnalysisResult(String organizationId, String customerId,
-            SalesAdvisorAnalyzeResponse analysis, String modelCode, String userId) {
+            SalesAdvisorAnalyzeResponse analysis, String modelCode, String userId, String featureCode) {
         if (StringUtils.isBlank(customerId)) {
             return;
         }
         try {
             if (!customerService.existsInOrg(customerId, organizationId)) {
-                log.warn("会话军师关联的客户不存在或不属于当前租户，跳过画像沉淀, customerId={}", customerId);
+                log.warn("关联的客户不存在或不属于当前租户，跳过画像沉淀, customerId={}", customerId);
                 return;
             }
             aiAnalysisResultService.save(organizationId, "customer", customerId,
-                    AiQuotaConstant.AI_ADVISOR, "会话军师分析", JSON.toJSONString(analysis), modelCode, userId);
+                    featureCode, resultTitle(featureCode), JSON.toJSONString(analysis), modelCode, userId);
         } catch (Exception e) {
-            log.warn("会话军师分析结果沉淀画像失败, customerId={}", customerId, e);
+            log.warn("分析结果沉淀画像失败, customerId={}", customerId, e);
         }
+    }
+
+    /** 画像沉淀标题随能力编码区分：通话复盘与军师各自展示对应标题 */
+    private String resultTitle(String featureCode) {
+        return AiQuotaConstant.AI_CALL_REVIEW.equals(featureCode) ? "通话复盘" : "会话军师分析";
     }
 
     /** 构造 system + user 消息；带截图时 user 消息携带图片（多模态） */

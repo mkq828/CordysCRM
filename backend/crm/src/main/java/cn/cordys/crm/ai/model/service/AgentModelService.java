@@ -124,6 +124,23 @@ public class AgentModelService {
         return candidates;
     }
 
+    /**
+     * 取租户某 provider 下第一个启用且已填 apiKey 的模型密钥，供非对话能力（如语音转写 ASR）复用。
+     * 未配置或未启用时抛异常，提示先到模型设置开通。
+     */
+    public String resolveProviderApiKey(String orgId, String provider) {
+        AgentModel criteria = new AgentModel();
+        criteria.setOrganizationId(orgId);
+        criteria.setProvider(provider);
+        criteria.setEnable(true);
+        for (AgentModel model : agentModelMapper.select(criteria)) {
+            if (StringUtils.isNotBlank(model.getApiKey())) {
+                return model.getApiKey();
+            }
+        }
+        throw new GenericException("请先在「模型设置」中配置并启用「" + provider + "」模型，用于语音转写");
+    }
+
     public List<AgentModelOptionResponse> options(String orgId) {
         AgentModel criteria = new AgentModel();
         criteria.setOrganizationId(orgId);

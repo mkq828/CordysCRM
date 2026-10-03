@@ -40,6 +40,16 @@ const workbench: AppRouteRecordRaw = {
         isTopMenu: true,
       },
     },
+    {
+      path: 'callReview',
+      name: WorkbenchRouteEnum.WORKBENCH_CALL_REVIEW,
+      component: () => import('@/views/workbench/callReview/index.vue'),
+      meta: {
+        locale: 'menu.workbench.callReview',
+        permissions: [],
+        isTopMenu: true,
+      },
+    },
   ],
 };
 

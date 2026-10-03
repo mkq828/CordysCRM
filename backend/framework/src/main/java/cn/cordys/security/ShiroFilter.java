@@ -83,6 +83,8 @@ public final class ShiroFilter {
         FILTER_CHAIN_DEFINITION_MAP.put("/register/status", "anon");
         // 注册时（未登录）上传营业执照等临时附件
         FILTER_CHAIN_DEFINITION_MAP.put("/attachment/upload/temp", "anon");
+        // 外呼供应商通话记录回调（HMAC 签名鉴权，匿名接入）
+        FILTER_CHAIN_DEFINITION_MAP.put("/open/call-review/callback/**", "anon");
     }
 
     /**

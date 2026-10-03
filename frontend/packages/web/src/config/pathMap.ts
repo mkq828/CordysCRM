@@ -36,6 +36,11 @@ export const pathMap: PathMapItem[] = [
         locale: 'menu.workbench.board',
         route: AppRouteEnum.WORKBENCH_BOARD,
       },
+      {
+        key: 'WORKBENCH_CALL_REVIEW',
+        locale: 'menu.workbench.callReview',
+        route: AppRouteEnum.WORKBENCH_CALL_REVIEW,
+      },
     ],
   },
   {

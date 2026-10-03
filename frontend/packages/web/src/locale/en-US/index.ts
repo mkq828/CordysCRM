@@ -22,6 +22,7 @@ export default {
     'menu.workbench': 'Home',
     'menu.workbench.smart': 'Smart Workspace',
     'menu.workbench.board': 'My Dashboard',
+    'menu.workbench.callReview': 'Call Review',
     'menu.settings': 'Settings',
     'menu.collapsedSettings': 'System',
     'menu.settings.org': 'Organization',
