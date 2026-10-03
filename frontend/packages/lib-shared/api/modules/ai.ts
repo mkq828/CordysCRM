@@ -28,6 +28,10 @@ import {
   AiSalesScriptImportPreCheckUrl,
   AiSalesScriptImportUrl,
   AiContentGenerateUrl,
+  AiKnowledgeDocPageUrl,
+  AiKnowledgeDocUploadUrl,
+  AiKnowledgeDocDeleteUrl,
+  AiKnowledgeAskUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -61,6 +65,10 @@ import type {
   ScriptRecommend,
   AiContentGenerateParams,
   AiContentGenerateResult,
+  AiKnowledgeDoc,
+  AiKnowledgeDocPageParams,
+  AiKnowledgeAskParams,
+  AiKnowledgeAnswerResult,
   SmartFocusParams,
 } from '../../models/ai';
 
@@ -460,6 +468,22 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post<AiContentGenerateResult>({ url: AiContentGenerateUrl, data });
   }
 
+  function getAiKnowledgeDocPage(data: AiKnowledgeDocPageParams) {
+    return CDR.post<CommonList<AiKnowledgeDoc>>({ url: AiKnowledgeDocPageUrl, data });
+  }
+
+  function uploadKnowledgeDoc(file: File) {
+    return CDR.uploadFile({ url: AiKnowledgeDocUploadUrl }, { fileList: [file] }, 'file');
+  }
+
+  function deleteAiKnowledgeDoc(id: string) {
+    return CDR.get({ url: `${AiKnowledgeDocDeleteUrl}/${id}` });
+  }
+
+  function askKnowledge(data: AiKnowledgeAskParams) {
+    return CDR.post<AiKnowledgeAnswerResult>({ url: AiKnowledgeAskUrl, data });
+  }
+
   function downloadAiSalesScriptTemplate() {
     return CDR.get(
       { url: AiSalesScriptImportTemplateUrl, responseType: 'blob' },
@@ -508,6 +532,10 @@ export default function useAiApi(CDR: CordysAxios) {
     deleteAiSalesScript,
     retrieveAiSalesScript,
     generateAiContent,
+    getAiKnowledgeDocPage,
+    uploadKnowledgeDoc,
+    deleteAiKnowledgeDoc,
+    askKnowledge,
     downloadAiSalesScriptTemplate,
     preCheckImportAiSalesScript,
     importAiSalesScript,

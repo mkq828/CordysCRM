@@ -51,6 +51,7 @@ export default {
     'menu.aiQuota': 'My AI Quota',
     'menu.salesScript': 'Sales Scripts',
     'menu.aiContent': 'AI Content',
+    'menu.aiKnowledge': 'AI Knowledge Base',
     'menu.platformAiQuota': 'AI Quota Mgmt',
     'menu.customForm': 'Custom Form',
     'menu.suggestion': 'Suggestions',

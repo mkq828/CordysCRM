@@ -262,3 +262,41 @@ export interface AiContentGenerateResult {
   contents?: AiContentItem[];
   rawContent?: string;
 }
+
+/** 企业知识库-文档 */
+export interface AiKnowledgeDoc {
+  id?: string;
+  name?: string;
+  fileType?: string;
+  fileSize?: number;
+  status?: string;
+  chunkCount?: number;
+  errorMsg?: string;
+  createUser?: string;
+  createTime?: number;
+}
+
+/** 企业知识库-文档分页查询参数 */
+export interface AiKnowledgeDocPageParams {
+  current?: number;
+  pageSize?: number;
+  keyword?: string;
+}
+
+/** 企业知识库-问答请求 */
+export interface AiKnowledgeAskParams {
+  question: string;
+  topK?: number;
+}
+
+/** 企业知识库-问答出处引用 */
+export interface AiKnowledgeCitation {
+  docName?: string;
+  content?: string;
+}
+
+/** 企业知识库-问答结果 */
+export interface AiKnowledgeAnswerResult {
+  answer?: string;
+  citations?: AiKnowledgeCitation[];
+}

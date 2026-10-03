@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.cordys.crm.ai.knowledge.mapper.ExtAiKnowledgeChunkMapper">
+
+    <select id="selectByKeywords" resultType="cn.cordys.crm.ai.knowledge.domain.AiKnowledgeChunk">
+        select
+            id,
+            organization_id,
+            doc_id,
+            seq,
+            content,
+            create_time,
+            update_time,
+            create_user,
+            update_user
+        from ai_knowledge_chunk
+        where organization_id = #{orgId}
+        <if test="keywords != null and keywords.size() > 0">
+            and (
+            <foreach collection="keywords" item="kw" separator=" or ">
+                content like concat('%', #{kw}, '%')
+            </foreach>
+            )
+        </if>
+        order by create_time desc
+        limit #{limit}
+    </select>
+
+    <select id="selectRecent" resultType="cn.cordys.crm.ai.knowledge.domain.AiKnowledgeChunk">
+        select
+            id,
+            organization_id,
+            doc_id,
+            seq,
+            content,
+            create_time,
+            update_time,
+            create_user,
+            update_user
+        from ai_knowledge_chunk
+        where organization_id = #{orgId}
+        order by create_time desc
+        limit #{limit}
+    </select>
+
+    <delete id="deleteByDocId">
+        delete from ai_knowledge_chunk
+        where organization_id = #{orgId}
+          and doc_id = #{docId}
+    </delete>
+
+</mapper>

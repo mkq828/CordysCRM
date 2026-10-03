@@ -1,0 +1,27 @@
+export default {
+  'knowledge.tabDocs': 'Documents',
+  'knowledge.tabAsk': 'AI Q&A',
+  'knowledge.docDesc':
+    'Upload your product materials, policies, sales scripts, etc. (pdf / docx / md / txt; scanned PDFs are not supported yet). AI will answer questions based on these documents.',
+  'knowledge.searchPlaceholder': 'Search document name',
+  'knowledge.upload': 'Upload',
+  'knowledge.docName': 'Document',
+  'knowledge.fileType': 'Type',
+  'knowledge.fileSize': 'Size',
+  'knowledge.chunkCount': 'Chunks',
+  'knowledge.status': 'Status',
+  'knowledge.statusReady': 'Ready',
+  'knowledge.statusFailed': 'Failed',
+  'knowledge.errorMsg': 'Failure reason',
+  'knowledge.createTime': 'Uploaded at',
+  'knowledge.deleteTip': 'This cannot be undone. Delete this document?',
+  'knowledge.askDesc':
+    'Ask questions based on uploaded documents. AI answers only from the documents with citations and never fabricates.',
+  'knowledge.questionPlaceholder': 'e.g. What is our return policy?',
+  'knowledge.ask': 'Ask',
+  'knowledge.asking': 'Answering…',
+  'knowledge.answer': 'Answer',
+  'knowledge.citations': 'Citations',
+  'knowledge.copy': 'Copy',
+  'knowledge.copied': 'Copied',
+};

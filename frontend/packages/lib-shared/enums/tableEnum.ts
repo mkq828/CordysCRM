@@ -36,6 +36,7 @@ export enum TableKeyEnum {
   LOG = 'log',
   AI_EXECUTION_LOG = 'aiExecutionLog',
   AI_SALES_SCRIPT = 'aiSalesScript',
+  AI_KNOWLEDGE_DOC = 'aiKnowledgeDoc',
   LOGIN_LOG = 'loginLog',
   FOLLOW_PLAN = 'followPlan',
   FOLLOW_RECORD = 'followRecord',

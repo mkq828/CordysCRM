@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.cordys.crm.ai.knowledge.mapper.ExtAiKnowledgeDocMapper">
+
+    <select id="selectPage" resultType="cn.cordys.crm.ai.knowledge.dto.response.AiKnowledgeDocResponse">
+        select
+            id,
+            name,
+            file_type,
+            file_size,
+            status,
+            chunk_count,
+            error_msg,
+            create_user,
+            create_time
+        from ai_knowledge_doc
+        where organization_id = #{orgId}
+        <if test="keyword != null and keyword != ''">
+            and name like concat('%', #{keyword}, '%')
+        </if>
+        order by update_time desc
+    </select>
+
+</mapper>

@@ -31,3 +31,7 @@ export const AiSalesScriptImportTemplateUrl = '/agent/script/import/template'; /
 export const AiSalesScriptImportPreCheckUrl = '/agent/script/import/pre-check'; // 销售话术库-导入预校验
 export const AiSalesScriptImportUrl = '/agent/script/import'; // 销售话术库-导入
 export const AiContentGenerateUrl = '/agent/content/generate'; // AI 获客内容-生成选题/文案/配图文案
+export const AiKnowledgeDocPageUrl = '/agent/kb/doc/page'; // 企业知识库-文档分页列表
+export const AiKnowledgeDocUploadUrl = '/agent/kb/doc/upload'; // 企业知识库-上传并解析文档
+export const AiKnowledgeDocDeleteUrl = '/agent/kb/doc/delete'; // 企业知识库-删除文档（拼 /{id}）
+export const AiKnowledgeAskUrl = '/agent/kb/ask'; // 企业知识库-检索问答
