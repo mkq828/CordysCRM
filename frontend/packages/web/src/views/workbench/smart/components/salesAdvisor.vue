@@ -217,7 +217,7 @@
                   </div>
                   <div class="mt-[4px] text-[13px] leading-[1.6] text-[var(--text-n2)]">{{ item.content }}</div>
                   <div v-if="item.originalContent" class="mt-[6px]">
-                    <n-button size="tiny" quaternary @click="toggleOriginal(index)">
+                    <n-button size="tiny" secondary color="#f97316" @click="toggleOriginal(index)">
                       {{
                         showOriginal[index]
                           ? t('workbench.smart.advisorHideOriginal')
