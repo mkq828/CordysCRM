@@ -87,6 +87,7 @@ export default {
   'workbench.smart.reInterpret': '重新解读',
   'workbench.smart.AIAction': 'AI 跟进建议',
   'workbench.smart.AIActionApproval': 'AI 方案审核',
+  'workbench.smart.comingSoon': '待上线',
   'workbench.smart.urgent': '紧急',
   'workbench.smart.important': '重要',
   'workbench.smart.suggestion': '建议',

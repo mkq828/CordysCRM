@@ -89,6 +89,7 @@ export default {
   'workbench.smart.reInterpret': 'Re-interpret',
   'workbench.smart.AIAction': 'AI Follow-up Suggestions',
   'workbench.smart.AIActionApproval': 'AI Plan Approval',
+  'workbench.smart.comingSoon': 'Coming Soon',
   'workbench.smart.urgent': 'Urgent',
   'workbench.smart.important': 'Important',
   'workbench.smart.suggestion': 'Suggestion',

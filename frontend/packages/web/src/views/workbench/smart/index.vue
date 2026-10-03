@@ -67,11 +67,14 @@
             <div class="flex items-center gap-[8px]">
               <CrmIcon type="iconicon_star1" :size="16" color="var(--primary-8)" />
               <div class="text-[14px] font-semibold">{{ t('workbench.smart.AIAction') }}</div>
+              <span class="rounded-[2px] border border-orange-500 px-[4px] text-[11px] leading-[16px] text-orange-500">
+                {{ t('workbench.smart.comingSoon') }}
+              </span>
             </div>
           </template>
           <div class="h-full px-[24px] pb-[24px]">
             <n-spin :show="suggestionLoading" class="h-full" content-class="h-full">
-              <n-empty v-if="!suggestionList.length" :description="t('common.noData')" />
+              <n-empty v-if="!suggestionList.length" :description="t('workbench.smart.comingSoon')" />
               <n-scrollbar v-else class="h-full" @scroll="suggestionPager.handleReachBottom">
                 <div class="flex flex-col gap-[16px]">
                   <div v-for="item in suggestionList" :key="item.id" class="smart-workbench-action-item">
@@ -115,11 +118,14 @@
             <div class="flex items-center gap-[8px]">
               <CrmIcon type="iconicon_star1" :size="16" color="var(--primary-8)" />
               <div class="text-[14px] font-semibold">{{ t('workbench.smart.AIActionApproval') }}</div>
+              <span class="rounded-[2px] border border-orange-500 px-[4px] text-[11px] leading-[16px] text-orange-500">
+                {{ t('workbench.smart.comingSoon') }}
+              </span>
             </div>
           </template>
           <div class="h-full px-[24px] pb-[24px]">
             <n-spin :show="approveLoading" class="h-full" content-class="h-full">
-              <n-empty v-if="!approveList.length" :description="t('common.noData')" />
+              <n-empty v-if="!approveList.length" :description="t('workbench.smart.comingSoon')" />
               <n-scrollbar v-else class="h-full" @scroll="approvePager.handleReachBottom">
                 <div class="flex flex-col gap-[16px]">
                   <div v-for="item in approveList" :key="item.id" class="smart-workbench-action-item">
