@@ -146,6 +146,11 @@ export enum KnowledgeRouteEnum {
   KNOWLEDGE_INDEX = 'aiKnowledgeIndex',
 }
 
+export enum EffectsRouteEnum {
+  EFFECTS = 'effects',
+  EFFECTS_INDEX = 'effectsIndex',
+}
+
 export enum PlatformAiQuotaRouteEnum {
   PLATFORM_AI_QUOTA = 'platformAiQuota',
   PLATFORM_AI_QUOTA_INDEX = 'platformAiQuotaIndex',
@@ -177,6 +182,7 @@ export const AppRouteEnum = {
   ...ScriptRouteEnum,
   ...ContentRouteEnum,
   ...KnowledgeRouteEnum,
+  ...EffectsRouteEnum,
   ...PlatformAiQuotaRouteEnum,
   ...PlatformAdminRouteEnum,
 };

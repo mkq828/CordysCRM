@@ -10,8 +10,10 @@
     <CrmSplitPanel class="h-full" :max="0.5" :min="0.2" :default-size="0.24">
       <template #1>
         <AiConversationPanel
+          ref="conversationPanelRef"
           :feature-code="FEATURE_KB"
           :active-id="activeConversationId"
+          :generating-id="asking ? activeConversationId : ''"
           @select="handleSelectHistory"
           @new="handleNewConversation"
         />
@@ -19,6 +21,22 @@
 
       <template #2>
         <div class="flex h-full flex-col overflow-y-auto px-[24px] pb-[24px]">
+          <div class="mb-[12px] flex items-center justify-end gap-[8px]">
+            <span class="text-[12px] text-[var(--text-n3)]">{{ t('knowledge.snippetMaxLabel') }}</span>
+            <n-input-number
+              v-model:value="snippetMax"
+              :min="10"
+              :max="2000"
+              :step="10"
+              size="small"
+              :show-button="false"
+              class="w-[110px]"
+            />
+            <n-button size="small" type="primary" :loading="savingSnippet" @click="saveSnippet">
+              {{ t('common.save') }}
+            </n-button>
+          </div>
+
           <div class="text-[13px] text-orange-500">{{ t('knowledge.askDesc') }}</div>
 
           <div class="mt-[16px] flex flex-col gap-[16px]">
@@ -30,9 +48,9 @@
             />
 
             <div>
-              <n-button type="primary" :loading="asking" :disabled="!canAsk" @click="handleAsk">
+              <AiActionButton :loading="asking" :disabled="!canAsk" @click="handleAsk">
                 {{ asking ? t('knowledge.asking') : t('knowledge.ask') }}
-              </n-button>
+              </AiActionButton>
             </div>
           </div>
 
@@ -66,10 +84,15 @@
               </div>
             </template>
 
-            <div v-if="asking" class="flex flex-col gap-[8px] rounded-[6px] bg-[var(--fill-2)] p-[12px]">
-              <div class="flex items-center gap-[8px] text-[13px] text-[var(--text-n3)]">
-                <CrmIcon type="iconicon_loading" :size="16" class="animate-spin" />
-                {{ t('knowledge.asking') }}
+            <div v-if="asking" class="flex flex-col gap-[8px]">
+              <div class="flex items-center gap-[8px]">
+                <CrmIcon
+                  type="iconicon_loading"
+                  :size="16"
+                  color="linear-gradient(90deg, #f97316, #ec4899, #8b5cf6, #22d3ee)"
+                  class="ai-loading-spin"
+                />
+                <ShimmerText size="16px">{{ t('knowledge.asking') }}</ShimmerText>
               </div>
               <div v-if="streamingText" class="whitespace-pre-wrap text-[13px] leading-[1.6] text-[var(--text-n2)]">
                 {{ streamingText }}
@@ -83,8 +106,8 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, ref } from 'vue';
-  import { NButton, NEmpty, NInput } from 'naive-ui';
+  import { computed, onMounted, ref } from 'vue';
+  import { NButton, NEmpty, NInput, NInputNumber, useMessage } from 'naive-ui';
   import dayjs from 'dayjs';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -98,20 +121,25 @@
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmSplitPanel from '@/components/pure/crm-split-panel/index.vue';
+  import ShimmerText from '@/components/pure/effects/ShimmerText.vue';
+  import AiActionButton from '@/components/business/ai-action-button/index.vue';
   import AiConversationPanel from '@/components/business/ai-conversation-panel/index.vue';
   import KbAnswerResult from './KbAnswerResult.vue';
 
-  import { streamAskKnowledge } from '@/api/modules';
+  import { getAiKnowledgeConfig, saveAiKnowledgeConfig, streamAskKnowledge } from '@/api/modules';
   import useUserStore from '@/store/modules/user';
 
   const FEATURE_KB = 'ai_kb';
 
   const { t } = useI18n();
   const userStore = useUserStore();
+  const Message = useMessage();
 
   const question = ref('');
   const asking = ref(false);
   const streamingText = ref('');
+  const snippetMax = ref<number | null>(200);
+  const savingSnippet = ref(false);
 
   interface ThreadItem {
     id: string;
@@ -125,6 +153,7 @@
 
   const thread = ref<ThreadItem[]>([]);
   const activeConversationId = ref('');
+  const conversationPanelRef = ref<InstanceType<typeof AiConversationPanel>>();
 
   const canAsk = computed(() => !asking.value && question.value.trim() !== '');
   const currentUserName = computed(() => userStore.userInfo.name || '');
@@ -166,6 +195,32 @@
     thread.value = [];
   }
 
+  async function saveSnippet() {
+    if (snippetMax.value == null) {
+      return;
+    }
+    savingSnippet.value = true;
+    try {
+      await saveAiKnowledgeConfig({ snippetMax: snippetMax.value });
+      Message.success(t('knowledge.snippetSaved'));
+    } catch (error) {
+      Message.error((error as Error)?.message || t('common.operationFailed'));
+    } finally {
+      savingSnippet.value = false;
+    }
+  }
+
+  onMounted(async () => {
+    try {
+      const config = await getAiKnowledgeConfig();
+      if (config?.snippetMax) {
+        snippetMax.value = config.snippetMax;
+      }
+    } catch {
+      // 读取失败时保留默认值，不打断问答主流程
+    }
+  });
+
   async function handleAsk() {
     if (!canAsk.value) {
       return;
@@ -194,6 +249,8 @@
           const conversationId = event.run?.conversationId || '';
           if (conversationId) {
             activeConversationId.value = conversationId;
+            // 生成开始后立即刷新左侧对话记录，让「正在生成」的对话实时出现在列表里
+            conversationPanelRef.value?.reload();
           }
         } else if (event.type === 'chunk') {
           streamingText.value += event.content || '';

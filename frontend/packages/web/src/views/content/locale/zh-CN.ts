@@ -12,6 +12,7 @@ export default {
   'content.topicCount': '生成条数',
   'content.generate': '生成内容',
   'content.generating': '生成中…',
+  'content.generatingTip': 'AI 正在分析行业与产品卖点并生成完整获客物料，通常需要十几秒，请稍候…',
   'content.result': '生成结果',
   'content.topic': '选题',
   'content.title': '标题',

@@ -12,6 +12,8 @@ export default {
   'content.topicCount': 'Count',
   'content.generate': 'Generate',
   'content.generating': 'Generating…',
+  'content.generatingTip':
+    'AI is analyzing your industry and product highlights to build the content pack. This usually takes a dozen seconds or so.',
   'content.result': 'Results',
   'content.topic': 'Topic',
   'content.title': 'Title',

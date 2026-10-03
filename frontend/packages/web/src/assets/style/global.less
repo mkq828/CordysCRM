@@ -38,6 +38,17 @@ body {
   line-height: normal;
 }
 
+/* AI 加载图标：旋转 + 渐变颜色流动 */
+.ai-loading-spin {
+  animation: ai-loading-spin 1.4s linear infinite;
+}
+@keyframes ai-loading-spin {
+  to {
+    transform: rotate(360deg);
+    filter: hue-rotate(360deg);
+  }
+}
+
 /* 修改进度条的背景颜色 */
 #nprogress {
   .bar {

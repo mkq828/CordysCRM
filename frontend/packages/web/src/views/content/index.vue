@@ -11,8 +11,10 @@
       <CrmSplitPanel class="h-full" :max="0.5" :min="0.2" :default-size="0.24">
         <template #1>
           <AiConversationPanel
+            ref="conversationPanelRef"
             :feature-code="FEATURE_ACQUIRE"
             :active-id="activeConversationId"
+            :generating-id="generating ? activeConversationId : ''"
             @select="handleSelectHistory"
             @new="handleNewConversation"
           />
@@ -49,9 +51,9 @@
               <div class="flex items-center gap-[12px]">
                 <span class="w-[72px] shrink-0 text-[13px] text-[var(--text-n2)]">{{ t('content.topicCount') }}</span>
                 <n-input-number v-model:value="topicCount" :min="1" :max="10" class="!w-[120px]" />
-                <n-button type="primary" :loading="generating" :disabled="!canGenerate" @click="handleGenerate">
+                <AiActionButton :loading="generating" :disabled="!canGenerate" @click="handleGenerate">
                   {{ generating ? t('content.generating') : t('content.generate') }}
-                </n-button>
+                </AiActionButton>
               </div>
             </div>
 
@@ -93,11 +95,17 @@
                 </div>
               </template>
 
-              <div v-if="generating" class="flex flex-col gap-[8px] rounded-[6px] bg-[var(--fill-2)] p-[12px]">
-                <div class="flex items-center gap-[8px] text-[13px] text-[var(--text-n3)]">
-                  <CrmIcon type="iconicon_loading" :size="16" class="animate-spin" />
-                  {{ t('content.generating') }}
+              <div v-if="generating" class="flex flex-col gap-[8px]">
+                <div class="flex items-center gap-[8px]">
+                  <CrmIcon
+                    type="iconicon_loading"
+                    :size="16"
+                    color="linear-gradient(90deg, #f97316, #ec4899, #8b5cf6, #22d3ee)"
+                    class="ai-loading-spin"
+                  />
+                  <ShimmerText size="16px">{{ t('content.generating') }}</ShimmerText>
                 </div>
+                <div class="text-[12px] text-orange-500">{{ t('content.generatingTip') }}</div>
                 <div v-if="streamingText" class="whitespace-pre-wrap text-[13px] leading-[1.6] text-[var(--text-n2)]">
                   {{ streamingText }}
                 </div>
@@ -112,7 +120,7 @@
 
 <script setup lang="ts">
   import { computed, ref } from 'vue';
-  import { NButton, NEmpty, NInput, NInputNumber, NSelect } from 'naive-ui';
+  import { NEmpty, NInput, NInputNumber, NSelect } from 'naive-ui';
   import dayjs from 'dayjs';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -126,6 +134,8 @@
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmSplitPanel from '@/components/pure/crm-split-panel/index.vue';
+  import ShimmerText from '@/components/pure/effects/ShimmerText.vue';
+  import AiActionButton from '@/components/business/ai-action-button/index.vue';
   import AiConversationPanel from '@/components/business/ai-conversation-panel/index.vue';
   import ContentResult from './components/ContentResult.vue';
 
@@ -157,6 +167,7 @@
 
   const thread = ref<ThreadItem[]>([]);
   const activeConversationId = ref('');
+  const conversationPanelRef = ref<InstanceType<typeof AiConversationPanel>>();
 
   const platformOptions = computed(() => [
     { label: t('content.platformDouyin'), value: 'douyin' },
@@ -242,6 +253,8 @@
           const conversationId = event.run?.conversationId || '';
           if (conversationId) {
             activeConversationId.value = conversationId;
+            // 生成开始后立即刷新左侧对话记录，让「正在生成」的对话实时出现在列表里
+            conversationPanelRef.value?.reload();
           }
         } else if (event.type === 'chunk') {
           streamingText.value += event.content || '';

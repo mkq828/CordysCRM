@@ -8,4 +8,5 @@ export default {
   'aiConversation.renameTip': '重命名',
   'aiConversation.delete': '删除',
   'aiConversation.deleted': '已删除',
+  'aiConversation.generating': '生成中',
 };

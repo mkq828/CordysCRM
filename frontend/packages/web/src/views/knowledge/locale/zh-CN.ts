@@ -23,4 +23,6 @@ export default {
   'knowledge.citations': '出处引用',
   'knowledge.copy': '复制',
   'knowledge.copied': '已复制',
+  'knowledge.snippetMaxLabel': '出处片段长度（字）',
+  'knowledge.snippetSaved': '已保存',
 };

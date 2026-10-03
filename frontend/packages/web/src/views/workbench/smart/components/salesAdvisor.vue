@@ -11,8 +11,10 @@
       <CrmSplitPanel class="h-full" :max="0.5" :min="0.2" :default-size="0.24">
         <template #1>
           <AiConversationPanel
+            ref="conversationPanelRef"
             :feature-code="FEATURE_ADVISOR"
             :active-id="activeConversationId"
+            :generating-id="analyzing ? activeConversationId : ''"
             @select="handleSelectHistory"
             @new="handleNewConversation"
           />
@@ -52,9 +54,9 @@
               </div>
 
               <div>
-                <n-button type="primary" :loading="analyzing" :disabled="!canAnalyze" @click="handleAnalyze">
+                <AiActionButton :loading="analyzing" :disabled="!canAnalyze" @click="handleAnalyze">
                   {{ analyzing ? t('workbench.smart.advisorAnalyzing') : t('workbench.smart.advisorAnalyze') }}
-                </n-button>
+                </AiActionButton>
               </div>
             </div>
 
@@ -105,10 +107,15 @@
                 </div>
               </template>
 
-              <div v-if="streaming" class="flex flex-col gap-[8px] rounded-[6px] bg-[var(--fill-2)] p-[12px]">
-                <div class="flex items-center gap-[8px] text-[13px] text-[var(--text-n3)]">
-                  <CrmIcon type="iconicon_loading" :size="16" class="animate-spin" />
-                  {{ t('workbench.smart.advisorAnalyzing') }}
+              <div v-if="streaming" class="flex flex-col gap-[8px]">
+                <div class="flex items-center gap-[8px]">
+                  <CrmIcon
+                    type="iconicon_loading"
+                    :size="16"
+                    color="linear-gradient(90deg, #f97316, #ec4899, #8b5cf6, #22d3ee)"
+                    class="ai-loading-spin"
+                  />
+                  <ShimmerText size="16px">{{ t('workbench.smart.advisorAnalyzing') }}</ShimmerText>
                 </div>
                 <div v-if="streamingText" class="whitespace-pre-wrap text-[13px] leading-[1.6] text-[var(--text-n2)]">
                   {{ streamingText }}
@@ -145,6 +152,8 @@
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmSplitPanel from '@/components/pure/crm-split-panel/index.vue';
+  import ShimmerText from '@/components/pure/effects/ShimmerText.vue';
+  import AiActionButton from '@/components/business/ai-action-button/index.vue';
   import AiConversationPanel from '@/components/business/ai-conversation-panel/index.vue';
   import CrmFormCreateDrawer from '@/components/business/crm-form-create-drawer/index.vue';
   import AdvisorResult from './AdvisorResult.vue';
@@ -181,6 +190,7 @@
 
   const thread = ref<ThreadItem[]>([]);
   const activeConversationId = ref('');
+  const conversationPanelRef = ref<InstanceType<typeof AiConversationPanel>>();
 
   const canAnalyze = computed(() => !analyzing.value && (message.value.trim() !== '' || pics.value.length > 0));
   const currentUserName = computed(() => userStore.userInfo.name || '');
@@ -274,6 +284,8 @@
           const conversationId = event.run?.conversationId || '';
           if (conversationId) {
             activeConversationId.value = conversationId;
+            // 生成开始后立即刷新左侧对话记录，让「正在生成」的对话实时出现在列表里
+            conversationPanelRef.value?.reload();
           }
         } else if (event.type === 'chunk') {
           streamingText.value += event.content || '';

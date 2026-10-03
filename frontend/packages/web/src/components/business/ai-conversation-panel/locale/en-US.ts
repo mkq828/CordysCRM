@@ -8,4 +8,5 @@ export default {
   'aiConversation.renameTip': 'Rename',
   'aiConversation.delete': 'Delete',
   'aiConversation.deleted': 'Deleted',
+  'aiConversation.generating': 'Generating',
 };

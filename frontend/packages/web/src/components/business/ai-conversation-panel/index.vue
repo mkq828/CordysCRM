@@ -53,6 +53,13 @@
               >
                 {{ item.title }}
               </span>
+              <span
+                v-if="item.id === generatingId"
+                class="flex shrink-0 items-center gap-[4px] text-[11px] text-orange-500"
+              >
+                <CrmIcon type="iconicon_loading" :size="12" class="animate-spin" />
+                {{ t('aiConversation.generating') }}
+              </span>
               <span class="shrink-0 text-[11px] text-[var(--text-n4)]">
                 {{ formatItemTime(item.updateTime || item.createTime) }}
               </span>
@@ -109,10 +116,12 @@
       featureCode: string;
       activeId?: string;
       title?: string;
+      generatingId?: string;
     }>(),
     {
       activeId: '',
       title: '',
+      generatingId: '',
     }
   );
 

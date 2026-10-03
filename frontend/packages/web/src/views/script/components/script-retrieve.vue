@@ -29,9 +29,9 @@
       />
 
       <div>
-        <n-button type="primary" :loading="retrieving" :disabled="!canRetrieve" @click="handleRetrieve">
+        <AiActionButton :loading="retrieving" :disabled="!canRetrieve" @click="handleRetrieve">
           {{ retrieving ? t('script.retrieving') : t('script.retrieve') }}
-        </n-button>
+        </AiActionButton>
       </div>
 
       <div v-if="recommends.length" class="flex flex-col gap-[12px]">
@@ -77,6 +77,7 @@
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
+  import AiActionButton from '@/components/business/ai-action-button/index.vue';
 
   import { getAiSalesScriptCategories, retrieveAiSalesScript } from '@/api/modules';
 

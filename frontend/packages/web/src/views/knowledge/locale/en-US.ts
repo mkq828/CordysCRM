@@ -24,4 +24,6 @@ export default {
   'knowledge.citations': 'Citations',
   'knowledge.copy': 'Copy',
   'knowledge.copied': 'Copied',
+  'knowledge.snippetMaxLabel': 'Citation snippet length (chars)',
+  'knowledge.snippetSaved': 'Saved',
 };
