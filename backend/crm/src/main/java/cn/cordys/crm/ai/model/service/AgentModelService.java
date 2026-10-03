@@ -82,11 +82,25 @@ public class AgentModelService {
      */
     public List<AgentModel> resolveChatModels(String orgId) {
         AgentModelStrategyResponse strategy = agentModelStrategyService.get();
-        boolean fallback = Boolean.TRUE.equals(strategy.getFallback());
+        return resolveModels(orgId, strategy.getChatModels(), Boolean.TRUE.equals(strategy.getFallback()));
+    }
 
+    /**
+     * 解析「洞察与评估任务」专用模型候选（路由策略 taskModels 顺序）。
+     * 该列用于会话军师等单次分析/洞察场景，与对话模型分离；taskModels 未配置时回退到对话模型，保证存量租户无感。
+     */
+    public List<AgentModel> resolveTaskModels(String orgId) {
+        AgentModelStrategyResponse strategy = agentModelStrategyService.get();
+        if (strategy.getTaskModels() == null || strategy.getTaskModels().isEmpty()) {
+            return resolveChatModels(orgId);
+        }
+        return resolveModels(orgId, strategy.getTaskModels(), Boolean.TRUE.equals(strategy.getFallback()));
+    }
+
+    private List<AgentModel> resolveModels(String orgId, List<String> modelIds, boolean fallback) {
         List<AgentModel> candidates = new ArrayList<>();
-        if (strategy.getChatModels() != null) {
-            for (String id : strategy.getChatModels()) {
+        if (modelIds != null) {
+            for (String id : modelIds) {
                 AgentModel model = agentModelMapper.selectByPrimaryKey(id);
                 if (model != null && Boolean.TRUE.equals(model.getEnable()) && orgId.equals(model.getOrganizationId())) {
                     candidates.add(model);

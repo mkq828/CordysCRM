@@ -114,8 +114,8 @@ public class SalesAdvisorService {
             }
         }
 
-        // 2. 模型候选 + 额度校验
-        List<AgentModel> models = agentModelService.resolveChatModels(organizationId);
+        // 2. 模型候选 + 额度校验（会话军师属「洞察与评估任务」，走 taskModels 专用模型）
+        List<AgentModel> models = agentModelService.resolveTaskModels(organizationId);
         if (models.isEmpty()) {
             throw new GenericException("请先在「模型设置」中配置并启用一个模型");
         }
