@@ -385,6 +385,11 @@ function toFinishReason(status?: AgentConversationMessage['status']): AiChatFini
     return 'completed';
   }
 
+  // 后端会把失败消息也持久化（status=error），此处归一为 stopped，避免与 AiChatFinishReason 类型不匹配。
+  if (status === 'error') {
+    return 'stopped';
+  }
+
   return status;
 }
 

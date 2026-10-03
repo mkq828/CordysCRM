@@ -6,6 +6,7 @@ import cn.cordys.common.pager.Pager;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.crm.ai.constant.AiQuotaConstant;
 import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
+import cn.cordys.crm.ai.dto.response.AiStreamResult;
 import cn.cordys.crm.ai.knowledge.domain.AiKnowledgeChunk;
 import cn.cordys.crm.ai.knowledge.domain.AiKnowledgeDoc;
 import cn.cordys.crm.ai.knowledge.dto.request.AiKnowledgeAskRequest;
@@ -27,8 +28,6 @@ import cn.cordys.crm.ai.model.service.AgentModelService;
 import cn.cordys.crm.ai.service.AiQuotaService;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.security.SessionUtils;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import jakarta.annotation.Resource;
@@ -43,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -53,8 +53,6 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class AiKnowledgeService {
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /** 允许上传的文件类型（扩展名小写） */
     private static final Set<String> ALLOWED_TYPES = Set.of("pdf", "docx", "md", "txt");
@@ -75,19 +73,18 @@ public class AiKnowledgeService {
 
     private static final int DEFAULT_TOP_K = 4;
 
+    /** 出处片段最大长度（字符），避免整段 500 字 chunk 直接暴露 */
+    private static final int SNIPPET_MAX = 200;
+
     /** 提问分词时过滤的常见停用词 */
     private static final Set<String> STOP_WORDS = Set.of(
             "的", "了", "是", "吗", "呢", "啊", "吧", "么", "什么", "怎么", "如何", "为什么", "哪些", "哪个",
             "我们", "你们", "他们", "请问", "一下", "关于", "以及", "这个", "那个", "一个", "可以", "能否");
 
     private static final String SYSTEM_PROMPT = """
-            你是企业知识库问答助手。请仅依据用户提供的参考资料回答问题，条理清晰、简洁准确。\
-            若资料中未提及相关内容，明确回答「资料中未找到相关信息」，严禁编造。输出严格 JSON（不要 markdown 代码块、不要任何多余文字），结构如下：
-            {
-              "answer": "回答内容",
-              "citations": [1, 3]
-            }
-            citations 为引用的资料编号数组（可空），只输出上述 JSON 本身。
+            你是企业知识库问答助手。请仅依据用户提供的参考资料回答问题，条理清晰、简洁准确。
+            若资料中未提及相关内容，明确回答「资料中未找到相关信息」，严禁编造。
+            直接输出回答正文（Markdown 格式，可用要点列表），不要输出 JSON、不要任何前后缀、不要提及「资料编号」。
             """;
 
     @Resource
@@ -180,12 +177,25 @@ public class AiKnowledgeService {
     // ==================== 检索问答 ====================
 
     public AiKnowledgeAnswerResponse ask(AiKnowledgeAskRequest request, String orgId) {
+        return doAsk(request, orgId, chunk -> { }).result();
+    }
+
+    /** 流式问答：回答正文直接流式输出（Markdown），出处由服务端按检索相关性回填相关片段。 */
+    public AiStreamResult<AiKnowledgeAnswerResponse> askStream(AiKnowledgeAskRequest request, String orgId,
+            Consumer<String> onChunk) {
+        return doAsk(request, orgId, onChunk);
+    }
+
+    private AiStreamResult<AiKnowledgeAnswerResponse> doAsk(AiKnowledgeAskRequest request, String orgId,
+            Consumer<String> onChunk) {
         if (StringUtils.isBlank(request.getQuestion())) {
             throw new GenericException("请输入问题");
         }
         int topK = request.getTopK() == null || request.getTopK() <= 0 ? DEFAULT_TOP_K : request.getTopK();
+        String question = request.getQuestion().trim();
+        List<String> keywords = tokenizeKeywords(question);
 
-        List<AiKnowledgeChunk> chunks = retrieveChunks(request.getQuestion().trim(), orgId);
+        List<AiKnowledgeChunk> chunks = retrieveChunks(orgId, keywords);
         if (chunks.isEmpty()) {
             throw new GenericException("知识库为空，请先上传文档");
         }
@@ -214,15 +224,16 @@ public class AiKnowledgeService {
                 llmRequest.setBaseUrl(model.getApiUrl());
                 llmRequest.setApiKey(model.getApiKey());
                 agentModelService.applyModelParams(llmRequest, model);
-                llmRequest.setMessages(buildMessages(request.getQuestion().trim(), chunks));
+                llmRequest.setMessages(buildMessages(question, chunks));
 
                 LlmUsage usage = provider.chatStream(llmRequest, chunk -> {
                     emitted.set(true);
                     content.append(chunk);
+                    onChunk.accept(chunk);
                 });
                 aiQuotaService.record(orgId, AiQuotaConstant.AI_KB, model.getModelName(),
                         usage.getInputTokens(), usage.getOutputTokens(), userId);
-                return parseAnswer(content.toString(), chunks, docNames, topK);
+                return new AiStreamResult<>(buildAnswer(content.toString(), chunks, keywords, docNames, topK), usage);
             } catch (Exception e) {
                 lastError = e;
                 if (emitted.get()) {
@@ -242,8 +253,7 @@ public class AiKnowledgeService {
     // ==================== 内部方法 ====================
 
     /** 关键词粗筛：先按命中块召回并按命中数排序；无命中时兜底取最近上传文档的最新块 */
-    private List<AiKnowledgeChunk> retrieveChunks(String question, String orgId) {
-        List<String> keywords = tokenizeKeywords(question);
+    private List<AiKnowledgeChunk> retrieveChunks(String orgId, List<String> keywords) {
         List<AiKnowledgeChunk> matched = keywords.isEmpty()
                 ? List.of()
                 : extChunkMapper.selectByKeywords(orgId, keywords, KEYWORD_CANDIDATE_LIMIT);
@@ -302,52 +312,61 @@ public class AiKnowledgeService {
         for (int i = 0; i < chunks.size(); i++) {
             sb.append(i + 1).append(". ").append(chunks.get(i).getContent()).append('\n');
         }
-        sb.append("\n请仅依据上述资料回答，并在 citations 中给出引用的资料编号。");
+        sb.append("\n请仅依据上述资料回答。");
         messages.add(new LlmMessage("user", sb.toString()));
         return messages;
     }
 
-    /** 解析模型返回 JSON，用块编号反查出文档名与原文片段，保证出处权威不被模型编造 */
-    private AiKnowledgeAnswerResponse parseAnswer(String text, List<AiKnowledgeChunk> chunks,
-                                                   Map<String, String> docNames, int topK) {
-        String json = extractJson(text);
-        if (json == null) {
+    /** 组装回答：正文取模型 Markdown 输出，出处按检索相关性取前 topK 块并截取相关片段（不整段暴露） */
+    private AiKnowledgeAnswerResponse buildAnswer(String answer, List<AiKnowledgeChunk> chunks,
+                                                  List<String> keywords, Map<String, String> docNames, int topK) {
+        if (StringUtils.isBlank(answer)) {
             throw new GenericException("AI 未能生成回答，请重试");
         }
-        try {
-            JsonNode root = OBJECT_MAPPER.readTree(json);
-            String answer = root.path("answer").asText(null);
-            if (StringUtils.isBlank(answer)) {
-                throw new GenericException("AI 未能生成回答，请重试");
-            }
-            AiKnowledgeAnswerResponse resp = new AiKnowledgeAnswerResponse();
-            resp.setAnswer(answer.trim());
-            List<AiKnowledgeCitation> citations = new ArrayList<>();
-            JsonNode citNodes = root.get("citations");
-            if (citNodes != null && citNodes.isArray()) {
-                for (JsonNode cit : citNodes) {
-                    int index = cit.asInt(-1);
-                    if (index <= 0 || index > chunks.size()) {
-                        continue;
+        AiKnowledgeAnswerResponse resp = new AiKnowledgeAnswerResponse();
+        resp.setAnswer(answer.trim());
+        List<AiKnowledgeCitation> citations = new ArrayList<>();
+        int limit = Math.min(topK, chunks.size());
+        for (int i = 0; i < limit; i++) {
+            AiKnowledgeChunk chunk = chunks.get(i);
+            AiKnowledgeCitation c = new AiKnowledgeCitation();
+            c.setDocName(docNames.getOrDefault(chunk.getDocId(), ""));
+            c.setContent(snippetOf(chunk.getContent(), keywords));
+            citations.add(c);
+        }
+        resp.setCitations(citations);
+        return resp;
+    }
+
+    /** 从块内抽取与问题关键词相关的句子作为出处片段；无关键词命中时退回开头一段（均截断到 200 字） */
+    private String snippetOf(String content, List<String> keywords) {
+        String text = content == null ? "" : content.trim();
+        if (text.isEmpty()) {
+            return "";
+        }
+        if (!keywords.isEmpty()) {
+            String[] sentences = text.split("(?<=[。！？!?；;])");
+            StringBuilder sb = new StringBuilder();
+            for (String sentence : sentences) {
+                if (StringUtils.isNotBlank(sentence) && countHits(sentence, keywords) > 0) {
+                    if (sb.length() > 0) {
+                        sb.append(" ");
                     }
-                    AiKnowledgeChunk chunk = chunks.get(index - 1);
-                    AiKnowledgeCitation c = new AiKnowledgeCitation();
-                    c.setDocName(docNames.getOrDefault(chunk.getDocId(), ""));
-                    c.setContent(chunk.getContent());
-                    citations.add(c);
-                    if (citations.size() >= topK) {
+                    sb.append(sentence.trim());
+                    if (sb.length() >= SNIPPET_MAX) {
                         break;
                     }
                 }
             }
-            resp.setCitations(citations);
-            return resp;
-        } catch (GenericException e) {
-            throw e;
-        } catch (Exception e) {
-            log.warn("知识库回答结果 JSON 解析失败", e);
-            throw new GenericException("AI 未能生成回答，请重试");
+            if (sb.length() > 0) {
+                return trimTo(sb.toString(), SNIPPET_MAX);
+            }
         }
+        return trimTo(text, SNIPPET_MAX);
+    }
+
+    private String trimTo(String text, int max) {
+        return text.length() <= max ? text : text.substring(0, max) + "…";
     }
 
     private AiKnowledgeDoc checkDoc(String id, String orgId) {
@@ -381,32 +400,6 @@ public class AiKnowledgeService {
             return "";
         }
         return fileName.substring(dot + 1).toLowerCase();
-    }
-
-    /** 剥 ```json ... ``` 包裹，取首个 { 到末个 } 的 JSON 片段；无合法片段返回 null */
-    private String extractJson(String text) {
-        if (text == null) {
-            return null;
-        }
-        String t = text.trim();
-        if (t.startsWith("```")) {
-            int start = t.indexOf('\n');
-            if (start < 0) {
-                return null;
-            }
-            t = t.substring(start + 1);
-            int end = t.lastIndexOf("```");
-            if (end >= 0) {
-                t = t.substring(0, end);
-            }
-            t = t.trim();
-        }
-        int begin = t.indexOf('{');
-        int end = t.lastIndexOf('}');
-        if (begin < 0 || end < 0 || end <= begin) {
-            return null;
-        }
-        return t.substring(begin, end + 1);
     }
 
     private boolean isBlocked(String status) {

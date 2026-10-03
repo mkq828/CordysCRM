@@ -15,4 +15,7 @@ public class SalesAdvisorAnalyzeRequest {
 
     /** 截图附件 id（临时附件，可空） */
     private List<String> picIds;
+
+    /** 会话 ID（可空，用于流式对话记录关联；为空时服务端新建会话） */
+    private String conversationId;
 }

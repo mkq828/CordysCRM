@@ -18,6 +18,7 @@ import {
   AgentMcpConfigImportUrl,
   AgentMcpConfigListUrl,
   SalesAdvisorAnalyzeUrl,
+  SalesAdvisorAnalyzeStreamUrl,
   AiSalesScriptPageUrl,
   AiSalesScriptCategoriesUrl,
   AiSalesScriptAddUrl,
@@ -28,10 +29,12 @@ import {
   AiSalesScriptImportPreCheckUrl,
   AiSalesScriptImportUrl,
   AiContentGenerateUrl,
+  AiContentGenerateStreamUrl,
   AiKnowledgeDocPageUrl,
   AiKnowledgeDocUploadUrl,
   AiKnowledgeDocDeleteUrl,
   AiKnowledgeAskUrl,
+  AiKnowledgeAskStreamUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -291,14 +294,16 @@ async function* readAgentStream(
 }
 
 export default function useAiApi(CDR: CordysAxios) {
-  async function* streamAgentChat(
-    params: AgentChatStreamParams,
+  // 统一 SSE 流式客户端：会话军师 / 获客内容 / 知识库问答 / 哆咪AI 共用同一套事件协议（run/chunk/done/error）
+  async function* streamSse(
+    url: string,
+    params: unknown,
     options: AgentChatStreamOptions = {}
   ): AsyncIterable<AgentChatStreamEvent> {
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 
     try {
-      const response = await fetch(getApiUrl(AgentChatStreamUrl), {
+      const response = await fetch(getApiUrl(url), {
         method: 'POST',
         headers: getAgentHeaders(),
         credentials: 'include',
@@ -336,6 +341,22 @@ export default function useAiApi(CDR: CordysAxios) {
     } finally {
       reader?.releaseLock();
     }
+  }
+
+  function streamAgentChat(params: AgentChatStreamParams, options: AgentChatStreamOptions = {}) {
+    return streamSse(AgentChatStreamUrl, params, options);
+  }
+
+  function streamSalesAdvisor(data: SalesAdvisorAnalyzeParams, options: AgentChatStreamOptions = {}) {
+    return streamSse(SalesAdvisorAnalyzeStreamUrl, data, options);
+  }
+
+  function streamGenerateAiContent(data: AiContentGenerateParams, options: AgentChatStreamOptions = {}) {
+    return streamSse(AiContentGenerateStreamUrl, data, options);
+  }
+
+  function streamAskKnowledge(data: AiKnowledgeAskParams, options: AgentChatStreamOptions = {}) {
+    return streamSse(AiKnowledgeAskStreamUrl, data, options);
   }
 
   async function cancelAgentChat(data: AgentChatCancelParams) {
@@ -501,6 +522,9 @@ export default function useAiApi(CDR: CordysAxios) {
 
   return {
     streamAgentChat,
+    streamSalesAdvisor,
+    streamGenerateAiContent,
+    streamAskKnowledge,
     cancelAgentChat,
     confirmAgentChat,
     likeAgentChat,

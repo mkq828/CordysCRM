@@ -6,6 +6,7 @@ import cn.cordys.crm.ai.content.dto.request.AiContentGenerateRequest;
 import cn.cordys.crm.ai.content.dto.response.AiContentGenerateResponse;
 import cn.cordys.crm.ai.content.dto.response.AiContentItem;
 import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
+import cn.cordys.crm.ai.dto.response.AiStreamResult;
 import cn.cordys.crm.ai.llm.LlmChatRequest;
 import cn.cordys.crm.ai.llm.LlmMessage;
 import cn.cordys.crm.ai.llm.LlmProvider;
@@ -14,6 +15,7 @@ import cn.cordys.crm.ai.llm.LlmUsage;
 import cn.cordys.crm.ai.model.domain.AgentModel;
 import cn.cordys.crm.ai.model.service.AgentModelService;
 import cn.cordys.crm.ai.service.AiQuotaService;
+import cn.cordys.crm.ai.service.FencedJsonStreamer;
 import cn.cordys.security.SessionUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * AI 获客内容生成（功能 3）：输入行业 + 产品/卖点 + 目标平台，产出选题/爆款文案/配图文案。
@@ -63,9 +66,9 @@ public class AiContentGenerateService {
             - bestTime：最佳发布时间（如「工作日 19:00-21:00」）
             - script：口播脚本（视频口播稿，含开头钩子；朋友圈可留空）
 
-            输出严格 JSON（不要 markdown 代码块、不要任何多余文字），结构如下：
+            先输出一段「生成说明」叙述（1-2 行，概括这批物料的核心卖点与投放节奏建议），空一行，再用 ```json 代码块输出严格 JSON（不要任何多余文字），结构如下：
             {"contents":[{"topic":"选题","title":"标题","copy":"正文","imageCopy":"配图文案","coverCopy":"封面文案","hashtags":["#标签1","#标签2"],"bestTime":"发布时间","script":"口播脚本"}]}
-            只输出上述 JSON 本身，不要任何前后缀。
+            只输出上述「生成说明」叙述 + JSON 代码块，不要其他内容。
             """;
 
     @Resource
@@ -76,6 +79,17 @@ public class AiContentGenerateService {
     private LlmProviderFactory llmProviderFactory;
 
     public AiContentGenerateResponse generate(String organizationId, AiContentGenerateRequest request) {
+        return doGenerate(organizationId, request, chunk -> { }).result();
+    }
+
+    /** 流式生成：先流式输出「生成说明」叙述，再解析 JSON 物料包，返回结果与用量。 */
+    public AiStreamResult<AiContentGenerateResponse> generateStream(String organizationId,
+            AiContentGenerateRequest request, Consumer<String> onChunk) {
+        return doGenerate(organizationId, request, onChunk);
+    }
+
+    private AiStreamResult<AiContentGenerateResponse> doGenerate(String organizationId,
+            AiContentGenerateRequest request, Consumer<String> onChunk) {
         if (StringUtils.isBlank(request.getIndustry())) {
             throw new GenericException("请填写行业");
         }
@@ -97,7 +111,7 @@ public class AiContentGenerateService {
             throw new GenericException(blockedMessage(status));
         }
 
-        StringBuilder content = new StringBuilder();
+        FencedJsonStreamer streamer = new FencedJsonStreamer(onChunk);
         AtomicBoolean emitted = new AtomicBoolean(false);
         Exception lastError = null;
         for (AgentModel model : models) {
@@ -113,11 +127,11 @@ public class AiContentGenerateService {
 
                 LlmUsage usage = provider.chatStream(llmRequest, chunk -> {
                     emitted.set(true);
-                    content.append(chunk);
+                    streamer.accept(chunk);
                 });
                 aiQuotaService.record(organizationId, AiQuotaConstant.AI_ACQUIRE, model.getModelName(),
                         usage.getInputTokens(), usage.getOutputTokens(), userId);
-                return parseResult(content.toString(), topicCount);
+                return new AiStreamResult<>(parseResult(streamer.text(), topicCount), usage);
             } catch (Exception e) {
                 lastError = e;
                 if (emitted.get()) {

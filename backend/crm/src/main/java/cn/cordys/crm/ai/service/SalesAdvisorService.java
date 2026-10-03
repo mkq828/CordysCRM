@@ -4,6 +4,7 @@ import cn.cordys.common.exception.GenericException;
 import cn.cordys.crm.ai.constant.AiQuotaConstant;
 import cn.cordys.crm.ai.dto.request.SalesAdvisorAnalyzeRequest;
 import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
+import cn.cordys.crm.ai.dto.response.AiStreamResult;
 import cn.cordys.crm.ai.dto.response.SalesAdvisorAnalyzeResponse;
 import cn.cordys.crm.ai.llm.LlmChatRequest;
 import cn.cordys.crm.ai.llm.LlmMessage;
@@ -40,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * AI 销售会话军师（功能 1）：粘贴文本 / 截图（多模态模型直接读图）→ 结构化分析（意向评分、成交信号、异议点、
@@ -57,7 +59,7 @@ public class SalesAdvisorService {
 
     /** 要求模型严格返回 JSON，字段见功能 1 PRD */
     private static final String SYSTEM_PROMPT = """
-            你是资深 B2B 销售教练。请分析下面销售与客户的对话记录，输出严格 JSON（不要 markdown 代码块、不要任何多余文字），字段如下：
+            你是资深 B2B 销售教练。请分析下面销售与客户的对话记录，先输出一段「分析结论」叙述（2-4 行，讲清客户意向强度、主要风险、下一步建议），空一行，再用 ```json 代码块输出严格 JSON（不要任何多余文字），字段如下：
             {
               "intentScore": "意向评分，0-100 的整数，仅数字",
               "signals": ["成交信号，数组；没有则为空数组"],
@@ -67,7 +69,7 @@ public class SalesAdvisorService {
               "churnRisk": "流失风险，低/中/高 加一句话原因",
               "suggestedScripts": ["候选跟进话术，2-3 条，数组"]
             }
-            只输出上述 JSON 本身，不要任何前后缀。
+            只输出上述「分析结论」叙述 + JSON 代码块，不要其他内容。
             """;
 
     @Resource
@@ -87,6 +89,17 @@ public class SalesAdvisorService {
      * 分析销售会话。截图（若有）直接作为图片喂给多模态视觉模型，再走四步链路调用模型并解析结构化结果。
      */
     public SalesAdvisorAnalyzeResponse analyze(String organizationId, SalesAdvisorAnalyzeRequest request) {
+        return doAnalyze(organizationId, request, chunk -> { }).result();
+    }
+
+    /** 流式分析：先流式输出「分析结论」叙述，再解析 JSON 结构化字段，返回结果与用量。 */
+    public AiStreamResult<SalesAdvisorAnalyzeResponse> analyzeStream(String organizationId,
+            SalesAdvisorAnalyzeRequest request, Consumer<String> onChunk) {
+        return doAnalyze(organizationId, request, onChunk);
+    }
+
+    private AiStreamResult<SalesAdvisorAnalyzeResponse> doAnalyze(String organizationId,
+            SalesAdvisorAnalyzeRequest request, Consumer<String> onChunk) {
         if (StringUtils.isBlank(request.getMessage())
                 && (request.getPicIds() == null || request.getPicIds().isEmpty())) {
             throw new GenericException("请粘贴聊天记录或上传截图");
@@ -113,8 +126,8 @@ public class SalesAdvisorService {
             throw new GenericException(blockedMessage(status));
         }
 
-        // 3. 遍历候选调用，累积 chunk（首个模型一旦产出内容便不再降级）
-        StringBuilder content = new StringBuilder();
+        // 3. 遍历候选调用，流式转发叙述部分并累积全文（首个模型一旦产出内容便不再降级）
+        FencedJsonStreamer streamer = new FencedJsonStreamer(onChunk);
         AtomicBoolean emitted = new AtomicBoolean(false);
         Exception lastError = null;
         for (AgentModel model : models) {
@@ -130,13 +143,13 @@ public class SalesAdvisorService {
 
                 LlmUsage usage = provider.chatStream(llmRequest, chunk -> {
                     emitted.set(true);
-                    content.append(chunk);
+                    streamer.accept(chunk);
                 });
                 aiQuotaService.record(organizationId, AiQuotaConstant.AI_ADVISOR, model.getModelName(),
                         usage.getInputTokens(), usage.getOutputTokens(), userId);
-                SalesAdvisorAnalyzeResponse analysis = parseAnalysis(content.toString());
+                SalesAdvisorAnalyzeResponse analysis = parseAnalysis(streamer.text());
                 enrichWithScriptLibrary(analysis, organizationId, request);
-                return analysis;
+                return new AiStreamResult<>(analysis, usage);
             } catch (Exception e) {
                 lastError = e;
                 if (emitted.get()) {

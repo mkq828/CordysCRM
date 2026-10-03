@@ -861,6 +861,9 @@ export const { login, signout, isLogin, getKey, getCaptcha, getThirdCallback, ge
 
 export const {
   streamAgentChat,
+  streamSalesAdvisor,
+  streamGenerateAiContent,
+  streamAskKnowledge,
   cancelAgentChat,
   confirmAgentChat,
   likeAgentChat,

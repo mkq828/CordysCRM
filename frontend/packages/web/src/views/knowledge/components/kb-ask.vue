@@ -1,5 +1,5 @@
 <template>
-  <CrmCard hide-footer class="kb-ask h-full overflow-y-auto">
+  <CrmCard hide-footer no-content-padding content-height="100%" class="kb-ask h-full overflow-hidden">
     <template #title>
       <div class="flex items-center gap-[8px]">
         <CrmIcon type="iconicon_star1" :size="16" color="var(--primary-8)" />
@@ -7,108 +7,227 @@
       </div>
     </template>
 
-    <div class="flex flex-col gap-[16px] px-[24px] pb-[24px]">
-      <div class="text-[13px] text-orange-500">{{ t('knowledge.askDesc') }}</div>
+    <CrmSplitPanel class="h-full" :max="0.5" :min="0.2" :default-size="0.24">
+      <template #1>
+        <AiConversationPanel
+          :feature-code="FEATURE_KB"
+          :active-id="activeConversationId"
+          @select="handleSelectHistory"
+          @new="handleNewConversation"
+        />
+      </template>
 
-      <n-input
-        v-model:value="question"
-        type="textarea"
-        :placeholder="t('knowledge.questionPlaceholder')"
-        :autosize="{ minRows: 4, maxRows: 10 }"
-      />
+      <template #2>
+        <div class="flex h-full flex-col overflow-y-auto px-[24px] pb-[24px]">
+          <div class="text-[13px] text-orange-500">{{ t('knowledge.askDesc') }}</div>
 
-      <div>
-        <n-button type="primary" :loading="asking" :disabled="!canAsk" @click="handleAsk">
-          {{ asking ? t('knowledge.asking') : t('knowledge.ask') }}
-        </n-button>
-      </div>
+          <div class="mt-[16px] flex flex-col gap-[16px]">
+            <n-input
+              v-model:value="question"
+              type="textarea"
+              :placeholder="t('knowledge.questionPlaceholder')"
+              :autosize="{ minRows: 3, maxRows: 8 }"
+            />
 
-      <div v-if="result" class="flex flex-col gap-[12px]">
-        <div class="kb-answer-card">
-          <div class="flex items-center justify-between">
-            <span class="text-[13px] font-semibold text-[var(--text-n1)]">{{ t('knowledge.answer') }}</span>
-            <n-button size="tiny" quaternary @click="copy(result.answer)">{{ t('knowledge.copy') }}</n-button>
-          </div>
-          <div class="whitespace-pre-wrap text-[13px] leading-[1.6] text-[var(--text-n2)]">{{ result.answer }}</div>
-        </div>
-
-        <template v-if="result.citations?.length">
-          <span class="text-[13px] font-semibold text-[var(--text-n1)]">{{ t('knowledge.citations') }}</span>
-          <div v-for="(cit, index) in result.citations" :key="index" class="kb-citation-card">
-            <div class="flex items-center justify-between">
-              <span class="truncate text-[13px] font-semibold text-[var(--text-n1)]">{{ cit.docName || '-' }}</span>
-              <n-button size="tiny" quaternary @click="copy(cit.content)">{{ t('knowledge.copy') }}</n-button>
+            <div>
+              <n-button type="primary" :loading="asking" :disabled="!canAsk" @click="handleAsk">
+                {{ asking ? t('knowledge.asking') : t('knowledge.ask') }}
+              </n-button>
             </div>
-            <div class="whitespace-pre-wrap text-[12px] leading-[1.6] text-[var(--text-n3)]">{{ cit.content }}</div>
           </div>
-        </template>
-      </div>
-    </div>
+
+          <div class="mt-[20px] flex flex-col gap-[16px]">
+            <n-empty v-if="!thread.length && !asking" :description="t('common.noData')" :show-icon="false" />
+
+            <template v-for="item in thread" :key="item.id">
+              <div v-if="item.role === 'USER'" class="flex justify-end">
+                <div class="flex max-w-[80%] flex-col items-end gap-[4px]">
+                  <div class="flex items-center gap-[6px] text-[11px] text-[var(--text-n4)]">
+                    <span>{{ item.userName }}</span>
+                    <span>{{ formatTime(item.time) }}</span>
+                  </div>
+                  <div
+                    class="whitespace-pre-wrap rounded-[8px] rounded-tr-[2px] bg-[var(--primary-8)] px-[12px] py-[8px] text-[13px] leading-[1.6] text-white"
+                  >
+                    {{ item.content }}
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="flex flex-col gap-[12px]">
+                <div class="flex items-center gap-[6px] text-[11px] text-[var(--text-n4)]">
+                  <span class="font-semibold">{{ t('aiConversation.ai') }}</span>
+                  <span>{{ formatTime(item.time) }}</span>
+                </div>
+                <div v-if="item.status === 'error'" class="text-[13px] text-[var(--error)]">
+                  {{ item.content }}
+                </div>
+                <KbAnswerResult v-else :answer="item.content" :citations="item.citations" />
+              </div>
+            </template>
+
+            <div v-if="asking" class="flex flex-col gap-[8px] rounded-[6px] bg-[var(--fill-2)] p-[12px]">
+              <div class="flex items-center gap-[8px] text-[13px] text-[var(--text-n3)]">
+                <CrmIcon type="iconicon_loading" :size="16" class="animate-spin" />
+                {{ t('knowledge.asking') }}
+              </div>
+              <div v-if="streamingText" class="whitespace-pre-wrap text-[13px] leading-[1.6] text-[var(--text-n2)]">
+                {{ streamingText }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </CrmSplitPanel>
   </CrmCard>
 </template>
 
 <script setup lang="ts">
-  import { NButton, NInput, useMessage } from 'naive-ui';
+  import { computed, ref } from 'vue';
+  import { NButton, NEmpty, NInput } from 'naive-ui';
+  import dayjs from 'dayjs';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
-  import type { AiKnowledgeAnswerResult } from '@lib/shared/models/ai';
+  import type {
+    AgentConversationDetail,
+    AgentConversationMessage,
+    AiKnowledgeAnswerResult,
+    AiKnowledgeCitation,
+  } from '@lib/shared/models/ai';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
+  import CrmSplitPanel from '@/components/pure/crm-split-panel/index.vue';
+  import AiConversationPanel from '@/components/business/ai-conversation-panel/index.vue';
+  import KbAnswerResult from './KbAnswerResult.vue';
 
-  import { askKnowledge } from '@/api/modules';
+  import { streamAskKnowledge } from '@/api/modules';
+  import useUserStore from '@/store/modules/user';
+
+  const FEATURE_KB = 'ai_kb';
 
   const { t } = useI18n();
-  const Message = useMessage();
+  const userStore = useUserStore();
 
   const question = ref('');
   const asking = ref(false);
-  const result = ref<AiKnowledgeAnswerResult | null>(null);
+  const streamingText = ref('');
+
+  interface ThreadItem {
+    id: string;
+    role: 'USER' | 'ASSISTANT';
+    content: string;
+    time?: number;
+    userName?: string;
+    citations?: AiKnowledgeCitation[];
+    status?: string;
+  }
+
+  const thread = ref<ThreadItem[]>([]);
+  const activeConversationId = ref('');
 
   const canAsk = computed(() => !asking.value && question.value.trim() !== '');
+  const currentUserName = computed(() => userStore.userInfo.name || '');
+
+  function formatTime(ts?: number): string {
+    return ts ? dayjs(ts).format('YYYY-MM-DD HH:mm') : '';
+  }
+
+  function parsePayload(payload?: string | null): AiKnowledgeAnswerResult | null {
+    if (!payload) {
+      return null;
+    }
+    try {
+      return JSON.parse(payload) as AiKnowledgeAnswerResult;
+    } catch {
+      return null;
+    }
+  }
+
+  function toThreadItems(messages: AgentConversationMessage[]): ThreadItem[] {
+    return (messages || []).map((msg) => ({
+      id: msg.id,
+      role: msg.role,
+      content: msg.content || '',
+      time: msg.createTime,
+      userName: msg.role === 'USER' ? currentUserName.value : undefined,
+      citations: msg.role === 'ASSISTANT' ? parsePayload(msg.payload)?.citations : undefined,
+      status: msg.status,
+    }));
+  }
+
+  function handleSelectHistory(detail: AgentConversationDetail): void {
+    activeConversationId.value = detail?.conversation?.id || '';
+    thread.value = toThreadItems(detail?.messages || []);
+  }
+
+  function handleNewConversation(): void {
+    activeConversationId.value = '';
+    thread.value = [];
+  }
 
   async function handleAsk() {
     if (!canAsk.value) {
       return;
     }
     asking.value = true;
+    streamingText.value = '';
+
+    thread.value.push({
+      id: `u_${Date.now()}`,
+      role: 'USER',
+      content: question.value.trim(),
+      time: Date.now(),
+      userName: currentUserName.value,
+    });
+
+    let assistantPushed = false;
     try {
-      result.value = await askKnowledge({ question: question.value.trim() });
+      const stream = streamAskKnowledge({
+        question: question.value.trim(),
+        conversationId: activeConversationId.value || undefined,
+      });
+
+      // eslint-disable-next-line no-restricted-syntax -- 原生 async generator，无需 regenerator-runtime
+      for await (const event of stream) {
+        if (event.type === 'run') {
+          const conversationId = event.run?.conversationId || '';
+          if (conversationId) {
+            activeConversationId.value = conversationId;
+          }
+        } else if (event.type === 'chunk') {
+          streamingText.value += event.content || '';
+        } else if (event.type === 'error') {
+          throw new Error(event.errorMessage || t('common.operationFailed'));
+        } else if (event.type === 'done' && !assistantPushed) {
+          const result = (event.data?.payload as AiKnowledgeAnswerResult) || null;
+          thread.value.push({
+            id: `a_${Date.now()}`,
+            role: 'ASSISTANT',
+            content: streamingText.value || result?.answer || '',
+            time: Date.now(),
+            citations: result?.citations || [],
+            status: 'done',
+          });
+          assistantPushed = true;
+        }
+      }
     } catch (error) {
-      result.value = null;
-      // eslint-disable-next-line no-console
-      console.error(error);
+      if (!assistantPushed) {
+        thread.value.push({
+          id: `a_${Date.now()}`,
+          role: 'ASSISTANT',
+          content: (error as Error)?.message || t('common.operationFailed'),
+          time: Date.now(),
+          status: 'error',
+        });
+      }
     } finally {
       asking.value = false;
-    }
-  }
-
-  async function copy(text?: string) {
-    if (!text) {
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(text);
-      Message.success(t('knowledge.copied'));
-    } catch {
-      Message.error(t('common.operationFailed'));
+      streamingText.value = '';
+      question.value = '';
     }
   }
 </script>
 
-<style lang="less" scoped>
-  .kb-answer-card {
-    padding: 14px 16px;
-    border: 1px solid rgb(249 115 22 / 16%);
-    border-radius: 8px;
-    background: rgb(249 115 22 / 5%);
-  }
-  .kb-citation-card {
-    display: flex;
-    flex-direction: column;
-    padding: 10px 12px;
-    border-radius: 6px;
-    background: rgb(148 163 184 / 8%);
-    gap: 8px;
-  }
-</style>
+<style lang="less" scoped></style>

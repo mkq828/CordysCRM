@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.cordys.crm.ai.conversation.mapper.ExtAgentConversationMapper">
+
+    <select id="selectPage" resultType="cn.cordys.crm.ai.conversation.dto.response.AgentConversationResponse">
+        select
+            id,
+            title,
+            feature_code,
+            user_id,
+            organization_id,
+            create_user,
+            update_user,
+            create_time,
+            update_time
+        from agent_conversation
+        where organization_id = #{orgId}
+          and user_id = #{userId}
+          and feature_code = #{featureCode}
+        <if test="keyword != null and keyword != ''">
+            and title like concat('%', #{keyword}, '%')
+        </if>
+        order by update_time desc
+    </select>
+
+    <select id="selectMessages" resultType="cn.cordys.crm.ai.conversation.domain.AgentMessage">
+        select
+            id,
+            role,
+            run_id,
+            conversation_id,
+            input_tokens,
+            output_tokens,
+            total_tokens,
+            content,
+            payload,
+            organization_id,
+            helpful,
+            status,
+            create_time,
+            update_time,
+            create_user,
+            update_user
+        from agent_message
+        where organization_id = #{orgId}
+          and conversation_id = #{conversationId}
+        order by create_time asc, id asc
+    </select>
+
+</mapper>

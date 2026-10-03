@@ -86,6 +86,8 @@ export interface AgentChatDoneData {
   input?: number;
   assistantMessageId?: string;
   totalTokens?: number; // Tokens 消耗
+  /** 流式结束后回传的结构化结果（会话军师分析 / 获客物料包 / 知识库出处等） */
+  payload?: unknown;
 }
 
 export interface AgentChatStreamEvent {
@@ -101,7 +103,10 @@ export interface AgentChatStreamEvent {
   raw?: unknown;
 }
 
-export type AgentConversationQueryRequest = TableQueryParams;
+export type AgentConversationQueryRequest = TableQueryParams & {
+  /** 会话分组码：chat / ai_advisor / ai_kb / ai_acquire */
+  featureCode?: string;
+};
 
 export interface AgentConversationItem {
   id: string;
@@ -112,12 +117,13 @@ export interface AgentConversationItem {
   organizationId?: string;
   userId?: string;
   title: string;
+  featureCode?: string;
   localPending?: boolean;
 }
 
 export type AgentConversationPageResult = CommonList<AgentConversationItem>;
 
-export type AgentConversationMessageStatus = 'done' | 'stopped';
+export type AgentConversationMessageStatus = 'done' | 'stopped' | 'error';
 
 export interface AgentConversationMessage {
   id: string;
@@ -135,6 +141,8 @@ export interface AgentConversationMessage {
   runId?: string;
   helpful?: boolean | null;
   status?: AgentConversationMessageStatus;
+  /** 结构化结果 JSON 字符串（会话军师分析 / 获客物料包 / 知识库出处） */
+  payload?: string | null;
 }
 
 export interface AgentConversationDetail {
@@ -177,6 +185,7 @@ export interface AgentActionApproveItem {
 export interface SalesAdvisorAnalyzeParams {
   message?: string;
   picIds?: string[];
+  conversationId?: string;
 }
 
 /** AI 销售会话军师结构化分析结果 */
@@ -243,6 +252,7 @@ export interface AiContentGenerateParams {
   product: string;
   platform?: 'douyin' | 'xiaohongshu' | 'moments';
   topicCount?: number;
+  conversationId?: string;
 }
 
 /** AI 获客内容生成-单条内容（一份可直接发布的物料包） */
@@ -287,6 +297,7 @@ export interface AiKnowledgeDocPageParams {
 export interface AiKnowledgeAskParams {
   question: string;
   topK?: number;
+  conversationId?: string;
 }
 
 /** 企业知识库-问答出处引用 */

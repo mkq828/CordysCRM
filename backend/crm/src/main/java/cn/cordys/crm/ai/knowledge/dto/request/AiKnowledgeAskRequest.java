@@ -14,4 +14,7 @@ public class AiKnowledgeAskRequest {
 
     @Schema(description = "引用出处数量（默认 4）")
     private Integer topK;
+
+    @Schema(description = "会话 ID（可空，用于流式对话记录关联；为空时服务端新建会话）")
+    private String conversationId;
 }
