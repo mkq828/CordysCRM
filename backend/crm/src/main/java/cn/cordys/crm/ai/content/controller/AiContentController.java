@@ -24,7 +24,7 @@ public class AiContentController {
     private AiContentGenerateService aiContentGenerateService;
 
     @PostMapping("/generate")
-    @Operation(summary = "生成获客内容（选题/文案/配图文案）")
+    @Operation(summary = "生成获客内容（选题/标题/正文/配图文案/封面文案/话题标签/发布时间/口播脚本）")
     public AiContentGenerateResponse generate(@RequestBody AiContentGenerateRequest request) {
         return aiContentGenerateService.generate(OrganizationContext.getOrganizationId(), request);
     }

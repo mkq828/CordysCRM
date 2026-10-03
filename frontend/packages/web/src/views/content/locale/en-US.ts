@@ -1,6 +1,6 @@
 export default {
   'content.desc':
-    'Enter your industry and product highlights, and AI will generate publish-ready topics, viral copy and image captions for the selected platform.',
+    'Enter your industry and product highlights, and AI will generate a ready-to-publish content pack for the selected platform (topic, title, copy, image caption, cover text, hashtags, best posting time and voiceover script).',
   'content.industry': 'Industry',
   'content.industryPlaceholder': 'e.g. home decor, education, F&B, tax services…',
   'content.product': 'Product / highlights',
@@ -14,8 +14,13 @@ export default {
   'content.generating': 'Generating…',
   'content.result': 'Results',
   'content.topic': 'Topic',
+  'content.title': 'Title',
   'content.copy': 'Copy',
   'content.imageCopy': 'Image caption',
+  'content.coverCopy': 'Cover text',
+  'content.hashtags': 'Hashtags',
+  'content.bestTime': 'Best time to post',
+  'content.script': 'Voiceover script',
   'content.copyItem': 'Copy',
   'content.copyAll': 'Copy all',
   'content.export': 'Export text',

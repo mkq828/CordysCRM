@@ -42,7 +42,7 @@ public class AiContentGenerateService {
 
     /** 蒸馏 marketingskills 的 social / copywriting / content-strategy / image 四个 skill，见功能 3 PRD */
     private static final String SYSTEM_PROMPT = """
-            你是资深社交媒体运营与转化文案专家。请根据用户提供的「行业 + 产品/卖点 + 目标平台」，生成一批可直接发布的获客内容。
+            你是资深社交媒体运营与转化文案专家。请根据用户提供的「行业 + 产品/卖点 + 目标平台」，生成一批可直接发布的获客物料包。
             写作铁律：
             1. 清晰优于机巧：宁可用大白话讲清楚，不用看不懂的俏皮话。
             2. 讲利益不讲功能：说客户能得到的改变/好处，而不是罗列参数。
@@ -50,12 +50,21 @@ public class AiContentGenerateService {
 
             按平台特点写作：
             - 抖音：3 秒钩子开头、口播节奏短句、爆点前置、强互动引导（评论/关注）。
-            - 小红书：种草体、带 emoji、2-4 个话题标签、利他干货、真诚人设。
+            - 小红书：种草体、带 emoji、利他干货、真诚人设。
             - 微信朋友圈：软性信任感、场景代入、不硬广、口语化、像朋友分享。
 
-            每条内容包含三部分：选题（一句话角度）、文案（正文）、配图文案（封面/配图上的短文案）。
+            每条内容是一份「可直接发布的物料包」，包含以下字段（字段按平台有所侧重，不相关字段输出空字符串）：
+            - topic：选题（一句话角度）
+            - title：标题（发布标题，抖音/小红书要有钩子感）
+            - copy：正文文案（小红书/朋友圈的正文；抖音可为口播字幕稿）
+            - imageCopy：配图文案（配图/贴纸上的短文案）
+            - coverCopy：封面文案（抖音封面、小红书首图上的大字）
+            - hashtags：话题标签（字符串数组，2-4 个，带 # 号）
+            - bestTime：最佳发布时间（如「工作日 19:00-21:00」）
+            - script：口播脚本（视频口播稿，含开头钩子；朋友圈可留空）
+
             输出严格 JSON（不要 markdown 代码块、不要任何多余文字），结构如下：
-            {"contents":[{"topic":"选题","copy":"文案","imageCopy":"配图文案"}]}
+            {"contents":[{"topic":"选题","title":"标题","copy":"正文","imageCopy":"配图文案","coverCopy":"封面文案","hashtags":["#标签1","#标签2"],"bestTime":"发布时间","script":"口播脚本"}]}
             只输出上述 JSON 本身，不要任何前后缀。
             """;
 
@@ -167,15 +176,20 @@ public class AiContentGenerateService {
             List<AiContentItem> contents = new ArrayList<>();
             for (JsonNode node : arr) {
                 String topic = node.path("topic").asText(null);
+                String title = node.path("title").asText(null);
                 String copy = node.path("copy").asText(null);
-                String imageCopy = node.path("imageCopy").asText(null);
-                if (StringUtils.isBlank(topic) && StringUtils.isBlank(copy)) {
+                if (StringUtils.isBlank(topic) && StringUtils.isBlank(title) && StringUtils.isBlank(copy)) {
                     continue;
                 }
                 AiContentItem item = new AiContentItem();
                 item.setTopic(topic);
+                item.setTitle(title);
                 item.setCopy(copy);
-                item.setImageCopy(imageCopy);
+                item.setImageCopy(node.path("imageCopy").asText(null));
+                item.setCoverCopy(node.path("coverCopy").asText(null));
+                item.setHashtags(parseHashtags(node.path("hashtags")));
+                item.setBestTime(node.path("bestTime").asText(null));
+                item.setScript(node.path("script").asText(null));
                 contents.add(item);
                 if (contents.size() >= topicCount) {
                     break;
@@ -187,6 +201,31 @@ public class AiContentGenerateService {
             response.setRawContent(text);
         }
         return response;
+    }
+
+    /** 解析话题标签数组，兼容模型偶发返回字符串的情况；过滤空值并截断到 4 个 */
+    private List<String> parseHashtags(JsonNode node) {
+        List<String> hashtags = new ArrayList<>();
+        if (node == null || node.isNull()) {
+            return hashtags;
+        }
+        if (node.isArray()) {
+            for (JsonNode t : node) {
+                String tag = t.asText(null);
+                if (StringUtils.isNotBlank(tag)) {
+                    hashtags.add(tag.trim());
+                    if (hashtags.size() >= 4) {
+                        break;
+                    }
+                }
+            }
+            return hashtags;
+        }
+        String single = node.asText(null);
+        if (StringUtils.isNotBlank(single)) {
+            hashtags.add(single.trim());
+        }
+        return hashtags;
     }
 
     /** 剥 ```json ... ``` 包裹，取首个 { 到末个 } 的 JSON 片段；无合法片段返回 null */

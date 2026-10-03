@@ -245,11 +245,16 @@ export interface AiContentGenerateParams {
   topicCount?: number;
 }
 
-/** AI 获客内容生成-单条内容 */
+/** AI 获客内容生成-单条内容（一份可直接发布的物料包） */
 export interface AiContentItem {
   topic?: string;
+  title?: string;
   copy?: string;
   imageCopy?: string;
+  coverCopy?: string;
+  hashtags?: string[];
+  bestTime?: string;
+  script?: string;
 }
 
 /** AI 获客内容生成-结果 */

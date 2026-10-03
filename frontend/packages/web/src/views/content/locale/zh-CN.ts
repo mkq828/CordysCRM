@@ -1,5 +1,6 @@
 export default {
-  'content.desc': '填写行业与产品卖点，AI 会针对所选平台生成可直接发布的选题、爆款文案与配图文案。',
+  'content.desc':
+    '填写行业与产品卖点，AI 会针对所选平台生成一份可直接发布的获客物料包（选题、标题、正文、配图文案、封面文案、话题标签、发布时间、口播脚本）。',
   'content.industry': '行业',
   'content.industryPlaceholder': '例如：家装、教育、餐饮、财税…',
   'content.product': '产品/卖点',
@@ -13,8 +14,13 @@ export default {
   'content.generating': '生成中…',
   'content.result': '生成结果',
   'content.topic': '选题',
-  'content.copy': '文案',
+  'content.title': '标题',
+  'content.copy': '正文文案',
   'content.imageCopy': '配图文案',
+  'content.coverCopy': '封面文案',
+  'content.hashtags': '话题标签',
+  'content.bestTime': '最佳发布时间',
+  'content.script': '口播脚本',
   'content.copyItem': '复制',
   'content.copyAll': '复制全部',
   'content.export': '导出文本',
