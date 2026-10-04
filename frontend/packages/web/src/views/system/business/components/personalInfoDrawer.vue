@@ -21,7 +21,13 @@
       >
         <div class="flex items-center gap-[12px] font-medium text-[var(--text-n1)]">
           <n-p class="m-[0]">{{ t('system.personal.subscription') }}</n-p>
-          <n-button size="small" type="primary" ghost @click="showRenewModal = true">
+          <n-button
+            v-if="hasAnyPermission(['TENANT_PLAN:APPLY'])"
+            size="small"
+            type="primary"
+            ghost
+            @click="showRenewModal = true"
+          >
             {{ t('system.personal.renew.title') }}
           </n-button>
         </div>

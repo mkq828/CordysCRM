@@ -148,6 +148,10 @@ public class PermissionConstants {
     public static final String LICENSE_EDIT = "LICENSE:EDIT";
     /*------ end: LICENSE ------*/
 
+    /*------ start: TENANT_PLAN ------*/
+    public static final String TENANT_PLAN_APPLY = "TENANT_PLAN:APPLY";
+    /*------ end: TENANT_PLAN ------*/
+
 
     /*------ start: PERSON INFO ------*/
     public static final String PERSONAL_API_KEY_READ = "PERSONAL_API_KEY:READ";

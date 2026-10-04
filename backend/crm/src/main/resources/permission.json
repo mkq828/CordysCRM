@@ -150,6 +150,16 @@
         ]
       },
       {
+        "id": "TENANT_PLAN",
+        "name": "permission.system.tenant_plan.name",
+        "permissions": [
+          {
+            "id": "TENANT_PLAN:APPLY",
+            "name": "permission.tenant_plan.apply"
+          }
+        ]
+      },
+      {
         "id": "PROCESS_SETTING",
         "name": "permission.process_setting.name",
         "permissions": [

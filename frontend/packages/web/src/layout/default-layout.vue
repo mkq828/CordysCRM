@@ -35,6 +35,7 @@
 
   import { PersonalEnum } from '@lib/shared/enums/systemEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
+  import { offOpenPersonalInfo, onOpenPersonalInfo } from '@lib/shared/method/personal-center';
 
   import AiChatFloatingEntry from '@/components/business/ai-chat/components/AiChatFloatingEntry.vue';
   import LayoutHeader from './components/layout-header.vue';
@@ -80,6 +81,15 @@
     personalTab.value = tab;
     showPersonalInfo.value = true;
   }
+
+  // 深层业务组件（如客户画像升级空态）通过全局事件打开个人中心
+  onMounted(() => {
+    onOpenPersonalInfo(handleOpenPersonalInfo);
+  });
+
+  onBeforeUnmount(() => {
+    offOpenPersonalInfo();
+  });
 
   watch(
     () => props.logo,

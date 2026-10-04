@@ -10,7 +10,7 @@
     <template v-else-if="!profile?.available">
       <div class="flex flex-1 flex-col items-center justify-center gap-[16px]">
         <n-empty :description="t('customer.profileUpgradeTip')" />
-        <n-button type="primary" size="small" @click="goAdvisor">
+        <n-button type="primary" size="small" @click="goUpgrade">
           {{ t('customer.profileUpgradeAction') }}
         </n-button>
       </div>
@@ -67,7 +67,9 @@
   import { NButton, NEmpty, NSpin, NTag } from 'naive-ui';
   import dayjs from 'dayjs';
 
+  import { PersonalEnum } from '@lib/shared/enums/systemEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
+  import { emitOpenPersonalInfo } from '@lib/shared/method/personal-center';
   import type { SalesAdvisorAnalyzeResult } from '@lib/shared/models/ai';
   import type { CustomerProfileResponse } from '@lib/shared/models/customer';
   import type { OpportunityStageConfig } from '@lib/shared/models/opportunity';
@@ -196,6 +198,11 @@
 
   function goAdvisor() {
     router.push({ name: WorkbenchRouteEnum.WORKBENCH_SMART });
+  }
+
+  // 了解升级：跳转到个人信息（个人中心）的「版本与授权」查看并自助申请续费/升级
+  function goUpgrade() {
+    emitOpenPersonalInfo(PersonalEnum.INFO);
   }
 
   watch(
