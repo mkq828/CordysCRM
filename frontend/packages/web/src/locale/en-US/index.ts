@@ -53,6 +53,7 @@ export default {
     'menu.salesScript': 'Sales Scripts',
     'menu.aiContent': 'AI Content',
     'menu.aiKnowledge': 'AI Knowledge Base',
+    'menu.aiPpt': 'Proposal & PPT',
     'menu.effects': 'Effects Library',
     'menu.platformAiQuota': 'AI Quota Mgmt',
     'menu.customForm': 'Custom Form',

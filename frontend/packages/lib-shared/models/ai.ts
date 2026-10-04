@@ -111,6 +111,7 @@ export type AgentConversationQueryRequest = TableQueryParams & {
 export interface AgentConversationItem {
   id: string;
   createUser?: string;
+  createUserName?: string;
   updateUser?: string;
   createTime?: number;
   updateTime?: number;
@@ -271,6 +272,53 @@ export interface AiContentItem {
 /** AI 获客内容生成-结果 */
 export interface AiContentGenerateResult {
   contents?: AiContentItem[];
+  rawContent?: string;
+}
+
+/** AI 方案/PPT-方案大纲区块 */
+export interface AiPptSection {
+  key?: string;
+  title?: string;
+  content?: string;
+}
+
+/** AI 方案/PPT-生成方案大纲请求 */
+export interface AiPptOutlineParams {
+  customerName?: string;
+  industry: string;
+  product: string;
+  background: string;
+  budget?: string;
+  competitor?: string;
+  focus?: string;
+  conversationId?: string;
+}
+
+/** AI 方案/PPT-方案大纲结果 */
+export interface AiPptOutlineResult {
+  title?: string;
+  sections?: AiPptSection[];
+  rawContent?: string;
+}
+
+/** AI 方案/PPT-生成 PPT 逐页请求 */
+export interface AiPptSlidesParams {
+  title?: string;
+  sections?: AiPptSection[];
+  conversationId?: string;
+}
+
+/** AI 方案/PPT-单页 */
+export interface AiPptSlide {
+  title?: string;
+  bullets?: string[];
+  notes?: string;
+}
+
+/** AI 方案/PPT-逐页结果 */
+export interface AiPptSlidesResult {
+  title?: string;
+  slides?: AiPptSlide[];
   rawContent?: string;
 }
 

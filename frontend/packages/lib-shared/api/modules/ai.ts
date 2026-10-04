@@ -30,6 +30,8 @@ import {
   AiSalesScriptImportUrl,
   AiContentGenerateUrl,
   AiContentGenerateStreamUrl,
+  AiPptOutlineStreamUrl,
+  AiPptSlidesStreamUrl,
   AiKnowledgeDocPageUrl,
   AiKnowledgeDocUploadUrl,
   AiKnowledgeDocDeleteUrl,
@@ -69,6 +71,8 @@ import type {
   ScriptRecommend,
   AiContentGenerateParams,
   AiContentGenerateResult,
+  AiPptOutlineParams,
+  AiPptSlidesParams,
   AiKnowledgeDoc,
   AiKnowledgeDocPageParams,
   AiKnowledgeAskParams,
@@ -357,6 +361,14 @@ export default function useAiApi(CDR: CordysAxios) {
     return streamSse(AiContentGenerateStreamUrl, data, options);
   }
 
+  function streamGenerateAiPptOutline(data: AiPptOutlineParams, options: AgentChatStreamOptions = {}) {
+    return streamSse(AiPptOutlineStreamUrl, data, options);
+  }
+
+  function streamGenerateAiPptSlides(data: AiPptSlidesParams, options: AgentChatStreamOptions = {}) {
+    return streamSse(AiPptSlidesStreamUrl, data, options);
+  }
+
   function streamAskKnowledge(data: AiKnowledgeAskParams, options: AgentChatStreamOptions = {}) {
     return streamSse(AiKnowledgeAskStreamUrl, data, options);
   }
@@ -534,6 +546,8 @@ export default function useAiApi(CDR: CordysAxios) {
     streamAgentChat,
     streamSalesAdvisor,
     streamGenerateAiContent,
+    streamGenerateAiPptOutline,
+    streamGenerateAiPptSlides,
     streamAskKnowledge,
     cancelAgentChat,
     confirmAgentChat,

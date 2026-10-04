@@ -866,6 +866,8 @@ export const {
   streamAgentChat,
   streamSalesAdvisor,
   streamGenerateAiContent,
+  streamGenerateAiPptOutline,
+  streamGenerateAiPptSlides,
   streamAskKnowledge,
   cancelAgentChat,
   confirmAgentChat,
