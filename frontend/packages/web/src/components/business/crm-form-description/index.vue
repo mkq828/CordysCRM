@@ -73,7 +73,9 @@
             needInitDetail
             class="flex-1"
           />
-          <div v-else-if="item.value" v-html="item.value?.toString().replace(/\n/g, '<br />')"></div>
+          <slot v-else-if="item.value" name="textareaValue" :item="item" :value="item.value?.toString()">
+            <div v-html="item.value?.toString().replace(/\n/g, '<br />')"></div>
+          </slot>
           <div v-else>-</div>
         </div>
       </template>

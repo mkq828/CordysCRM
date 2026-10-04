@@ -11,7 +11,7 @@
     <template #item="{ item }">
       <div class="crm-follow-record-item">
         <div class="crm-follow-time-line">
-          <div :class="`crm-follow-time-dot ${getFutureClass(item)}`"></div>
+          <div :class="`crm-follow-time-dot ${getFutureClass(item)}`" :style="dotStyle(item)"></div>
           <div class="crm-follow-time-line"></div>
         </div>
         <div class="mb-[24px] flex w-full flex-col gap-[12px]">
@@ -26,9 +26,15 @@
               />
               <CrmTag v-if="item.status && item.converted"> {{ t('common.hasConvertToRecord') }} </CrmTag>
               <div class="text-[var(--text-n1)]">{{ getShowTime(item) }}</div>
-              <div class="crm-follow-record-method">
-                {{ (props.type === 'followRecord' ? item.followMethod : item.method) ?? '-' }}
-              </div>
+              <CrmTag
+                v-if="methodOf(item) !== '-'"
+                size="small"
+                theme="dark"
+                :color="methodTagColor(item)"
+                tooltip-disabled
+              >
+                {{ methodOf(item) }}
+              </CrmTag>
               <n-tooltip
                 v-if="item.opportunityName && props.type === 'followRecord' && item.resourceType === 'CUSTOMER'"
                 trigger="hover"
@@ -72,7 +78,9 @@
               </template>
             </CrmDetailCard>
           </div>
-          <div class="crm-follow-record-content" v-html="item.content.replace(/\n/g, '<br />')"></div>
+          <div class="crm-follow-record-content" :style="contentStyle(item)">
+            <FollowContent :content="item.content" />
+          </div>
           <CrmComment
             v-model:expanded="commentExpandedMap[item.id]"
             v-model:count="item.commentCount"
@@ -103,12 +111,15 @@
   import CrmTableButton from '@/components/pure/crm-table-button/index.vue';
   import CrmTag from '@/components/pure/crm-tag/index.vue';
   import CrmComment from '@/components/business/crm-comment/index.vue';
+  import FollowContent from './FollowContent.vue';
   import StatusTagSelect from './statusTagSelect.vue';
 
   import useOpenNewPage from '@/hooks/useOpenNewPage';
   import useUserStore from '@/store/modules/user';
 
   import { ClueRouteEnum, CustomerRouteEnum } from '@/enums/routeEnum';
+
+  import { methodThemeOf } from './methodTheme';
 
   const { t } = useI18n();
   const props = defineProps<{
@@ -149,6 +160,32 @@
     return time && dayjs(time).isValid() ? dayjs(time).format('YYYY-MM-DD') : '-';
   }
 
+  /** 跟进方式：记录取 followMethod，计划取 method */
+  function methodOf(item: FollowDetailItem): string {
+    return (props.type === 'followRecord' ? item.followMethod : (item as CustomerFollowPlanListItem).method) || '-';
+  }
+
+  function dotStyle(item: FollowDetailItem): Record<string, string> {
+    if (getFutureClass(item)) {
+      return {};
+    }
+    const { solid } = methodThemeOf(methodOf(item));
+    return { background: solid, borderColor: solid, boxShadow: `0 0 0 3px ${solid}2e` };
+  }
+
+  function methodTagColor(item: FollowDetailItem): { color: string; borderColor: string; textColor: string } {
+    const { solid } = methodThemeOf(methodOf(item));
+    return { color: solid, borderColor: solid, textColor: '#ffffff' };
+  }
+
+  function contentStyle(item: FollowDetailItem): Record<string, string> {
+    const { solid } = methodThemeOf(methodOf(item));
+    return {
+      borderLeftColor: solid,
+      background: `linear-gradient(135deg, ${solid}1f, ${solid}0a 55%, ${solid}05)`,
+    };
+  }
+
   const commentExpandedMap = ref<Record<string, boolean>>({});
 
   const { openNewPage } = useOpenNewPage();
@@ -185,12 +222,12 @@
     @apply flex gap-4;
     .crm-follow-time-line {
       padding-top: 12px;
-      width: 8px;
+      width: 10px;
 
       @apply flex flex-col items-center justify-center gap-2;
       .crm-follow-time-dot {
-        width: 8px;
-        height: 8px;
+        width: 10px;
+        height: 10px;
         border: 2px solid var(--text-n7);
         border-radius: 50%;
         flex-shrink: 0;
@@ -206,15 +243,15 @@
     }
     .crm-follow-record-title {
       @apply flex items-center justify-between gap-4;
-      .crm-follow-record-method {
-        color: var(--text-n1);
-        @apply font-medium;
-      }
     }
     .crm-follow-record-content {
       padding: 12px;
+      padding-left: 16px;
+      border-left: 4px solid var(--text-n8);
       border-radius: var(--border-radius-small);
+      color: var(--text-n1);
       background: var(--text-n9);
+      line-height: 1.6;
     }
   }
 </style>

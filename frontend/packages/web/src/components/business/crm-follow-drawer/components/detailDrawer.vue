@@ -33,6 +33,21 @@
     </template>
     <div class="h-full bg-[var(--text-n9)] p-[16px]">
       <CrmCard hide-footer>
+        <template #header>
+          <div v-if="followMethod || followTime" class="flex items-center gap-[10px]">
+            <span class="h-[16px] w-[4px] rounded-full" :style="{ background: methodTheme.solid }"></span>
+            <CrmTag
+              v-if="followMethod"
+              size="small"
+              theme="dark"
+              :color="{ color: methodTheme.solid, borderColor: methodTheme.solid, textColor: '#ffffff' }"
+              tooltip-disabled
+            >
+              {{ followMethod }}
+            </CrmTag>
+            <span v-if="followTime" class="text-[12px] text-[var(--text-n3)]">{{ followTime }}</span>
+          </div>
+        </template>
         <div class="flex-1">
           <CrmFormDescription
             :form-key="props.formKey"
@@ -43,7 +58,11 @@
             value-align="start"
             readonly
             @init="handleDescriptionInit"
-          />
+          >
+            <template #textareaValue="{ value }">
+              <FollowContent :content="value || ''" />
+            </template>
+          </CrmFormDescription>
         </div>
         <n-divider class="!mb-[12px] !mt-[16px] bg-[var(--text-n8)]" />
         <CrmComment
@@ -59,6 +78,7 @@
 
 <script setup lang="ts">
   import { NButton, NDivider } from 'naive-ui';
+  import dayjs from 'dayjs';
 
   import { CustomerFollowPlanStatusEnum } from '@lib/shared/enums/customerEnum';
   import { FormDesignKeyEnum } from '@lib/shared/enums/formDesignEnum';
@@ -66,7 +86,10 @@
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmDrawer from '@/components/pure/crm-drawer/index.vue';
+  import CrmTag from '@/components/pure/crm-tag/index.vue';
   import CrmComment from '@/components/business/crm-comment/index.vue';
+  import FollowContent from '@/components/business/crm-follow-detail/FollowContent.vue';
+  import { methodThemeOf } from '@/components/business/crm-follow-detail/methodTheme';
   import CrmFormDescription from '@/components/business/crm-form-description/index.vue';
 
   const props = defineProps<{
@@ -98,6 +121,18 @@
   );
   const commentInitialCount = ref<number>();
   const detailRefreshKey = ref(0);
+
+  const followMethod = computed(() => {
+    if (props.formKey === FormDesignKeyEnum.FOLLOW_RECORD) {
+      return props.detail?.followMethod;
+    }
+    return props.detail?.method;
+  });
+  const followTime = computed(() => {
+    const value = props.detail?.followTime || props.detail?.estimatedTime;
+    return value && dayjs(value).isValid() ? dayjs(value).format('YYYY-MM-DD HH:mm') : '';
+  });
+  const methodTheme = computed(() => methodThemeOf(followMethod.value || '-'));
 
   watch(
     () => [showDrawer.value, props.sourceId, props.formKey, props.refreshKey],
