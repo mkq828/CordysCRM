@@ -14,7 +14,13 @@ public class FencedJsonStreamer {
 
     private int forwardedLength = 0;
 
+    /** 引导语开头常见客套话，转发前剥掉，避免「好的，」「没问题」出现在打字机里 */
+    private static final String[] LEADING_FILLERS = {"好的，", "好的", "没问题，", "没问题", "OK，", "OK", "收到，", "收到"};
+
     private boolean fenced = false;
+
+    /** 已剥掉的前导客套话长度；-1 表示首段内容尚未到齐（仍可能是客套话前缀） */
+    private int prefixOffset = -1;
 
     public FencedJsonStreamer(Consumer<String> onChunk) {
         this.onChunk = onChunk;
@@ -27,13 +33,50 @@ public class FencedJsonStreamer {
         }
         int fence = full.indexOf("```");
         String visible = fence < 0 ? full.toString() : full.substring(0, fence);
-        if (visible.length() > forwardedLength) {
-            onChunk.accept(visible.substring(forwardedLength));
+        if (prefixOffset < 0) {
+            if (isPartialFiller(visible)) {
+                return;
+            }
+            prefixOffset = stripLeadingFiller(visible);
+        }
+        int start = Math.max(forwardedLength, prefixOffset);
+        if (visible.length() > start) {
+            onChunk.accept(visible.substring(start));
             forwardedLength = visible.length();
         }
         if (fence >= 0) {
             fenced = true;
         }
+    }
+
+    /** 当前文本仍是某个客套话的前缀（如只输出「好」），需等待更多输出 */
+    private static boolean isPartialFiller(String text) {
+        if (text.isEmpty()) {
+            return false;
+        }
+        for (String filler : LEADING_FILLERS) {
+            if (filler.startsWith(text)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 反复剥离开头客套话，返回被剥掉的长度 */
+    private static int stripLeadingFiller(String text) {
+        int offset = 0;
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (String filler : LEADING_FILLERS) {
+                if (text.startsWith(filler, offset)) {
+                    offset += filler.length();
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        return offset;
     }
 
     /** 累积的模型全文（含叙述与 JSON），供结构化解析 */
