@@ -1,7 +1,7 @@
 <template>
   <n-layout-header class="flex" bordered>
     <div class="flex min-w-[180px] max-w-[300px] justify-center px-[24px] py-[14px]">
-      <img :src="innerLogo" class="h-[28px]" />
+      <img :src="logoUrl" class="h-[28px]" @error="onLogoError" @load="onLogoLoad" />
     </div>
     <div class="flex flex-1 items-center justify-between px-[16px]">
       <CrmTopMenu />
@@ -95,7 +95,12 @@
           <template #versionInfoSlot>
             <n-popover position="left" content-class="w-[320px]" class="!p-[16px]">
               <div class="flex flex-col gap-[8px]">
-                <img :src="innerLogo" class="h-[22px] max-w-[100px] object-contain object-left" />
+                <img
+                  :src="logoUrl"
+                  class="h-[22px] max-w-[100px] object-contain object-left"
+                  @error="onLogoError"
+                  @load="onLogoLoad"
+                />
                 <div
                   class="flex cursor-pointer items-center gap-[8px] text-[14px] text-[var(--color-text-1)]"
                   @click="copyVersion(appStore.versionInfo.currentVersion)"
@@ -461,6 +466,20 @@
   const innerLogo = computed(() =>
     props.isPreview && props.logo ? props.logo : appStore.pageConfig.logoPlatform[0]?.url ?? defaultPlatformLogo
   );
+
+  // 自定义 logo 加载失败（如附件文件丢失返回空 body）时回退到默认 logo
+  const logoError = ref(false);
+  const logoUrl = computed(() => (logoError.value ? defaultPlatformLogo : innerLogo.value));
+
+  function onLogoError() {
+    logoError.value = true;
+  }
+
+  function onLogoLoad(e: Event) {
+    if ((e.target as HTMLImageElement).naturalWidth === 0) {
+      logoError.value = true;
+    }
+  }
 </script>
 
 <style lang="less" scoped></style>

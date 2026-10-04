@@ -50,6 +50,8 @@ public class UiDisplayController {
     @Operation(summary = "界面设置-文件预览")
     public ResponseEntity<org.springframework.core.io.Resource> preview(@RequestParam("paramKey") String paramKey,
                                             @RequestParam("organizationId") String organizationId) {
-        return uiDisplayService.preview(paramKey, organizationId);
+        ResponseEntity<org.springframework.core.io.Resource> response = uiDisplayService.preview(paramKey, organizationId);
+        // 附件文件缺失时返回 404，前端 <img> 据此触发 onerror 回退到默认图
+        return response != null ? response : ResponseEntity.notFound().build();
     }
 }

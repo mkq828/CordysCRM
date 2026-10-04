@@ -5,9 +5,10 @@
       :style="props.isPreview ? 'height: 100%;' : 'height: 100vh'"
       :src="bannerUrl"
       @error="onBannerError"
+      @load="onBannerLoad"
     />
     <a href="https://cordys.cn/" target="_blank" class="logo-link">
-      <img :src="logoUrl" @error="onLogoError" />
+      <img :src="logoUrl" @error="onLogoError" @load="onLogoLoad" />
     </a>
   </div>
 </template>
@@ -46,6 +47,19 @@
 
   function onLogoError() {
     logoError.value = true;
+  }
+
+  // 空 body 的 200 响应不会触发 error，通过 load 后 naturalWidth 为 0 兜底识别破图
+  function onBannerLoad(e: Event) {
+    if ((e.target as HTMLImageElement).naturalWidth === 0) {
+      bannerError.value = true;
+    }
+  }
+
+  function onLogoLoad(e: Event) {
+    if ((e.target as HTMLImageElement).naturalWidth === 0) {
+      logoError.value = true;
+    }
   }
 </script>
 
