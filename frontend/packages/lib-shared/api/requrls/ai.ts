@@ -41,3 +41,11 @@ export const AiKnowledgeDocDeleteUrl = '/agent/kb/doc/delete'; // 企业知识�
 export const AiKnowledgeAskUrl = '/agent/kb/ask'; // 企业知识库-检索问答
 export const AiKnowledgeAskStreamUrl = '/agent/kb/ask/stream'; // 企业知识库-流式检索问答
 export const AiKnowledgeConfigUrl = '/agent/kb/config'; // 企业知识库-出处片段长度设置（GET 读 / POST 存）
+export const AiEmployeeDivisionsUrl = '/agent/employee/divisions'; // AI 员工-角色目录部门导航
+export const AiEmployeeCatalogUrl = '/agent/employee/catalog'; // AI 员工-角色目录列表（?division=&keyword=）
+export const AiEmployeeDetailUrl = '/agent/employee'; // AI 员工-角色详情（拼 /{id}）
+export const AiEmployeeAgentsUrl = '/agent/employee/agents'; // AI 员工-岗位 Agent 列表
+export const AiEmployeeAgentAddUrl = '/agent/employee/agents/add'; // AI 员工-新增岗位 Agent
+export const AiEmployeeAgentUpdateUrl = '/agent/employee/agents/update'; // AI 员工-更新岗位 Agent
+export const AiEmployeeAgentDeleteUrl = '/agent/employee/agents/delete'; // AI 员工-删除岗位 Agent（拼 /{id}）
+export const AiEmployeeChatStreamUrl = '/agent/employee/agents'; // AI 员工-岗位 Agent 流式对话（拼 /{id}/chat/stream）

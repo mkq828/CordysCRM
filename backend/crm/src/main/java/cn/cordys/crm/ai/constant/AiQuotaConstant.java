@@ -68,6 +68,9 @@ public final class AiQuotaConstant {
     /** AI 方案/PPT 生成（功能 5，生成型：G2 额度 + G3 版本开关，企业版） */
     public static final String AI_PPT = "ai_ppt";
 
+    /** AI 员工（功能 6，编排层：角色提示词 + 岗位 Agent 对话，G2 额度 + G3 权限） */
+    public static final String AI_EMPLOYEE = "ai_employee";
+
     public static final List<String> AI_FEATURE_CODES = List.of(
             "ai_advisor", "ai_acquire", "ai_sales_rag", "ai_video", "wecom_auto_analysis",
             "ai_ppt", "lead_crawl", "dm_profile", "ai_employee", "ai_kb", "digital_human", "ai_call_review");

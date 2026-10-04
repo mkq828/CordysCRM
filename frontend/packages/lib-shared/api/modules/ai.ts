@@ -38,6 +38,14 @@ import {
   AiKnowledgeAskUrl,
   AiKnowledgeAskStreamUrl,
   AiKnowledgeConfigUrl,
+  AiEmployeeDivisionsUrl,
+  AiEmployeeCatalogUrl,
+  AiEmployeeDetailUrl,
+  AiEmployeeAgentsUrl,
+  AiEmployeeAgentAddUrl,
+  AiEmployeeAgentUpdateUrl,
+  AiEmployeeAgentDeleteUrl,
+  AiEmployeeChatStreamUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -79,6 +87,12 @@ import type {
   AiKnowledgeAnswerResult,
   AiKnowledgeConfig,
   SmartFocusParams,
+  AiEmployeeDivision,
+  AiEmployeeItem,
+  AiEmployeeDetail,
+  AiEmployeeAgent,
+  AiEmployeeAgentSaveParams,
+  AiEmployeeChatParams,
 } from '../../models/ai';
 
 interface SseBlock {
@@ -527,6 +541,38 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post({ url: AiKnowledgeConfigUrl, data });
   }
 
+  function getAiEmployeeDivisions() {
+    return CDR.get<AiEmployeeDivision[]>({ url: AiEmployeeDivisionsUrl });
+  }
+
+  function getAiEmployeeCatalog(division: string, keyword?: string) {
+    return CDR.get<AiEmployeeItem[]>({ url: AiEmployeeCatalogUrl, params: { division, keyword } });
+  }
+
+  function getAiEmployeeDetail(id: string) {
+    return CDR.get<AiEmployeeDetail>({ url: `${AiEmployeeDetailUrl}/${id}` });
+  }
+
+  function getAiEmployeeAgents() {
+    return CDR.get<AiEmployeeAgent[]>({ url: AiEmployeeAgentsUrl });
+  }
+
+  function addAiEmployeeAgent(data: AiEmployeeAgentSaveParams) {
+    return CDR.post({ url: AiEmployeeAgentAddUrl, data });
+  }
+
+  function updateAiEmployeeAgent(data: AiEmployeeAgentSaveParams) {
+    return CDR.post({ url: AiEmployeeAgentUpdateUrl, data });
+  }
+
+  function deleteAiEmployeeAgent(id: string) {
+    return CDR.get({ url: `${AiEmployeeAgentDeleteUrl}/${id}` });
+  }
+
+  function streamAiEmployeeChat(agentId: string, data: AiEmployeeChatParams, options: AgentChatStreamOptions = {}) {
+    return streamSse(`${AiEmployeeChatStreamUrl}/${agentId}/chat/stream`, data, options);
+  }
+
   function downloadAiSalesScriptTemplate() {
     return CDR.get(
       { url: AiSalesScriptImportTemplateUrl, responseType: 'blob' },
@@ -586,6 +632,14 @@ export default function useAiApi(CDR: CordysAxios) {
     askKnowledge,
     getAiKnowledgeConfig,
     saveAiKnowledgeConfig,
+    getAiEmployeeDivisions,
+    getAiEmployeeCatalog,
+    getAiEmployeeDetail,
+    getAiEmployeeAgents,
+    addAiEmployeeAgent,
+    updateAiEmployeeAgent,
+    deleteAiEmployeeAgent,
+    streamAiEmployeeChat,
     downloadAiSalesScriptTemplate,
     preCheckImportAiSalesScript,
     importAiSalesScript,

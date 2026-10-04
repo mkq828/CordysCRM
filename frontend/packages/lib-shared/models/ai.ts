@@ -365,3 +365,56 @@ export interface AiKnowledgeAnswerResult {
 export interface AiKnowledgeConfig {
   snippetMax: number;
 }
+
+/** AI 员工-角色目录-部门导航项 */
+export interface AiEmployeeDivision {
+  division: string;
+  count: number;
+}
+
+/** AI 员工-角色目录-列表项 */
+export interface AiEmployeeItem {
+  id: string;
+  division: string;
+  name: string;
+  description?: string;
+  color?: string;
+  emoji?: string;
+  vibe?: string;
+}
+
+/** AI 员工-角色目录-详情（含完整系统提示词） */
+export interface AiEmployeeDetail extends AiEmployeeItem {
+  systemPrompt?: string;
+}
+
+/** AI 员工-岗位 Agent */
+export interface AiEmployeeAgent {
+  id: string;
+  name: string;
+  employeeId: string;
+  employeeName?: string;
+  employeeEmoji?: string;
+  employeeColor?: string;
+  customPrompt?: string;
+  knowledgeEnabled?: number;
+  sort?: number;
+  createTime?: number;
+  updateTime?: number;
+}
+
+/** AI 员工-岗位 Agent 新增/更新参数 */
+export interface AiEmployeeAgentSaveParams {
+  id?: string;
+  name: string;
+  employeeId: string;
+  customPrompt?: string;
+  knowledgeEnabled?: boolean;
+  sort?: number;
+}
+
+/** AI 员工-岗位 Agent 对话请求 */
+export interface AiEmployeeChatParams {
+  message: string;
+  conversationId?: string;
+}

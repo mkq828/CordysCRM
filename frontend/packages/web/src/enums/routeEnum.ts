@@ -152,6 +152,11 @@ export enum PptRouteEnum {
   PPT_INDEX = 'aiPptIndex',
 }
 
+export enum AiEmployeeRouteEnum {
+  AI_EMPLOYEE = 'aiEmployee',
+  AI_EMPLOYEE_INDEX = 'aiEmployeeIndex',
+}
+
 export enum EffectsRouteEnum {
   EFFECTS = 'effects',
   EFFECTS_INDEX = 'effectsIndex',
@@ -189,6 +194,7 @@ export const AppRouteEnum = {
   ...ContentRouteEnum,
   ...KnowledgeRouteEnum,
   ...PptRouteEnum,
+  ...AiEmployeeRouteEnum,
   ...EffectsRouteEnum,
   ...PlatformAiQuotaRouteEnum,
   ...PlatformAdminRouteEnum,
