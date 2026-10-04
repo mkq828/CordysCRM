@@ -8,6 +8,7 @@ export default {
   'effects.sectionInteractive': 'D · 交互组件',
   'effects.sectionData': 'E · 数据大屏（暗色科技风）',
   'effects.sectionWorkbench': 'F · 3D 工作台',
+  'effects.sectionMedia': 'G · 多媒体与音频',
   'effects.a1': '流动渐变边框',
   'effects.a2': '流光扫边',
   'effects.b1': '极光背景',
@@ -23,5 +24,7 @@ export default {
   'effects.e3': '顶部流动渐变条',
   'effects.e4': '翻页时钟',
   'effects.e5': '脉冲状态徽标',
+  'effects.e6': '生成中',
   'effects.f1': '3D 悬浮工作台',
+  'effects.g1': '音频播放器',
 };

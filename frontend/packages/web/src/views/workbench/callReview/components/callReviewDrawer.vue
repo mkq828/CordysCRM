@@ -116,10 +116,10 @@
   import CrmDrawer from '@/components/pure/crm-drawer/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmTag from '@/components/pure/crm-tag/index.vue';
+  import FlowAudioPlayer from '@/components/pure/effects/FlowAudioPlayer.vue';
   import PulsingBadge from '@/components/pure/effects/PulsingBadge.vue';
   import ShimmerText from '@/components/pure/effects/ShimmerText.vue';
   import CrmFormCreateDrawer from '@/components/business/crm-form-create-drawer/index.vue';
-  import FlowAudioPlayer from './FlowAudioPlayer.vue';
   import AdvisorResult from '@/views/workbench/smart/components/AdvisorResult.vue';
 
   import { downloadAttachment, getCallReviewDetail, markCallReviewFollowed, retryCallReview } from '@/api/modules';

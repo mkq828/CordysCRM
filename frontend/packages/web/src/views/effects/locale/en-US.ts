@@ -8,6 +8,7 @@ export default {
   'effects.sectionInteractive': 'D · Interactive Components',
   'effects.sectionData': 'E · Data Dashboard (Dark Tech)',
   'effects.sectionWorkbench': 'F · 3D Workbench',
+  'effects.sectionMedia': 'G · Media & Audio',
   'effects.a1': 'Flowing Gradient Border',
   'effects.a2': 'Border Beam',
   'effects.b1': 'Aurora Background',
@@ -23,5 +24,7 @@ export default {
   'effects.e3': 'Top Shimmer Bar',
   'effects.e4': 'Flip Clock',
   'effects.e5': 'Pulsing Badge',
+  'effects.e6': 'Generating',
   'effects.f1': '3D Workbench',
+  'effects.g1': 'Audio Player',
 };

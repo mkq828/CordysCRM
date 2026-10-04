@@ -153,6 +153,14 @@
           </PulsingBadge>
         </div>
       </EffectItem>
+
+      <EffectItem code="E6" :name="t('effects.e6')">
+        <div class="demo-panel flex flex-col items-center justify-center py-[16px]">
+          <PulsingBadge color="#2f54eb" :size="96" :ring-width="5" pulse-text>
+            <span class="text-[20px] font-semibold tracking-wide">生成中</span>
+          </PulsingBadge>
+        </div>
+      </EffectItem>
     </EffectSection>
 
     <!-- F 3D 工作台 -->
@@ -163,6 +171,15 @@
           <template #panel2>数据统计</template>
           <template #panel3>AI 画像</template>
         </Workbench3D>
+      </EffectItem>
+    </EffectSection>
+
+    <!-- G 多媒体与音频 -->
+    <EffectSection :title="t('effects.sectionMedia')">
+      <EffectItem code="G1" :name="t('effects.g1')">
+        <div class="demo-panel">
+          <FlowAudioPlayer src="" />
+        </div>
       </EffectItem>
     </EffectSection>
   </div>
@@ -179,6 +196,7 @@
   import CountUp from '@/components/pure/effects/CountUp.vue';
   import DarkStatCard from '@/components/pure/effects/DarkStatCard.vue';
   import FlipClock from '@/components/pure/effects/FlipClock.vue';
+  import FlowAudioPlayer from '@/components/pure/effects/FlowAudioPlayer.vue';
   import FlowBorder from '@/components/pure/effects/FlowBorder.vue';
   import GlassCard from '@/components/pure/effects/GlassCard.vue';
   import GradientText from '@/components/pure/effects/GradientText.vue';
