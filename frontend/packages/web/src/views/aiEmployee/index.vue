@@ -224,7 +224,19 @@
 
 <script setup lang="ts">
   import { computed, nextTick, onMounted, ref } from 'vue';
-  import { useMessage } from 'naive-ui';
+  import {
+    NButton,
+    NEmpty,
+    NForm,
+    NFormItem,
+    NInput,
+    NModal,
+    NSpin,
+    NSwitch,
+    NTabPane,
+    NTabs,
+    useMessage,
+  } from 'naive-ui';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import type { AiEmployeeAgent, AiEmployeeDetail, AiEmployeeDivision, AiEmployeeItem } from '@lib/shared/models/ai';
