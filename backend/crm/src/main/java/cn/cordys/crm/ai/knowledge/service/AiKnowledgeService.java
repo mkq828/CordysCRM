@@ -69,6 +69,9 @@ public class AiKnowledgeService {
     /** 关键词召回时的候选块上限（命中数排序在服务层完成） */
     private static final int KEYWORD_CANDIDATE_LIMIT = 200;
 
+    /** 提问分词的关键词上限（中文按 2-gram 切分后数量变多，放宽以提高召回） */
+    private static final int MAX_KEYWORDS = 20;
+
     /** 最终送入模型的候选块上限 */
     private static final int CHUNK_CANDIDATE_LIMIT = 20;
 
@@ -294,21 +297,52 @@ public class AiKnowledgeService {
         return new ArrayList<>(matched.subList(0, Math.min(CHUNK_CANDIDATE_LIMIT, matched.size())));
     }
 
-    /** 按标点/空白拆分提问，过滤停用词与单字，最多取 5 个关键词 */
+    /**
+     * 按标点/空白拆分提问，再对纯中文片段做 2-gram 切分（避免整句中文长关键词如「代理记账多少钱」永不命中内容里的
+     * 「代理记账」等子串），过滤停用词与单字，最多取 {@link #MAX_KEYWORDS} 个关键词。
+     */
     private List<String> tokenizeKeywords(String question) {
         String[] parts = question.split("[\\s，。！？、；：,.!?;:'\"（）()【】\\[\\]<>《》/\\\\|]+");
         List<String> keywords = new ArrayList<>();
         for (String part : parts) {
             String kw = part.trim();
-            if (kw.length() < 2 || STOP_WORDS.contains(kw)) {
+            if (kw.isEmpty()) {
                 continue;
             }
-            keywords.add(kw);
-            if (keywords.size() >= 5) {
+            if (containsAscii(kw)) {
+                // 含 ASCII（如 CRM、Q4、HR制度）保留整段，统一小写
+                addKeyword(keywords, kw.toLowerCase());
+            } else if (kw.length() == 2) {
+                addKeyword(keywords, kw);
+            } else {
+                // 纯中文长度 >=3：生成重叠 2-gram，如「代理记账多少钱」→ 代理/理记/记账/账多/多少/少钱
+                for (int i = 0; i + 1 < kw.length() && keywords.size() < MAX_KEYWORDS; i++) {
+                    addKeyword(keywords, kw.substring(i, i + 2));
+                }
+            }
+            if (keywords.size() >= MAX_KEYWORDS) {
                 break;
             }
         }
         return keywords;
+    }
+
+    /** 是否含 ASCII 字符（用于区分纯中文片段与带英文/数字的片段） */
+    private boolean containsAscii(String text) {
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) < 128) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 加入一个关键词（去停用词、去重） */
+    private void addKeyword(List<String> keywords, String kw) {
+        if (kw.length() < 2 || STOP_WORDS.contains(kw) || keywords.contains(kw)) {
+            return;
+        }
+        keywords.add(kw);
     }
 
     private int countHits(String content, List<String> keywords) {

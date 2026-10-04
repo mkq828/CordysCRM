@@ -88,7 +88,8 @@ public class AiEmployeeService {
         LambdaQueryWrapper<AiEmployee> wrapper = new LambdaQueryWrapper<AiEmployee>()
                 .eq(AiEmployee::getDivision, division);
         if (StringUtils.isNotBlank(keyword)) {
-            wrapper.like(AiEmployee::getName, keyword.trim());
+            String kw = keyword.trim();
+            wrapper.or(sub -> sub.like(AiEmployee::getName, kw).like(AiEmployee::getDescription, kw));
         }
         wrapper.orderByAsc(AiEmployee::getSort);
         return employeeMapper.selectListByLambda(wrapper).stream()

@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * LambdaQueryWrapper 用于构建 SQL 查询条件，支持链式调用。
@@ -157,6 +158,29 @@ public class LambdaQueryWrapper<T> {
      */
     public LambdaQueryWrapper<T> ltT(XFunction<T, ?> column, Object value) {
         addCondition(column, value, "<![CDATA[ < ]]>");
+        return this;
+    }
+
+    /**
+     * 追加一组「或」关系条件（组内条件之间用 OR 连接，整体作为一个条件与外层 AND 连接）。
+     * <p>
+     * 例：{@code wrapper.eq(Division, x).or(sub -> sub.like(Name, kw).like(Description, kw))}
+     * 生成 {@code division = ? AND (name LIKE ? OR description LIKE ?)}。
+     * </p>
+     *
+     * @param group 子条件构造器
+     *
+     * @return 当前 LambdaQueryWrapper 实例
+     */
+    public LambdaQueryWrapper<T> or(Function<LambdaQueryWrapper<T>, LambdaQueryWrapper<T>> group) {
+        LambdaQueryWrapper<T> sub = new LambdaQueryWrapper<>();
+        group.apply(sub);
+        // 组内条件用 OR 连接（区别于外层用 AND），整体括号化后再与外层 AND 相连
+        String clause = String.join(" OR ", sub.conditions);
+        if (StringUtils.isNotBlank(clause)) {
+            conditions.add("(" + clause + ")");
+            params.putAll(sub.getParams());
+        }
         return this;
     }
 
