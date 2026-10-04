@@ -255,15 +255,40 @@ public class AiKnowledgeService {
                 ? "AI 服务异常，请稍后重试" : lastError.getMessage());
     }
 
+    /**
+     * 供其他 AI 功能（如 AI 员工）复用：按提问关键词检索企业知识库，返回拼接好的参考资料文本。
+     * 只做关键词召回与相关性排序，不做模型生成，便于编排层把知识作为上下文注入；无相关命中时返回空串。
+     */
+    public String retrieveContext(String orgId, String question) {
+        if (StringUtils.isBlank(question)) {
+            return "";
+        }
+        List<String> keywords = tokenizeKeywords(question.trim());
+        List<AiKnowledgeChunk> chunks = retrieveChunks(orgId, keywords, false);
+        if (chunks.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < chunks.size(); i++) {
+            sb.append(i + 1).append(". ").append(chunks.get(i).getContent()).append('\n');
+        }
+        return sb.toString().trim();
+    }
+
     // ==================== 内部方法 ====================
 
     /** 关键词粗筛：先按命中块召回并按命中数排序；无命中时兜底取最近上传文档的最新块 */
     private List<AiKnowledgeChunk> retrieveChunks(String orgId, List<String> keywords) {
+        return retrieveChunks(orgId, keywords, true);
+    }
+
+    /** 关键词粗筛召回；{@code fallbackToRecent} 为 false 时不走「最近文档兜底」，供编排层只注入相关片段 */
+    private List<AiKnowledgeChunk> retrieveChunks(String orgId, List<String> keywords, boolean fallbackToRecent) {
         List<AiKnowledgeChunk> matched = keywords.isEmpty()
                 ? List.of()
                 : extChunkMapper.selectByKeywords(orgId, keywords, KEYWORD_CANDIDATE_LIMIT);
         if (matched.isEmpty()) {
-            return extChunkMapper.selectRecent(orgId, CHUNK_CANDIDATE_LIMIT);
+            return fallbackToRecent ? extChunkMapper.selectRecent(orgId, CHUNK_CANDIDATE_LIMIT) : List.of();
         }
         matched.sort((a, b) -> Integer.compare(countHits(b.getContent(), keywords), countHits(a.getContent(), keywords)));
         return new ArrayList<>(matched.subList(0, Math.min(CHUNK_CANDIDATE_LIMIT, matched.size())));

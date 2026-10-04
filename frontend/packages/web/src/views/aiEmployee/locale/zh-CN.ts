@@ -14,7 +14,7 @@ export default {
   'aiEmployee.customPrompt': '岗位补充要求',
   'aiEmployee.customPromptPlaceholder': '选填，例如：只回答销售方法论，不输出报价',
   'aiEmployee.knowledgeEnabled': '挂载企业知识库',
-  'aiEmployee.knowledgeTip': '开启后对话会检索企业知识库并引用出处',
+  'aiEmployee.knowledgeTip': '开启后对话会检索企业知识库，把相关片段作为参考资料回答',
   'aiEmployee.save': '保存',
   'aiEmployee.delete': '删除',
   'aiEmployee.deleteTip': '删除后该岗位的对话记录仍保留在历史会话中，确定删除？',

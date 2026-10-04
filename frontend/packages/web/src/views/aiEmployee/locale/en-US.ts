@@ -14,7 +14,7 @@ export default {
   'aiEmployee.customPrompt': 'Job extra instructions',
   'aiEmployee.customPromptPlaceholder': 'Optional, e.g. Only answer sales methodology, no pricing',
   'aiEmployee.knowledgeEnabled': 'Attach knowledge base',
-  'aiEmployee.knowledgeTip': 'When on, answers will retrieve the knowledge base and cite sources',
+  'aiEmployee.knowledgeTip': 'When on, answers are grounded in retrieved knowledge base passages',
   'aiEmployee.save': 'Save',
   'aiEmployee.delete': 'Delete',
   'aiEmployee.deleteTip': 'Chat history of this job is kept in conversations. Delete anyway?',

@@ -13,6 +13,7 @@ import cn.cordys.crm.ai.employee.dto.response.AiEmployeeAgentResponse;
 import cn.cordys.crm.ai.employee.dto.response.AiEmployeeDetailResponse;
 import cn.cordys.crm.ai.employee.dto.response.AiEmployeeDivisionResponse;
 import cn.cordys.crm.ai.employee.dto.response.AiEmployeeItemResponse;
+import cn.cordys.crm.ai.knowledge.service.AiKnowledgeService;
 import cn.cordys.crm.ai.llm.LlmChatRequest;
 import cn.cordys.crm.ai.llm.LlmMessage;
 import cn.cordys.crm.ai.llm.LlmProvider;
@@ -40,7 +41,7 @@ import java.util.stream.Collectors;
  * AI 员工（功能 6，编排层）：系统角色目录浏览 + 租户「岗位 Agent」CRUD + 以角色提示词编排的流式对话。
  * <p>
  * 对话复用额度→模型→provider→计费四步链路，按 {@code ai_employee} 记账；系统提示词 = 角色提示词 + 岗位
- * 自定义提示词（可选）。知识库检索开关已落库，检索上下文注入待知识库服务暴露公共召回接口后接入。
+ * 自定义提示词（可选）。岗位开启「挂载知识库」时，先召回企业知识库相关片段作为参考资料注入用户消息。
  * </p>
  */
 @Service
@@ -61,6 +62,9 @@ public class AiEmployeeService {
 
     @Resource
     private LlmProviderFactory llmProviderFactory;
+
+    @Resource
+    private AiKnowledgeService aiKnowledgeService;
 
     // ==================== 角色目录 ====================
 
@@ -181,7 +185,10 @@ public class AiEmployeeService {
             throw new GenericException(blockedMessage(status));
         }
 
-        List<LlmMessage> messages = buildMessages(employee, agent, request.getMessage().trim());
+        String knowledgeContext = isKnowledgeEnabled(agent)
+                ? aiKnowledgeService.retrieveContext(orgId, request.getMessage())
+                : "";
+        List<LlmMessage> messages = buildMessages(employee, agent, request.getMessage().trim(), knowledgeContext);
         StringBuilder content = new StringBuilder();
         Exception lastError = null;
         for (AgentModel model : models) {
@@ -220,16 +227,27 @@ public class AiEmployeeService {
 
     // ==================== 内部 ====================
 
-    /** 构造 system + user 消息：角色提示词为底，拼岗位自定义提示词；知识库检索上下文待接入 */
-    private List<LlmMessage> buildMessages(AiEmployee employee, AiEmployeeAgent agent, String message) {
+    /** 构造 system + user 消息：角色提示词为底，拼岗位自定义提示词；开启知识库时把召回片段作为参考资料注入用户消息 */
+    private List<LlmMessage> buildMessages(AiEmployee employee, AiEmployeeAgent agent, String message,
+            String knowledgeContext) {
         String systemPrompt = employee.getSystemPrompt() == null ? "" : employee.getSystemPrompt().trim();
         if (StringUtils.isNotBlank(agent.getCustomPrompt())) {
             systemPrompt = systemPrompt + "\n\n## 岗位补充要求\n" + agent.getCustomPrompt().trim();
         }
+        String userMessage = message;
+        if (StringUtils.isNotBlank(knowledgeContext)) {
+            userMessage = message + "\n\n## 参考资料（来自企业知识库）\n" + knowledgeContext
+                    + "\n\n请优先依据上述资料回答；若资料与问题无关，按你的角色正常回答。";
+        }
         List<LlmMessage> messages = new ArrayList<>();
         messages.add(new LlmMessage("system", systemPrompt));
-        messages.add(new LlmMessage("user", message));
+        messages.add(new LlmMessage("user", userMessage));
         return messages;
+    }
+
+    /** 岗位是否开启「挂载知识库」（1=是） */
+    private boolean isKnowledgeEnabled(AiEmployeeAgent agent) {
+        return agent.getKnowledgeEnabled() != null && agent.getKnowledgeEnabled() == 1;
     }
 
     private AiEmployeeAgent checkAgent(String id, String orgId) {
