@@ -11,6 +11,7 @@ import cn.cordys.common.constants.HttpMethodConstants;
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.CodingUtils;
+import cn.cordys.common.util.SecretCipher;
 import cn.cordys.common.util.Translator;
 import cn.cordys.crm.system.domain.UserKey;
 import cn.cordys.crm.system.dto.request.UserKeyUpdateRequest;
@@ -42,7 +43,9 @@ public class UserKeyService {
     public List<UserKey> getUserKeysInfo(String userId) {
         UserKey example = new UserKey();
         example.setCreateUser(userId);
-        return userKeyMapper.select(example);
+        List<UserKey> userKeys = userKeyMapper.select(example);
+        userKeys.forEach(key -> key.setSecretKey(SecretCipher.decrypt(key.getSecretKey())));
+        return userKeys;
     }
 
     /**
@@ -96,7 +99,12 @@ public class UserKeyService {
         example.setAccessKey(accessKey);
         example.setEnable(true);
         List<UserKey> userKeysList = userKeyMapper.select(example);
-        return CollectionUtils.isEmpty(userKeysList) ? null : userKeysList.getFirst();
+        if (CollectionUtils.isEmpty(userKeysList)) {
+            return null;
+        }
+        UserKey userKey = userKeysList.getFirst();
+        userKey.setSecretKey(SecretCipher.decrypt(userKey.getSecretKey()));
+        return userKey;
     }
 
     /**
@@ -137,7 +145,7 @@ public class UserKeyService {
         userKey.setCreateUser(userId);
         userKey.setEnable(true);
         userKey.setAccessKey(CodingUtils.generateAK());
-        userKey.setSecretKey(CodingUtils.generateSecretKey());
+        userKey.setSecretKey(SecretCipher.encrypt(CodingUtils.generateSecretKey()));
         userKey.setCreateTime(System.currentTimeMillis());
         userKey.setForever(true);
         return userKey;

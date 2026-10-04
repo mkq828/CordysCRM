@@ -5,6 +5,7 @@ import cn.cordys.common.pager.PageUtils;
 import cn.cordys.common.pager.Pager;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.JSON;
+import cn.cordys.common.util.SecretCipher;
 import cn.cordys.crm.ai.llm.LlmChatRequest;
 import cn.cordys.crm.ai.model.domain.AgentModel;
 import cn.cordys.crm.ai.model.dto.request.AgentModelPageRequest;
@@ -71,6 +72,7 @@ public class AgentModelService {
         }
         AgentModelResponse response = new AgentModelResponse();
         BeanUtils.copyProperties(model, response);
+        response.setApiKey(SecretCipher.decrypt(model.getApiKey()));
         return response;
     }
 
@@ -103,7 +105,7 @@ public class AgentModelService {
             for (String id : modelIds) {
                 AgentModel model = agentModelMapper.selectByPrimaryKey(id);
                 if (model != null && Boolean.TRUE.equals(model.getEnable()) && orgId.equals(model.getOrganizationId())) {
-                    candidates.add(model);
+                    candidates.add(withDecryptedApiKey(model));
                 }
             }
         }
@@ -114,7 +116,7 @@ public class AgentModelService {
             criteria.setEnable(true);
             List<AgentModel> enabled = agentModelMapper.select(criteria);
             if (!enabled.isEmpty()) {
-                candidates.add(enabled.get(0));
+                candidates.add(withDecryptedApiKey(enabled.get(0)));
             }
         }
         // 未开启自动降级时只保留首选
@@ -135,10 +137,16 @@ public class AgentModelService {
         criteria.setEnable(true);
         for (AgentModel model : agentModelMapper.select(criteria)) {
             if (StringUtils.isNotBlank(model.getApiKey())) {
-                return model.getApiKey();
+                return SecretCipher.decrypt(model.getApiKey());
             }
         }
         throw new GenericException("请先在「模型设置」中配置并启用「" + provider + "」模型，用于语音转写");
+    }
+
+    /** 解密模型 apiKey（仅内存副本，用于对外提供明文密钥调用） */
+    private AgentModel withDecryptedApiKey(AgentModel model) {
+        model.setApiKey(SecretCipher.decrypt(model.getApiKey()));
+        return model;
     }
 
     public List<AgentModelOptionResponse> options(String orgId) {
@@ -165,7 +173,7 @@ public class AgentModelService {
         model.setModelName(request.getModelName());
         model.setProvider(request.getProvider());
         model.setApiUrl(resolveApiUrl(request.getProvider(), request.getApiUrl()));
-        model.setApiKey(request.getApiKey());
+        model.setApiKey(SecretCipher.encrypt(request.getApiKey()));
         model.setEnable(request.getEnable() == null ? Boolean.TRUE : request.getEnable());
         model.setUserDailyLimit(request.getUserDailyLimit());
         model.setGlobalDailyLimit(request.getGlobalDailyLimit());
@@ -186,7 +194,7 @@ public class AgentModelService {
         model.setModelName(request.getModelName());
         model.setProvider(request.getProvider());
         model.setApiUrl(resolveApiUrl(request.getProvider(), request.getApiUrl()));
-        model.setApiKey(request.getApiKey());
+        model.setApiKey(SecretCipher.encrypt(request.getApiKey()));
         model.setEnable(request.getEnable() == null ? Boolean.TRUE : request.getEnable());
         model.setUserDailyLimit(request.getUserDailyLimit());
         model.setGlobalDailyLimit(request.getGlobalDailyLimit());

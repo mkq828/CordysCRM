@@ -3,6 +3,7 @@ package cn.cordys.crm.ai.callreview.service;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.CodingUtils;
 import cn.cordys.common.util.JSON;
+import cn.cordys.common.util.SecretCipher;
 import cn.cordys.crm.ai.callreview.domain.AiCallReviewConfig;
 import cn.cordys.crm.ai.callreview.dto.response.CallReviewConfigResponse;
 import cn.cordys.mybatis.BaseMapper;
@@ -18,7 +19,7 @@ import java.util.Map;
 
 /**
  * 通话复盘回调配置：appKey/secretKey 生成与重置、字段映射保存、回调地址拼装。
- * 密钥第一版明文存储（与系统其余第三方配置一致），不另造加密。
+ * secretKey 落库前加密存储（SecretCipher），读取展示/回调验签时解密。
  */
 @Service
 public class CallReviewConfigService {
@@ -35,7 +36,7 @@ public class CallReviewConfigService {
             config.setId(IDGenerator.nextStr());
             config.setOrganizationId(orgId);
             config.setAppKey(CodingUtils.generateAK());
-            config.setSecretKey(CodingUtils.generateSecretKey());
+            config.setSecretKey(SecretCipher.encrypt(CodingUtils.generateSecretKey()));
             config.setFieldMapping("{}");
             config.setEnable(Boolean.TRUE);
             config.setCreateUser(userId);
@@ -64,7 +65,7 @@ public class CallReviewConfigService {
     public AiCallReviewConfig resetKey(String orgId, String userId) {
         AiCallReviewConfig config = getOrCreate(orgId, userId);
         config.setAppKey(CodingUtils.generateAK());
-        config.setSecretKey(CodingUtils.generateSecretKey());
+        config.setSecretKey(SecretCipher.encrypt(CodingUtils.generateSecretKey()));
         config.setUpdateUser(userId);
         config.setUpdateTime(System.currentTimeMillis());
         configMapper.updateById(config);
@@ -75,7 +76,12 @@ public class CallReviewConfigService {
     public AiCallReviewConfig findByAppKey(String appKey) {
         List<AiCallReviewConfig> list = configMapper.selectListByLambda(new LambdaQueryWrapper<AiCallReviewConfig>()
                 .eq(AiCallReviewConfig::getAppKey, appKey));
-        return list.isEmpty() ? null : list.getFirst();
+        if (list.isEmpty()) {
+            return null;
+        }
+        AiCallReviewConfig config = list.getFirst();
+        config.setSecretKey(SecretCipher.decrypt(config.getSecretKey()));
+        return config;
     }
 
     public AiCallReviewConfig find(String orgId) {
@@ -87,7 +93,7 @@ public class CallReviewConfigService {
     public CallReviewConfigResponse toResponse(AiCallReviewConfig config, String baseUrl) {
         CallReviewConfigResponse response = new CallReviewConfigResponse();
         response.setAppKey(config.getAppKey());
-        response.setSecretKey(config.getSecretKey());
+        response.setSecretKey(SecretCipher.decrypt(config.getSecretKey()));
         response.setCallbackUrl(baseUrl + "/open/call-review/callback/" + config.getAppKey());
         response.setFieldMapping(parseMapping(config.getFieldMapping()));
         response.setEnable(config.getEnable());
