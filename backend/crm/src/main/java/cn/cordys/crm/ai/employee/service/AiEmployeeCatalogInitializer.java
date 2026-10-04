@@ -84,9 +84,9 @@ public class AiEmployeeCatalogInitializer implements ApplicationRunner {
         return result;
     }
 
-    /** 从资源 URI 路径中截取 division 段（{@code .../ai-employees/<division>/<file>.md}） */
+    /** 从资源 URL 中截取 division 段（{@code .../ai-employees/<division>/<file>.md}）；用 URL 串而非 URI.path，避免 jar 内资源 getPath() 为 null */
     private String resolveDivision(org.springframework.core.io.Resource resource) throws Exception {
-        Matcher matcher = DIVISION_PATTERN.matcher(resource.getURI().getPath());
+        Matcher matcher = DIVISION_PATTERN.matcher(resource.getURL().toString());
         return matcher.find() ? matcher.group(1) : null;
     }
 
