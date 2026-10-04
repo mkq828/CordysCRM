@@ -1,6 +1,6 @@
 export default {
   'aiEmployee.desc':
-    'Pick AI employees from 264 roles, add job instructions to build your AI team; each role chats independently on its own persona prompt.',
+    'Pick AI employees from 281 roles, add job instructions to build your AI team; each role chats independently on its own persona prompt.',
   'aiEmployee.catalogTab': 'Role Catalog',
   'aiEmployee.agentsTab': 'My Jobs',
   'aiEmployee.searchPlaceholder': 'Search role name…',

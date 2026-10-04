@@ -57,7 +57,9 @@
                           <span class="text-[22px] leading-none">{{ role.emoji || '🤖' }}</span>
                           <div class="min-w-0 flex-1">
                             <div class="truncate text-[13px] font-medium text-[var(--text-n1)]">{{ role.name }}</div>
-                            <div class="truncate text-[12px] text-[var(--text-n3)]">{{ role.vibe }}</div>
+                            <div class="truncate text-[12px] text-[var(--text-n3)]">{{
+                              role.vibe || role.description
+                            }}</div>
                           </div>
                         </div>
                       </div>
@@ -246,21 +248,23 @@
 
   const DIVISION_LABELS: Record<string, string> = {
     'academic': '学术',
+    'company': '公司高管',
     'design': '设计',
     'engineering': '工程研发',
     'finance': '财务',
     'game-development': '游戏开发',
     'gis': '地理信息',
-    'healthcare': '医疗健康',
+    'hr': '人力资源',
+    'legal': '法务合规',
     'marketing': '市场营销',
     'paid-media': '付费投放',
     'product': '产品',
     'project-management': '项目管理',
-    'research': '研究',
     'sales': '销售',
     'security': '安全',
     'spatial-computing': '空间计算',
     'specialized': '专项',
+    'supply-chain': '供应链',
     'support': '客户支持',
     'testing': '测试',
   };

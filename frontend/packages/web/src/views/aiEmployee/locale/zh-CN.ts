@@ -1,6 +1,6 @@
 export default {
   'aiEmployee.desc':
-    '从 264 个岗位角色里挑选 AI 员工，挂上岗位说明即可组建 AI 团队；每个岗位都能基于角色提示词独立对话。',
+    '从 281 个岗位角色里挑选 AI 员工，挂上岗位说明即可组建 AI 团队；每个岗位都能基于角色提示词独立对话。',
   'aiEmployee.catalogTab': '角色目录',
   'aiEmployee.agentsTab': '我的岗位',
   'aiEmployee.searchPlaceholder': '搜索角色名…',
