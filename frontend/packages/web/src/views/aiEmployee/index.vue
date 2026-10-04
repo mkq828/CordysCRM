@@ -418,11 +418,14 @@
       return;
     }
     saving.value = true;
+    const isNew = !editingAgentId.value;
+    const newName = agentForm.value.name.trim();
+    const newEmployeeId = agentForm.value.employeeId;
     try {
       const payload = {
         id: editingAgentId.value || undefined,
-        name: agentForm.value.name.trim(),
-        employeeId: agentForm.value.employeeId,
+        name: newName,
+        employeeId: newEmployeeId,
         customPrompt: agentForm.value.customPrompt,
         knowledgeEnabled: agentForm.value.knowledgeEnabled,
       };
@@ -435,9 +438,21 @@
       }
       showCreateModal.value = false;
       await loadAgents();
+      // 新建岗位后自动切到「我的岗位」并选中，右侧直接进入对话
+      if (isNew) {
+        const created = agents.value.find((a) => a.employeeId === newEmployeeId && a.name === newName);
+        if (created) {
+          activeTab.value = 'agents';
+          activeAgent.value = created;
+          messages.value = [];
+          conversationId.value = '';
+          input.value = '';
+        }
+      }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error);
+      Message.error((error as Error)?.message || t('common.operationFailed'));
     } finally {
       saving.value = false;
     }
