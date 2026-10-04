@@ -122,13 +122,26 @@
             enable: localTab.enable, // 保留启用状态
           }));
 
-        // 添加新增的标签页（在本地存储中不存在的）
+        // 新增的标签页（本地存储中不存在的）按默认顺序插入到对应位置，而不是全部追加到末尾：
+        // 这样新功能新增的标签页（如「客户画像」应排在最前）在已存在本地缓存的老用户那里也能落到正确位置。
         const existingNames = new Set(mergedTabs.map((tab) => tab.name));
-        const newTabs = newTabList.value
-          .filter((tab) => !existingNames.has(tab.name))
-          .map((tab) => ({ ...tab, enable: true }));
+        const newTabs = newTabList.value.filter((tab) => !existingNames.has(tab.name));
 
-        const finalTabs = [...mergedTabs, ...newTabs];
+        // 以「用户已有顺序」为骨架，按默认顺序把每个新增 tab 插到其默认前驱之后；无前驱则插到最前
+        const finalTabs = newTabs.reduce<TabContentItem[]>(
+          (acc, tab) => {
+            const defaultIndex = newTabList.value.findIndex((item) => item.name === tab.name);
+            const preceding = newTabList.value
+              .slice(0, defaultIndex)
+              .reverse()
+              .find((item) => acc.some((x) => x.name === item.name));
+            const insertAt = preceding ? acc.findIndex((x) => x.name === preceding.name) + 1 : 0;
+            acc.splice(insertAt, 0, { ...tab, enable: true });
+            return acc;
+          },
+          [...mergedTabs]
+        );
+
         cachedData.value = finalTabs;
 
         // 如果有新增标签页或顺序变化，更新本地存储

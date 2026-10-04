@@ -214,6 +214,7 @@
     childrenKey?: string; // 子节点字段名
     noPagination?: boolean; // 不使用分页功能
     tableKey?: TableKeyEnum | string;
+    rowClickToSelect?: boolean; // 点击整行即切换选中（需存在选择列）
   }>();
   const emit = defineEmits<{
     (e: 'pageChange', value: number): void;
@@ -581,15 +582,6 @@
     return 46;
   });
 
-  const rowProps = (_rowData: object, _rowIndex: number) => {
-    return {
-      'style': {
-        height: layOut.value === 'compact' ? '36px' : '46px',
-      },
-      'data-id': getRowKey(_rowData),
-    };
-  };
-
   function changeColumnsSetting() {
     initColumn();
     initLayoutType();
@@ -736,6 +728,53 @@
     selectedRows.value = [...selectedRows.value, ...newRows];
     emit('rowKeyChange', rowKeys, selectedRows.value);
   }
+
+  /** 点击整行切换选中：跳过选择列自身的点击，尊重选择列的 disabled 与单选/多选语义 */
+  function handleRowClick(event: MouseEvent, rowData: object) {
+    const target = event.target as HTMLElement;
+    if (target && typeof target.closest === 'function' && target.closest('.n-data-table-td--selection')) {
+      return;
+    }
+    const selectionColumn = (props.columns as CrmDataTableColumn[]).find((col) => col.type === 'selection') as
+      | { multiple?: boolean; disabled?: (row: any) => boolean }
+      | undefined;
+    if (selectionColumn?.disabled?.(rowData)) {
+      return;
+    }
+    const multiple = selectionColumn?.multiple !== false;
+    const key = getRowKey(rowData);
+    const keys = checkedRowKeys.value ? [...checkedRowKeys.value] : [];
+    const index = keys.indexOf(key);
+    if (index >= 0) {
+      if (!multiple) {
+        return; // 单选模式下点击已选中行不取消
+      }
+      keys.splice(index, 1);
+      checkedRowKeys.value = keys;
+      handleCheck(keys, []);
+    } else {
+      if (multiple) {
+        keys.push(key);
+      } else {
+        keys.splice(0, keys.length, key);
+      }
+      checkedRowKeys.value = keys;
+      handleCheck(keys, [rowData as InternalRowData]);
+    }
+  }
+
+  const rowProps = (_rowData: object, _rowIndex: number) => {
+    const result: Record<string, any> = {
+      'style': {
+        height: layOut.value === 'compact' ? '36px' : '46px',
+      },
+      'data-id': getRowKey(_rowData),
+    };
+    if (props.rowClickToSelect) {
+      result.onClick = (event: MouseEvent) => handleRowClick(event, _rowData);
+    }
+    return result;
+  };
 
   const hasFinished = ref(false);
   function handleScroll(e: Event) {

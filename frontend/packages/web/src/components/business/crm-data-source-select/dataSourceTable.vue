@@ -12,6 +12,7 @@
       :fullscreen-target-ref="props.fullscreenTargetRef"
       :childrenKey="subFieldKey"
       :columns="columns"
+      :row-click-to-select="!subFieldKey"
       :class="subFieldKey ? 'crm-datasource-table--hasSubField' : ''"
       @page-change="propsEvent.pageChange"
       @page-size-change="propsEvent.pageSizeChange"
