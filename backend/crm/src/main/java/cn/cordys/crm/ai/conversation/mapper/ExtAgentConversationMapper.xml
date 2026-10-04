@@ -16,8 +16,13 @@
             update_time
         from agent_conversation
         where organization_id = #{orgId}
-          and user_id = #{userId}
           and feature_code = #{featureCode}
+        <if test="userIds != null and userIds.size() > 0">
+            and user_id in
+            <foreach collection="userIds" item="uid" open="(" separator="," close=")">
+                #{uid}
+            </foreach>
+        </if>
         <if test="keyword != null and keyword != ''">
             and title like concat('%', #{keyword}, '%')
         </if>

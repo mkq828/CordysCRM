@@ -60,10 +60,13 @@
                 <CrmIcon type="iconicon_loading" :size="12" class="animate-spin" />
                 {{ t('aiConversation.generating') }}
               </span>
+              <span v-if="item.createUserName" class="shrink-0 text-[11px] text-[var(--text-n4)]">
+                {{ item.createUserName }}
+              </span>
               <span class="shrink-0 text-[11px] text-[var(--text-n4)]">
                 {{ formatItemTime(item.updateTime || item.createTime) }}
               </span>
-              <div class="hidden shrink-0 items-center gap-[2px] group-hover:flex">
+              <div v-if="isOwn(item)" class="hidden shrink-0 items-center gap-[2px] group-hover:flex">
                 <n-tooltip trigger="hover" :delay="300">
                   <template #trigger>
                     <n-button size="tiny" quaternary @click.stop="startRename(item)">
@@ -110,6 +113,7 @@
     getAgentConversationPage,
     renameAgentConversation,
   } from '@/api/modules';
+  import useUserStore from '@/store/modules/user';
 
   const props = withDefaults(
     defineProps<{
@@ -132,6 +136,7 @@
 
   const { t } = useI18n();
   const Message = useMessage();
+  const userStore = useUserStore();
 
   const keyword = ref('');
   const list = ref<AgentConversationItem[]>([]);
@@ -171,6 +176,12 @@
       return d.format('MM-DD HH:mm');
     }
     return d.format('YYYY-MM-DD');
+  }
+
+  /** 团队共享视图下，仅本人的记录可重命名/删除，他人记录只读 */
+  function isOwn(item: AgentConversationItem): boolean {
+    const ownerId = item.userId || item.createUser;
+    return Boolean(ownerId && ownerId === userStore.userInfo.id);
   }
 
   async function handleSelect(item: AgentConversationItem): Promise<void> {

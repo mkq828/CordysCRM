@@ -27,6 +27,9 @@ public class AgentConversationResponse {
     @Schema(description = "创建人")
     private String createUser;
 
+    @Schema(description = "创建人姓名")
+    private String createUserName;
+
     @Schema(description = "更新人")
     private String updateUser;
 

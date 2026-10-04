@@ -4,6 +4,7 @@ import cn.cordys.crm.ai.conversation.domain.AgentMessage;
 import cn.cordys.crm.ai.conversation.dto.response.AgentConversationResponse;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -11,9 +12,9 @@ import java.util.List;
  */
 public interface ExtAgentConversationMapper {
 
-    /** 分页查询当前用户某能力下的会话列表，keyword 匹配标题，按更新时间倒序 */
+    /** 分页查询某能力下的会话列表，userIds 为空表示不过滤（管理员看全部），keyword 匹配标题，按更新时间倒序 */
     List<AgentConversationResponse> selectPage(@Param("orgId") String orgId,
-                                               @Param("userId") String userId,
+                                               @Param("userIds") Collection<String> userIds,
                                                @Param("featureCode") String featureCode,
                                                @Param("keyword") String keyword);
 

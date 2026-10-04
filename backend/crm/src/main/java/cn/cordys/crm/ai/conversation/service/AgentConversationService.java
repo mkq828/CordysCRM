@@ -1,8 +1,11 @@
 package cn.cordys.crm.ai.conversation.service;
 
+import cn.cordys.common.constants.InternalUser;
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.pager.PageUtils;
 import cn.cordys.common.pager.Pager;
+import cn.cordys.common.service.BaseService;
+import cn.cordys.common.service.DataScopeService;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.crm.ai.conversation.domain.AgentConversation;
 import cn.cordys.crm.ai.conversation.domain.AgentMessage;
@@ -17,9 +20,13 @@ import com.github.pagehelper.PageHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * AI 会话持久化服务：承载四种能力（chat/军师/问答/获客）共用的会话记录底座。
@@ -49,17 +56,29 @@ public class AgentConversationService {
     @Resource
     private ExtAgentConversationMapper extConversationMapper;
 
+    @Resource
+    private DataScopeService dataScopeService;
+
+    @Resource
+    private BaseService baseService;
+
     // ==================== 查询 ====================
 
     public Pager<List<AgentConversationResponse>> page(AgentConversationPageRequest request, String orgId, String userId) {
         String featureCode = StringUtils.isBlank(request.getFeatureCode()) ? DEFAULT_FEATURE_CODE : request.getFeatureCode();
+        Set<String> visibleUserIds = resolveVisibleUserIds(userId, orgId);
         Page<Object> page = PageHelper.startPage(request.getCurrent(), request.getPageSize());
-        List<AgentConversationResponse> list = extConversationMapper.selectPage(orgId, userId, featureCode, request.getKeyword());
+        List<AgentConversationResponse> list = extConversationMapper.selectPage(orgId, visibleUserIds, featureCode, request.getKeyword());
+        fillCreateUserName(list);
         return PageUtils.setPageInfo(page, list);
     }
 
     public AgentConversationDetailResponse detail(String id, String orgId, String userId) {
-        AgentConversation conversation = checkConversation(id, orgId, userId);
+        AgentConversation conversation = conversationMapper.selectByPrimaryKey(id);
+        if (conversation == null || !orgId.equals(conversation.getOrganizationId())
+                || !canView(userId, conversation.getUserId(), orgId)) {
+            throw new GenericException("会话不存在");
+        }
         AgentConversationDetailResponse response = new AgentConversationDetailResponse();
         response.setConversation(toResponse(conversation));
         response.setMessages(extConversationMapper.selectMessages(orgId, id));
@@ -178,6 +197,45 @@ public class AgentConversationService {
         return conversation;
     }
 
+    /**
+     * 会话共享视图可见范围：超管看全部，其余看本人及所有下属（递归）。
+     *
+     * @return null 表示不过滤（看全部）
+     */
+    private Set<String> resolveVisibleUserIds(String userId, String orgId) {
+        if (Strings.CS.equals(userId, InternalUser.ADMIN.getValue())) {
+            return null;
+        }
+        return dataScopeService.getUserIdsWithSubordinates(userId, orgId);
+    }
+
+    /** 会话详情是否可见：本人 / 超管 / 该会话创建人是当前用户的下属 */
+    private boolean canView(String userId, String ownerUserId, String orgId) {
+        if (userId.equals(ownerUserId)) {
+            return true;
+        }
+        if (Strings.CS.equals(userId, InternalUser.ADMIN.getValue())) {
+            return true;
+        }
+        return dataScopeService.getUserIdsWithSubordinates(userId, orgId).contains(ownerUserId);
+    }
+
+    /** 给列表项补创建人姓名（团队共享视图下标识记录归属） */
+    private void fillCreateUserName(List<AgentConversationResponse> list) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        Set<String> createUserIds = list.stream()
+                .map(AgentConversationResponse::getCreateUser)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet());
+        if (createUserIds.isEmpty()) {
+            return;
+        }
+        Map<String, String> nameMap = baseService.getUserNameMap(createUserIds);
+        list.forEach(item -> item.setCreateUserName(nameMap.get(item.getCreateUser())));
+    }
+
     private AgentConversationResponse toResponse(AgentConversation conversation) {
         AgentConversationResponse response = new AgentConversationResponse();
         response.setId(conversation.getId());
@@ -186,6 +244,7 @@ public class AgentConversationService {
         response.setUserId(conversation.getUserId());
         response.setOrganizationId(conversation.getOrganizationId());
         response.setCreateUser(conversation.getCreateUser());
+        response.setCreateUserName(baseService.getUserName(conversation.getCreateUser()));
         response.setUpdateUser(conversation.getUpdateUser());
         response.setCreateTime(conversation.getCreateTime());
         response.setUpdateTime(conversation.getUpdateTime());
