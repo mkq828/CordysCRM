@@ -12,15 +12,22 @@ public interface AsrProvider {
     /**
      * 提交转写任务，返回任务 ID（异步）。
      *
-     * @param fileUrl 录音文件地址（公网 http(s) URL，或上传接口返回的 oss:// 地址）
+     * @param fileUrl 录音文件地址：公网 http(s) URL、data: base64 URL，或平台临时上传得到的 oss:// 地址
      * @param apiKey  平台 API Key
      */
     String submit(String fileUrl, String apiKey) throws Exception;
 
     /**
-     * 上传本地录音文件，返回可用于转写的文件地址（本地无公网 URL 时的通道）。
+     * 将本地录音字节转成可直接提交转写的 file_url：小文件走 data: base64 URL，大文件走平台临时上传（oss://）。
+     * 阿里云 paraformer 不支持直接本地文件上传，小文件支持 data: URL（约 7MB 以内），
+     * 更大的文件需先经 getPolicy 上传到平台临时 OSS 再提交。
+     *
+     * @param bytes    录音字节
+     * @param fileName 原始文件名（用于上传时保留扩展名）
+     * @param mimeType 音频 MIME 类型（如 audio/wav、audio/mpeg）
+     * @param apiKey   平台 API Key
      */
-    String upload(byte[] bytes, String fileName, String apiKey) throws Exception;
+    String resolveLocalFileUrl(byte[] bytes, String fileName, String mimeType, String apiKey) throws Exception;
 
     /**
      * 轮询转写任务：完成时返回转写文本，未完成返回 {@code null}，失败抛异常。

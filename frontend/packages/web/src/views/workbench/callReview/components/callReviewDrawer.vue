@@ -6,7 +6,8 @@
         <div class="rounded-[6px] border border-[var(--text-n8)] p-[16px]">
           <div class="mb-[12px] flex items-center justify-between">
             <span class="text-[13px] font-semibold text-[var(--text-n1)]">{{ t('workbench.callReview.title') }}</span>
-            <CrmTag size="small" theme="light" :type="statusMeta.type" tooltip-disabled>
+            <ShimmerText v-if="transient" size="13px">{{ statusMeta.label }}</ShimmerText>
+            <CrmTag v-else size="small" theme="light" :type="statusMeta.type" tooltip-disabled>
               {{ statusMeta.label }}
             </CrmTag>
           </div>
@@ -29,6 +30,15 @@
           </div>
         </div>
 
+        <!-- 录音试听 -->
+        <div v-if="audioSrc">
+          <div class="mb-[8px] flex items-center gap-[6px] text-[13px] font-semibold text-[var(--text-n1)]">
+            <CrmIcon type="iconicon_sound" :size="16" class="text-orange-500" />
+            {{ t('workbench.callReview.audioPlay') }}
+          </div>
+          <FlowAudioPlayer :src="audioSrc" />
+        </div>
+
         <!-- 失败原因 -->
         <div v-if="detail.status === 'FAILED' && detail.errorMsg" class="text-[13px] text-[var(--error)]">
           {{ t('workbench.callReview.errorMsg') }}：{{ detail.errorMsg }}
@@ -45,20 +55,32 @@
           >
             {{ detail.transcript }}
           </div>
+          <ShimmerText v-else-if="transientText" size="16px">{{ transientText }}</ShimmerText>
           <div v-else class="text-[13px] text-[var(--text-n4)]">{{ t('workbench.callReview.emptyTranscript') }}</div>
         </div>
 
         <!-- 复盘结果 -->
-        <div v-if="detail.review">
+        <div v-if="detail.review || transient">
           <div class="mb-[8px] flex items-center justify-between">
             <span class="text-[13px] font-semibold text-[var(--text-n1)]">
               {{ t('workbench.callReview.reviewResult') }}
             </span>
-            <n-button size="small" type="primary" @click="handleToFollow">
-              {{ t('workbench.callReview.toFollow') }}
+            <n-button
+              v-if="detail.review"
+              size="small"
+              type="primary"
+              :disabled="!!detail.followRecordId"
+              @click="handleToFollow"
+            >
+              {{ detail.followRecordId ? t('workbench.callReview.followed') : t('workbench.callReview.toFollow') }}
             </n-button>
           </div>
-          <AdvisorResult :result="detail.review" />
+          <AdvisorResult v-if="detail.review" :result="detail.review" />
+          <div v-else class="flex min-h-[340px] flex-col items-center justify-center gap-[20px]">
+            <PulsingBadge color="#2f54eb" :size="176" :ring-width="5" pulse-text>
+              <span class="text-[26px] font-semibold tracking-wide">{{ statusMeta.label }}</span>
+            </PulsingBadge>
+          </div>
         </div>
 
         <!-- 失败重试 -->
@@ -72,7 +94,9 @@
 
     <CrmFormCreateDrawer
       v-model:visible="followVisible"
-      :form-key="FormDesignKeyEnum.FOLLOW_RECORD"
+      :form-key="followFormKey"
+      :source-id="followSourceId"
+      :other-save-params="followOtherSaveParams"
       :initial-values="followInitialValues"
       @saved="handleFollowSaved"
     />
@@ -90,11 +114,15 @@
   import type { CallReviewDetailResponse, CallReviewStatus } from '@lib/shared/models/callReview';
 
   import CrmDrawer from '@/components/pure/crm-drawer/index.vue';
+  import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmTag from '@/components/pure/crm-tag/index.vue';
+  import PulsingBadge from '@/components/pure/effects/PulsingBadge.vue';
+  import ShimmerText from '@/components/pure/effects/ShimmerText.vue';
   import CrmFormCreateDrawer from '@/components/business/crm-form-create-drawer/index.vue';
+  import FlowAudioPlayer from './FlowAudioPlayer.vue';
   import AdvisorResult from '@/views/workbench/smart/components/AdvisorResult.vue';
 
-  import { getCallReviewDetail, retryCallReview } from '@/api/modules';
+  import { downloadAttachment, getCallReviewDetail, markCallReviewFollowed, retryCallReview } from '@/api/modules';
 
   const InfoItem = defineComponent({
     props: {
@@ -126,7 +154,21 @@
   const retrying = ref(false);
   let pollTimer: ReturnType<typeof setInterval> | undefined;
 
+  const audioSrc = ref('');
+  let objectUrl = '';
+
   const transient = computed(() => Boolean(detail.value && TRANSIENT_STATUSES.includes(detail.value.status)));
+
+  const transientText = computed(() => {
+    const status = detail.value?.status;
+    if (status === 'TRANSCRIBING') {
+      return t('workbench.callReview.transcribingHint');
+    }
+    if (status === 'ANALYZING') {
+      return t('workbench.callReview.analyzingHint');
+    }
+    return '';
+  });
 
   const statusMeta = computed(() => {
     const status = detail.value?.status ?? 'DONE';
@@ -164,6 +206,35 @@
     detail.value = await getCallReviewDetail(props.recordId);
   }
 
+  function revokeAudio() {
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+      objectUrl = '';
+    }
+    audioSrc.value = '';
+  }
+
+  /** 试听地址：本地附件下载为 blob URL，公网录音地址直接播放 */
+  async function loadAudio() {
+    revokeAudio();
+    const d = detail.value;
+    if (!d) {
+      return;
+    }
+    if (d.recordAttachmentId) {
+      try {
+        const res = await downloadAttachment(d.recordAttachmentId);
+        objectUrl = URL.createObjectURL(res instanceof Blob ? res : new Blob([res]));
+        audioSrc.value = objectUrl;
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(error);
+      }
+    } else if (d.recordUrl) {
+      audioSrc.value = d.recordUrl;
+    }
+  }
+
   function stopPolling() {
     if (pollTimer) {
       clearInterval(pollTimer);
@@ -192,6 +263,7 @@
     loading.value = true;
     try {
       await loadDetail();
+      await loadAudio();
       if (transient.value) {
         startPolling();
       }
@@ -210,12 +282,16 @@
         open();
       } else {
         stopPolling();
+        revokeAudio();
       }
     }
   );
 
   const followVisible = ref(false);
   const followInitialValues = ref<Record<string, any>>({});
+  const followFormKey = ref<FormDesignKeyEnum>(FormDesignKeyEnum.FOLLOW_RECORD);
+  const followSourceId = ref<string | undefined>(undefined);
+  const followOtherSaveParams = ref<Record<string, any>>({});
 
   function buildFollowContent(result: SalesAdvisorAnalyzeResult): string {
     if (!result) {
@@ -250,13 +326,37 @@
     if (!detail.value?.review) {
       return;
     }
+    // 上传时已关联客户则直接落到该客户名下，无需再次选择客户
+    const { customerId } = detail.value;
+    if (customerId) {
+      followFormKey.value = FormDesignKeyEnum.FOLLOW_RECORD_CUSTOMER;
+      followSourceId.value = customerId;
+      followOtherSaveParams.value = { customerId };
+    } else {
+      followFormKey.value = FormDesignKeyEnum.FOLLOW_RECORD;
+      followSourceId.value = undefined;
+      followOtherSaveParams.value = {};
+    }
     followInitialValues.value = { content: buildFollowContent(detail.value.review) };
     followVisible.value = true;
   }
 
-  function handleFollowSaved() {
+  async function handleFollowSaved(res: any) {
+    const followRecordId = res?.id;
+    if (followRecordId && props.recordId) {
+      try {
+        await markCallReviewFollowed(props.recordId, followRecordId);
+        if (detail.value) {
+          detail.value.followRecordId = followRecordId;
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(error);
+      }
+    }
     Message.success(t('common.operationSuccess'));
     followVisible.value = false;
+    emit('refresh');
   }
 
   async function handleRetry() {
@@ -279,6 +379,7 @@
 
   onBeforeUnmount(() => {
     stopPolling();
+    revokeAudio();
   });
 </script>
 

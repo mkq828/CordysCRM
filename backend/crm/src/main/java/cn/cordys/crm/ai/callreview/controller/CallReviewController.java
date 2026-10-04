@@ -5,6 +5,7 @@ import cn.cordys.common.pager.Pager;
 import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.ai.callreview.domain.AiCallReviewConfig;
 import cn.cordys.crm.ai.callreview.dto.request.CallReviewConfigSaveRequest;
+import cn.cordys.crm.ai.callreview.dto.request.CallReviewFollowRequest;
 import cn.cordys.crm.ai.callreview.dto.request.CallReviewPageRequest;
 import cn.cordys.crm.ai.callreview.dto.request.CallReviewUploadRequest;
 import cn.cordys.crm.ai.callreview.dto.response.CallReviewConfigResponse;
@@ -83,6 +84,14 @@ public class CallReviewController {
         checkAvailable(orgId);
         callReviewService.retry(orgId, SessionUtils.getUserId(), id);
         callReviewService.transcribeAndReview(id);
+    }
+
+    @PostMapping("/followed/{id}")
+    @Operation(summary = "一键转跟进成功后回写跟进记录")
+    public void markFollowed(@PathVariable String id, @RequestBody CallReviewFollowRequest request) {
+        String orgId = OrganizationContext.getOrganizationId();
+        checkAvailable(orgId);
+        callReviewService.markFollowed(orgId, SessionUtils.getUserId(), id, request.getFollowRecordId());
     }
 
     @GetMapping("/config")

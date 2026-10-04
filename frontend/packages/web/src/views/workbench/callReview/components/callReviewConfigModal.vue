@@ -11,28 +11,28 @@
   >
     <n-spin :show="loading" class="call-review-config-modal">
       <div class="flex flex-col gap-[16px] pt-[8px]">
-        <n-form-item :label="t('workbench.callReview.config.callbackUrl')" label-placement="top">
+        <n-form-item :label="t('workbench.callReview.config.callbackUrl')" label-placement="top" :show-feedback="false">
           <n-input-group>
             <n-input :value="config.callbackUrl" readonly />
-            <n-button @click="copy(config.callbackUrl)">
+            <n-button class="w-[64px] shrink-0" @click="copy(config.callbackUrl)">
               {{ t('workbench.callReview.config.copy') }}
             </n-button>
           </n-input-group>
         </n-form-item>
 
         <div class="grid grid-cols-2 gap-x-[16px]">
-          <n-form-item :label="t('workbench.callReview.config.appKey')" label-placement="top">
+          <n-form-item :label="t('workbench.callReview.config.appKey')" label-placement="top" :show-feedback="false">
             <n-input-group>
               <n-input :value="config.appKey" readonly />
-              <n-button @click="copy(config.appKey)">
+              <n-button class="w-[64px] shrink-0" @click="copy(config.appKey)">
                 {{ t('workbench.callReview.config.copy') }}
               </n-button>
             </n-input-group>
           </n-form-item>
-          <n-form-item :label="t('workbench.callReview.config.secretKey')" label-placement="top">
+          <n-form-item :label="t('workbench.callReview.config.secretKey')" label-placement="top" :show-feedback="false">
             <n-input-group>
               <n-input :value="config.secretKey" readonly />
-              <n-button @click="copy(config.secretKey)">
+              <n-button class="w-[64px] shrink-0" @click="copy(config.secretKey)">
                 {{ t('workbench.callReview.config.copy') }}
               </n-button>
             </n-input-group>
@@ -40,9 +40,10 @@
         </div>
 
         <div class="flex items-center justify-between">
-          <n-form-item :label="t('workbench.callReview.config.enable')" label-placement="left" :show-feedback="false">
+          <div class="flex items-center gap-[8px] text-[13px] text-[var(--text-n1)]">
+            {{ t('workbench.callReview.config.enable') }}
             <n-switch v-model:value="config.enable" />
-          </n-form-item>
+          </div>
           <n-button size="small" type="error" ghost @click="handleResetKey">
             {{ t('workbench.callReview.config.resetKey') }}
           </n-button>
@@ -54,6 +55,10 @@
           </div>
           <div class="mb-[12px] text-[12px] text-orange-500">
             {{ t('workbench.callReview.config.fieldMappingTip') }}
+          </div>
+          <div class="mb-[8px] flex items-center gap-[12px] text-[12px] text-[var(--text-n3)]">
+            <div class="w-[120px] shrink-0">{{ t('workbench.callReview.config.standardField') }}</div>
+            <div class="flex-1">{{ t('workbench.callReview.config.supplierField') }}</div>
           </div>
           <div class="flex flex-col gap-[12px]">
             <div v-for="field in standardFields" :key="field.key" class="flex items-center gap-[12px]">

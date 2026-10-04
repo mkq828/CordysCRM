@@ -57,4 +57,7 @@ public class AiCallRecord extends BaseModel {
 
     @Schema(description = "失败原因")
     private String errorMsg;
+
+    @Schema(description = "一键转跟进生成的跟进记录ID(可空，用于禁用重复转跟进)")
+    private String followRecordId;
 }

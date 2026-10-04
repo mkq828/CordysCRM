@@ -12,6 +12,7 @@ import {
   CallReviewConfigResetKeyUrl,
   CallReviewConfigUrl,
   CallReviewDetailUrl,
+  CallReviewFollowedUrl,
   CallReviewPageUrl,
   CallReviewRetryUrl,
   CallReviewUploadUrl,
@@ -39,6 +40,10 @@ export default function useCallReviewApi(CDR: CordysAxios) {
     return CDR.post({ url: `${CallReviewRetryUrl}/${id}` });
   }
 
+  function markCallReviewFollowed(id: string, followRecordId: string) {
+    return CDR.post({ url: `${CallReviewFollowedUrl}/${id}`, data: { followRecordId } });
+  }
+
   function getCallReviewConfig() {
     return CDR.get<CallReviewConfigResponse>({ url: CallReviewConfigUrl });
   }
@@ -57,6 +62,7 @@ export default function useCallReviewApi(CDR: CordysAxios) {
     getCallReviewDetail,
     uploadCallReview,
     retryCallReview,
+    markCallReviewFollowed,
     getCallReviewConfig,
     saveCallReviewConfig,
     resetCallReviewConfigKey,

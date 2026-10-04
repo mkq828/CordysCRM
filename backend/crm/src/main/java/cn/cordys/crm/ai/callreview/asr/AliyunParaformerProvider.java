@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -45,11 +47,15 @@ public class AliyunParaformerProvider implements AsrProvider {
         body.put("model", MODEL);
         body.put("input", Map.of("file_urls", List.of(fileUrl)));
 
-        HttpRequest request = HttpRequest.newBuilder(URI.create(BASE_URL + "/services/audio/asr/transcription"))
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(URI.create(BASE_URL + "/services/audio/asr/transcription"))
                 .timeout(Duration.ofSeconds(30))
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
-                .header("X-DashScope-Async", "enable")
+                .header("X-DashScope-Async", "enable");
+        if (fileUrl != null && fileUrl.startsWith("oss://")) {
+            requestBuilder.header("X-DashScope-OssResourceResolve", "enable");
+        }
+        HttpRequest request = requestBuilder
                 .POST(HttpRequest.BodyPublishers.ofString(JSON.toJSONString(body), StandardCharsets.UTF_8))
                 .build();
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
@@ -67,33 +73,101 @@ public class AliyunParaformerProvider implements AsrProvider {
         return taskId;
     }
 
+    /** data: base64 URL 上限约 7MB，保守取 6MB 以内走 data: URL，更大的走平台临时上传 */
+    private static final int DATA_URL_MAX_BYTES = 6 * 1024 * 1024;
+
     @Override
-    public String upload(byte[] bytes, String fileName, String apiKey) throws Exception {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("model", MODEL);
-        body.put("resource", Base64.getEncoder().encodeToString(bytes));
-        body.put("resource_type", "audio");
+    public String resolveLocalFileUrl(byte[] bytes, String fileName, String mimeType, String apiKey) throws Exception {
+        if (bytes.length <= DATA_URL_MAX_BYTES) {
+            return "data:" + mimeType + ";base64," + Base64.getEncoder().encodeToString(bytes);
+        }
+        return uploadToOss(bytes, fileName, apiKey);
+    }
 
-        HttpRequest request = HttpRequest.newBuilder(URI.create(BASE_URL + "/uploads"))
-                .timeout(Duration.ofSeconds(60))
+    /**
+     * 大文件两步上传：先 getPolicy 拿临时 OSS 上传凭据，再 multipart POST 上传，返回可提交转写的 oss:// 地址。
+     */
+    private String uploadToOss(byte[] bytes, String fileName, String apiKey) throws Exception {
+        HttpRequest policyRequest = HttpRequest.newBuilder(URI.create(BASE_URL + "/uploads?action=getPolicy&model=" + MODEL))
+                .timeout(Duration.ofSeconds(30))
                 .header("Authorization", "Bearer " + apiKey)
-                .header("Content-Type", "application/json")
-                .header("X-DashScope-OssResourceResolve", "enable")
-                .POST(HttpRequest.BodyPublishers.ofString(JSON.toJSONString(body), StandardCharsets.UTF_8))
+                .GET()
                 .build();
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            log.error("阿里云 ASR 上传失败，status={}, body={}", response.statusCode(), response.body());
-            throw new RuntimeException("阿里云语音转写上传失败(" + response.statusCode() + ")");
+        HttpResponse<String> policyResponse = httpClient.send(policyRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (policyResponse.statusCode() < 200 || policyResponse.statusCode() >= 300) {
+            log.error("阿里云 getPolicy 失败，status={}, body={}", policyResponse.statusCode(), policyResponse.body());
+            throw new RuntimeException("阿里云语音转写上传失败(" + policyResponse.statusCode() + ")");
+        }
+        JsonNode data = MAPPER.readTree(policyResponse.body()).path("data");
+        String uploadHost = data.path("upload_host").asText(null);
+        String uploadDir = data.path("upload_dir").asText(null);
+        String policy = data.path("policy").asText(null);
+        String signature = data.path("signature").asText(null);
+        String ossAccessKeyId = data.path("oss_access_key_id").asText(null);
+        String xOssObjectAcl = data.path("x_oss_object_acl").asText("private");
+        String xOssForbidOverwrite = data.path("x_oss_forbid_overwrite").asText("true");
+        if (StringUtils.isAnyBlank(uploadHost, uploadDir, policy, signature, ossAccessKeyId)) {
+            log.error("阿里云 getPolicy 返回字段缺失: {}", policyResponse.body());
+            throw new RuntimeException("阿里云语音转写上传凭据缺失");
         }
 
-        JsonNode files = MAPPER.readTree(response.body()).path("data").path("uploaded_files");
-        String ossUrl = files.isArray() && !files.isEmpty() ? files.get(0).path("oss_url").asText(null) : null;
-        if (StringUtils.isBlank(ossUrl)) {
-            log.error("阿里云 ASR 上传未返回文件地址, body={}", response.body());
-            throw new RuntimeException("阿里云语音转写上传未返回文件地址");
+        String safeName = sanitizeFileName(fileName);
+        String objectKey = uploadDir + "/" + safeName;
+        byte[] body = buildOssMultipartBody(bytes, objectKey, safeName, policy, signature, ossAccessKeyId, xOssObjectAcl, xOssForbidOverwrite);
+        HttpRequest uploadRequest = HttpRequest.newBuilder(URI.create(uploadHost))
+                .timeout(Duration.ofMinutes(2))
+                .header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                .build();
+        HttpResponse<String> uploadResponse = httpClient.send(uploadRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (uploadResponse.statusCode() < 200 || uploadResponse.statusCode() >= 300) {
+            log.error("阿里云 OSS 上传失败，status={}, body={}", uploadResponse.statusCode(), uploadResponse.body());
+            throw new RuntimeException("阿里云语音转写上传失败(" + uploadResponse.statusCode() + ")");
         }
-        return ossUrl;
+        return "oss://" + objectKey;
+    }
+
+    private static final String BOUNDARY = "----CordysAsr" + System.currentTimeMillis();
+
+    /**
+     * 组装 OSS POST 表单 multipart body。OSS 的 key 必须是 getPolicy 返回的 upload_dir 前缀下的完整对象路径
+     * （policy 里 starts-with 条件约束了 key 前缀），而 file 部分的 filename 只用文件名本身。
+     */
+    private byte[] buildOssMultipartBody(byte[] fileBytes, String objectKey, String fileName, String policy, String signature,
+                                         String ossAccessKeyId, String xOssObjectAcl, String xOssForbidOverwrite) throws IOException {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            writeField(out, "key", objectKey);
+            writeField(out, "policy", policy);
+            writeField(out, "OSSAccessKeyId", ossAccessKeyId);
+            writeField(out, "signature", signature);
+            writeField(out, "x-oss-object-acl", xOssObjectAcl);
+            writeField(out, "x-oss-forbid-overwrite", xOssForbidOverwrite);
+
+            String fileHeader = "--" + BOUNDARY + "\r\n"
+                    + "Content-Disposition: form-data; name=\"file\"; filename=\"" + fileName + "\"\r\n"
+                    + "Content-Type: application/octet-stream\r\n\r\n";
+            out.write(fileHeader.getBytes(StandardCharsets.UTF_8));
+            out.write(fileBytes);
+            out.write(("\r\n--" + BOUNDARY + "--\r\n").getBytes(StandardCharsets.UTF_8));
+            return out.toByteArray();
+        }
+    }
+
+    private void writeField(ByteArrayOutputStream out, String name, String value) throws IOException {
+        String field = "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"" + name + "\"\r\n\r\n"
+                + value + "\r\n";
+        out.write(field.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** 只保留文件名安全字符（扩展名、数字、字母、下划线、连字符），避免 OSS 上传目录注入 */
+    private String sanitizeFileName(String fileName) {
+        String base = StringUtils.defaultIfBlank(fileName, "recording");
+        String cleaned = base.replaceAll("[^a-zA-Z0-9._-]", "_");
+        if (StringUtils.isBlank(cleaned) || ".".equals(cleaned) || "..".equals(cleaned)) {
+            cleaned = "recording";
+        }
+        return cleaned;
     }
 
     @Override

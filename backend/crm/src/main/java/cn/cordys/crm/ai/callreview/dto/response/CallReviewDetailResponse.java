@@ -39,6 +39,9 @@ public class CallReviewDetailResponse {
     @Schema(description = "录音公网URL")
     private String recordUrl;
 
+    @Schema(description = "手动上传录音附件ID（本地录音试听用）")
+    private String recordAttachmentId;
+
     @Schema(description = "语音转写文本")
     private String transcript;
 
@@ -50,6 +53,9 @@ public class CallReviewDetailResponse {
 
     @Schema(description = "失败原因")
     private String errorMsg;
+
+    @Schema(description = "一键转跟进生成的跟进记录ID(可空)")
+    private String followRecordId;
 
     @Schema(description = "创建时间(毫秒)")
     private Long createTime;

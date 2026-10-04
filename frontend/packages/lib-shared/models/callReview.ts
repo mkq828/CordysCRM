@@ -22,9 +22,12 @@ export interface CallReviewResponse {
 /** 通话复盘-详情 */
 export interface CallReviewDetailResponse extends CallReviewResponse {
   recordUrl?: string;
+  recordAttachmentId?: string;
   transcript?: string;
   review?: SalesAdvisorAnalyzeResult | null;
   updateTime?: number;
+  /** 一键转跟进生成的跟进记录ID（存在则说明已转跟进） */
+  followRecordId?: string;
 }
 
 /** 通话复盘-上传/粘贴录音发起复盘请求 */

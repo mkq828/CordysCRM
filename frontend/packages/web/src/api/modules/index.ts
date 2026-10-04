@@ -1107,6 +1107,7 @@ export const {
   getCallReviewDetail,
   uploadCallReview,
   retryCallReview,
+  markCallReviewFollowed,
   getCallReviewConfig,
   saveCallReviewConfig,
   resetCallReviewConfigKey,

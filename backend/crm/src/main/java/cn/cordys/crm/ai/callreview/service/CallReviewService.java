@@ -31,11 +31,15 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,8 +57,8 @@ import java.util.Map;
 public class CallReviewService {
 
     private static final String ASR_PROVIDER = "阿里云";
-    private static final int ASR_MAX_POLL = 90;
-    private static final long ASR_POLL_INTERVAL_MS = 5000L;
+    private static final int ASR_MAX_POLL = 300;
+    private static final long ASR_POLL_INTERVAL_MS = 2000L;
 
     @Resource
     private BaseMapper<AiCallRecord> recordMapper;
@@ -127,6 +131,18 @@ public class CallReviewService {
         AiCallRecord record = require(orgId, id);
         record.setStatus(CallReviewConstants.STATUS_PENDING_TRANSCRIBE);
         record.setErrorMsg(null);
+        record.setUpdateUser(userId);
+        record.setUpdateTime(System.currentTimeMillis());
+        recordMapper.updateById(record);
+    }
+
+    /** 一键转跟进成功后记录跟进记录ID，详情据此禁用重复转跟进按钮 */
+    public void markFollowed(String orgId, String userId, String id, String followRecordId) {
+        if (StringUtils.isBlank(followRecordId)) {
+            throw new GenericException("跟进记录ID不能为空");
+        }
+        AiCallRecord record = require(orgId, id);
+        record.setFollowRecordId(followRecordId);
         record.setUpdateUser(userId);
         record.setUpdateTime(System.currentTimeMillis());
         recordMapper.updateById(record);
@@ -265,23 +281,48 @@ public class CallReviewService {
         throw new GenericException("语音转写超时，请稍后重试");
     }
 
-    /** 确定转写文件地址：优先录音公网 URL，其次本地附件经上传接口转公网地址 */
+    /**
+     * 确定转写文件地址：优先录音公网 URL；本地附件由 provider 决定小文件走 data: base64 URL、
+     * 大文件走平台临时上传（oss://），支持到 200MB 级别的长录音。
+     */
     private String resolveFileUrl(AiCallRecord record, AsrProvider provider, String apiKey) throws Exception {
         if (StringUtils.isNotBlank(record.getRecordUrl())) {
             return record.getRecordUrl();
         }
-        byte[] bytes = readAttachmentBytes(record.getRecordAttachmentId());
-        return provider.upload(bytes, "record-" + record.getId(), apiKey);
-    }
-
-    private byte[] readAttachmentBytes(String attachmentId) throws Exception {
-        ResponseEntity<org.springframework.core.io.Resource> res = attachmentService.getResource(attachmentId);
+        ResponseEntity<org.springframework.core.io.Resource> res = attachmentService.getResource(record.getRecordAttachmentId());
         if (res == null || res.getBody() == null) {
             throw new GenericException("录音附件不存在，请重新上传");
         }
+        byte[] bytes;
         try (InputStream in = res.getBody().getInputStream()) {
-            return in.readAllBytes();
+            bytes = in.readAllBytes();
         }
+        MediaType mediaType = res.getHeaders().getContentType();
+        String mime = mediaType == null ? "audio/mpeg" : mediaType.getType() + "/" + mediaType.getSubtype();
+        String fileName = resolveAttachmentFileName(res, mime);
+        return provider.resolveLocalFileUrl(bytes, fileName, mime, apiKey);
+    }
+
+    /** 从附件响应头解析原始文件名（保留扩展名供 OSS 上传识别音频格式），解析不到时按 MIME 兜底 */
+    private String resolveAttachmentFileName(ResponseEntity<?> res, String mime) {
+        String disposition = res.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION);
+        String name = null;
+        if (StringUtils.isNotBlank(disposition)) {
+            int idx = disposition.indexOf("filename*=UTF-8''");
+            if (idx >= 0) {
+                name = URLDecoder.decode(disposition.substring(idx + "filename*=UTF-8''".length()).split(";")[0].trim(),
+                        StandardCharsets.UTF_8);
+            } else {
+                int fn = disposition.indexOf("filename=");
+                if (fn >= 0) {
+                    name = disposition.substring(fn + "filename=".length()).split(";")[0].trim().replace("\"", "");
+                }
+            }
+        }
+        if (StringUtils.isBlank(name)) {
+            name = "recording." + (mime.contains("mpeg") ? "mp3" : mime.substring(mime.indexOf('/') + 1));
+        }
+        return name;
     }
 
     private void mark(AiCallRecord record, String status, String taskId, String transcript) {

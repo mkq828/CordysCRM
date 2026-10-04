@@ -11,22 +11,28 @@
   >
     <n-form ref="formRef" :model="form" label-placement="top" class="call-review-upload-form">
       <n-form-item :label="t('workbench.callReview.recordUrl')">
-        <n-input v-model:value="form.recordUrl" :placeholder="t('workbench.callReview.recordUrlPlaceholder')" />
+        <div class="flex flex-col gap-[8px]">
+          <n-input v-model:value="form.recordUrl" :placeholder="t('workbench.callReview.recordUrlPlaceholder')" />
+          <div class="text-[12px] text-orange-500">{{ t('workbench.callReview.recordUrlTip') }}</div>
+        </div>
       </n-form-item>
 
-      <n-form-item :label="t('workbench.callReview.uploadFileTip')">
-        <div class="flex items-center gap-[8px]">
-          <n-upload :custom-request="handleUpload" :show-file-list="false" accept="audio/*" :disabled="submitting">
-            <n-button size="small" secondary :disabled="submitting">
-              <template #icon>
-                <CrmIcon type="iconicon_cloud_upload" :size="16" />
-              </template>
-              {{ t('workbench.callReview.uploadFileTip') }}
-            </n-button>
-          </n-upload>
-          <n-tag v-if="uploadedName" size="small" closable @close="clearFile">
-            {{ uploadedName }}
-          </n-tag>
+      <n-form-item :label="t('workbench.callReview.recordFile')">
+        <div class="flex flex-col gap-[8px]">
+          <div class="flex items-center gap-[8px]">
+            <n-upload :custom-request="handleUpload" :show-file-list="false" accept="audio/*" :disabled="submitting">
+              <n-button size="small" type="primary" :disabled="submitting">
+                <template #icon>
+                  <CrmIcon type="iconicon_cloud_upload" :size="16" />
+                </template>
+                {{ t('workbench.callReview.uploadFile') }}
+              </n-button>
+            </n-upload>
+            <n-tag v-if="uploadedName" size="small" closable @close="clearFile">
+              {{ uploadedName }}
+            </n-tag>
+          </div>
+          <div class="text-[12px] text-orange-500">{{ t('workbench.callReview.uploadFileTip') }}</div>
         </div>
       </n-form-item>
 
@@ -60,8 +66,6 @@
           <n-input-number v-model:value="form.duration" :min="0" :precision="0" class="w-full" />
         </n-form-item>
       </div>
-
-      <div class="text-[12px] text-orange-500">{{ t('workbench.callReview.recordUrlTip') }}</div>
     </n-form>
   </CrmModal>
 </template>
@@ -157,15 +161,47 @@
     loadCustomerOptions(keyword);
   }
 
+  /** 读取录音文件元数据里的时长（秒），读取失败返回 null（时长字段保持手动填写） */
+  function readAudioDuration(file: File): Promise<number | null> {
+    return new Promise((resolve) => {
+      try {
+        const url = URL.createObjectURL(file);
+        const audio = new Audio();
+        audio.preload = 'metadata';
+        audio.addEventListener('loadedmetadata', () => {
+          URL.revokeObjectURL(url);
+          resolve(Number.isFinite(audio.duration) ? audio.duration : null);
+        });
+        audio.addEventListener('error', () => {
+          URL.revokeObjectURL(url);
+          resolve(null);
+        });
+        audio.src = url;
+      } catch {
+        resolve(null);
+      }
+    });
+  }
+
   async function handleUpload({ file, onFinish, onError }: UploadCustomRequestOptions) {
+    const rawFile = file.file as File;
+    if (rawFile.size > 200 * 1024 * 1024) {
+      Message.warning(t('workbench.callReview.fileTooLarge'));
+      onError();
+      return;
+    }
     try {
-      const res = await uploadTempAttachment(file.file as File);
+      const res = await uploadTempAttachment(rawFile);
       const id = res.data?.[0];
       if (!id) {
         throw new Error('upload empty');
       }
       form.recordAttachmentId = id;
       uploadedName.value = file.name;
+      const duration = await readAudioDuration(file.file as File);
+      if (duration != null) {
+        form.duration = Math.round(duration);
+      }
       onFinish();
     } catch (error) {
       // eslint-disable-next-line no-console
