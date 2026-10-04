@@ -1,0 +1,68 @@
+name: Dependency Security Scan
+
+# 依赖安全扫描：后端 OWASP Dependency-Check（Maven）+ 前端 pnpm audit。
+# 每周自动跑一次 + 可手动触发，不阻塞日常 PR，作为上线前的持续安全地基。
+on:
+  schedule:
+    # 每周一 03:13（避开整点，避免 NVD 拉取高峰）
+    - cron: '13 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-scan:
+    name: Backend OWASP Dependency-Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 21
+
+      - name: Run Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'cordys-crm-backend'
+          path: 'backend'
+          format: 'HTML'
+          out: 'reports'
+          args: >
+            --failOnCVSS 7
+            --enableRetired
+        env:
+          # 建议在仓库 Secrets 配置 NVD_API_KEY（https://nvd.nist.gov/developers/request-an-api-key），
+          # 未配置时仍可运行，但可能因 NVD 匿名接口限流而失败。
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      - name: Upload scan report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports/
+          retention-days: 14
+
+  frontend-audit:
+    name: Frontend pnpm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+          cache-dependency-path: 'frontend/pnpm-lock.yaml'
+
+      - name: Audit dependencies
+        working-directory: frontend
+        run: pnpm audit --audit-level=high
