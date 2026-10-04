@@ -15,7 +15,7 @@
 
       <CrmSplitPanel v-model:size="splitSize" class="h-full" :max="0.6" :min="0.3" :default-size="0.42">
         <template #1>
-          <div class="flex h-full flex-col border-r border-[var(--divider)]">
+          <div class="flex h-full flex-col border-r border-[var(--divider-color)]">
             <div class="px-[16px] pt-[12px] text-[13px] text-orange-500">{{ t('aiEmployee.desc') }}</div>
 
             <n-tabs v-model:value="activeTab" type="line" class="ai-employee-tabs mt-[4px] flex-1">
@@ -32,7 +32,7 @@
 
                   <div class="catalog-body flex min-h-0 flex-1">
                     <div
-                      class="division-list w-[116px] shrink-0 overflow-y-auto border-r border-[var(--divider)] py-[4px]"
+                      class="division-list w-[116px] shrink-0 overflow-y-auto border-r border-[var(--divider-color)] py-[4px]"
                     >
                       <div
                         v-for="d in divisions"
@@ -54,7 +54,7 @@
                           <div
                             v-for="role in roles"
                             :key="role.id"
-                            class="role-card flex cursor-pointer items-center gap-[12px] rounded-[8px] border border-[var(--divider)] p-[12px] transition-colors hover:border-[var(--primary-8)]"
+                            class="role-card flex cursor-pointer items-center gap-[12px] rounded-[8px] border border-[var(--divider-color)] p-[12px] transition-colors hover:border-[var(--primary-8)]"
                             @click="openCreate(role)"
                           >
                             <span class="text-[22px] leading-none">{{ role.emoji || '🤖' }}</span>
@@ -73,14 +73,14 @@
               </n-tab-pane>
 
               <n-tab-pane name="agents" :tab="t('aiEmployee.agentsTab')">
-                <div class="agent-list flex flex-col gap-[8px] px-[16px] pb-[16px]">
+                <div class="agent-list flex h-full flex-col gap-[8px] overflow-y-auto px-[16px] pb-[16px]">
                   <template v-if="agents.length === 0">
                     <n-empty :description="t('aiEmployee.emptyAgents')" class="mt-[48px]" />
                   </template>
                   <div
                     v-for="agent in agents"
                     :key="agent.id"
-                    class="agent-card cursor-pointer rounded-[8px] border border-[var(--divider)] p-[10px] transition-colors"
+                    class="agent-card cursor-pointer rounded-[8px] border border-[var(--divider-color)] p-[10px] transition-colors"
                     :class="activeAgent?.id === agent.id ? 'agent-card--active' : ''"
                     @click="selectAgent(agent)"
                   >
@@ -110,7 +110,7 @@
           <div class="flex h-full flex-col">
             <template v-if="activeAgent">
               <div
-                class="chat-header flex items-center gap-[10px] border-b border-[var(--divider)] px-[20px] py-[12px]"
+                class="chat-header flex items-center gap-[10px] border-b border-[var(--divider-color)] px-[20px] py-[12px]"
               >
                 <span class="text-[22px] leading-none">{{ activeAgent.employeeEmoji || '🤖' }}</span>
                 <div class="min-w-0 flex-1">
@@ -146,7 +146,9 @@
                 </div>
               </div>
 
-              <div class="chat-input flex items-end gap-[12px] border-t border-[var(--divider)] px-[20px] py-[12px]">
+              <div
+                class="chat-input flex items-end gap-[12px] border-t border-[var(--divider-color)] px-[20px] py-[12px]"
+              >
                 <n-input
                   v-model:value="input"
                   type="textarea"
@@ -536,6 +538,22 @@
   .ai-employee-card {
     :deep(.crm-card__content) {
       padding: 0;
+    }
+  }
+  .ai-employee-tabs {
+    display: flex;
+    overflow: hidden;
+    min-height: 0;
+    flex-direction: column;
+    :deep(.n-tabs-nav) {
+      flex-shrink: 0;
+    }
+    :deep(.n-tabs-pane-wrapper) {
+      flex: 1;
+      min-height: 0;
+    }
+    :deep(.n-tab-pane) {
+      height: 100%;
     }
   }
   .division-list {
