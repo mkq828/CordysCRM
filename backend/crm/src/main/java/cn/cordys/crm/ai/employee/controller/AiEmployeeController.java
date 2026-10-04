@@ -9,11 +9,14 @@ import cn.cordys.crm.ai.conversation.service.AgentConversationService;
 import cn.cordys.crm.ai.dto.response.AiStreamResult;
 import cn.cordys.crm.ai.employee.dto.request.AiEmployeeAgentSaveRequest;
 import cn.cordys.crm.ai.employee.dto.request.AiEmployeeChatRequest;
+import cn.cordys.crm.ai.employee.dto.request.AiMeetingMinutesGenerateRequest;
 import cn.cordys.crm.ai.employee.dto.response.AiEmployeeAgentResponse;
 import cn.cordys.crm.ai.employee.dto.response.AiEmployeeDetailResponse;
 import cn.cordys.crm.ai.employee.dto.response.AiEmployeeDivisionResponse;
 import cn.cordys.crm.ai.employee.dto.response.AiEmployeeItemResponse;
+import cn.cordys.crm.ai.employee.dto.response.AiMeetingMinutesResponse;
 import cn.cordys.crm.ai.employee.service.AiEmployeeService;
+import cn.cordys.crm.ai.employee.service.AiMeetingService;
 import cn.cordys.crm.ai.llm.LlmUsage;
 import cn.cordys.security.SessionUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,6 +47,9 @@ public class AiEmployeeController extends BaseAiStreamController {
 
     @Resource
     private AiEmployeeService aiEmployeeService;
+
+    @Resource
+    private AiMeetingService aiMeetingService;
 
     @Resource
     private AgentConversationService agentConversationService;
@@ -89,6 +95,25 @@ public class AiEmployeeController extends BaseAiStreamController {
     @Operation(summary = "删除岗位 Agent")
     public void deleteAgent(@PathVariable String id) {
         aiEmployeeService.deleteAgent(id, OrganizationContext.getOrganizationId());
+    }
+
+    @PostMapping("/meeting/minutes")
+    @Operation(summary = "生成会议纪要（董事长主持的虚拟会议自动总结）")
+    public AiMeetingMinutesResponse generateMinutes(@RequestBody AiMeetingMinutesGenerateRequest request) {
+        return aiMeetingService.generateMinutes(OrganizationContext.getOrganizationId(), SessionUtils.getUserId(),
+                request);
+    }
+
+    @GetMapping("/meeting/minutes")
+    @Operation(summary = "会议纪要列表（当前租户）")
+    public List<AiMeetingMinutesResponse> minutes() {
+        return aiMeetingService.listMinutes(OrganizationContext.getOrganizationId());
+    }
+
+    @GetMapping("/meeting/minutes/{id}")
+    @Operation(summary = "会议纪要详情")
+    public AiMeetingMinutesResponse minutesDetail(@PathVariable String id) {
+        return aiMeetingService.getMinutes(id, OrganizationContext.getOrganizationId());
     }
 
     @PostMapping(value = "/agents/{id}/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

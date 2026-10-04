@@ -417,4 +417,43 @@ export interface AiEmployeeAgentSaveParams {
 export interface AiEmployeeChatParams {
   message: string;
   conversationId?: string;
+  /** 此前同事发言（虚拟会议室按顺序注入，供当前岗位参考以避免重复） */
+  context?: string;
+}
+
+/** AI 员工-虚拟会议室-发言流水 */
+export interface AiMeetingSpeech {
+  speaker: string;
+  content: string;
+}
+
+/** AI 员工-虚拟会议室-生成会议纪要参数 */
+export interface AiMeetingMinutesGenerateParams {
+  title?: string;
+  timeText?: string;
+  host?: string;
+  attendees?: string[];
+  transcript: AiMeetingSpeech[];
+}
+
+/** AI 员工-虚拟会议室-任务项 */
+export interface AiMeetingMinutesTask {
+  task: string;
+  deadline?: string;
+  deliverable?: string;
+}
+
+/** AI 员工-虚拟会议室-会议纪要 */
+export interface AiMeetingMinutes {
+  id: string;
+  title: string;
+  timeText?: string;
+  place?: string;
+  host?: string;
+  recorder?: string;
+  attendees?: string[];
+  content?: string[];
+  next?: string[];
+  tasks?: AiMeetingMinutesTask[];
+  createTime?: number;
 }

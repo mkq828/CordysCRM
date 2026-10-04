@@ -46,6 +46,7 @@ import {
   AiEmployeeAgentUpdateUrl,
   AiEmployeeAgentDeleteUrl,
   AiEmployeeChatStreamUrl,
+  AiMeetingMinutesUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -93,6 +94,8 @@ import type {
   AiEmployeeAgent,
   AiEmployeeAgentSaveParams,
   AiEmployeeChatParams,
+  AiMeetingMinutes,
+  AiMeetingMinutesGenerateParams,
 } from '../../models/ai';
 
 interface SseBlock {
@@ -573,6 +576,18 @@ export default function useAiApi(CDR: CordysAxios) {
     return streamSse(`${AiEmployeeChatStreamUrl}/${agentId}/chat/stream`, data, options);
   }
 
+  function generateAiMeetingMinutes(data: AiMeetingMinutesGenerateParams) {
+    return CDR.post<AiMeetingMinutes>({ url: AiMeetingMinutesUrl, data });
+  }
+
+  function getAiMeetingMinutes() {
+    return CDR.get<AiMeetingMinutes[]>({ url: AiMeetingMinutesUrl });
+  }
+
+  function getAiMeetingMinutesDetail(id: string) {
+    return CDR.get<AiMeetingMinutes>({ url: `${AiMeetingMinutesUrl}/${id}` });
+  }
+
   function downloadAiSalesScriptTemplate() {
     return CDR.get(
       { url: AiSalesScriptImportTemplateUrl, responseType: 'blob' },
@@ -640,6 +655,9 @@ export default function useAiApi(CDR: CordysAxios) {
     updateAiEmployeeAgent,
     deleteAiEmployeeAgent,
     streamAiEmployeeChat,
+    generateAiMeetingMinutes,
+    getAiMeetingMinutes,
+    getAiMeetingMinutesDetail,
     downloadAiSalesScriptTemplate,
     preCheckImportAiSalesScript,
     importAiSalesScript,

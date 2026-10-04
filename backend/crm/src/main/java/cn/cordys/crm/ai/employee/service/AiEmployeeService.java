@@ -189,7 +189,8 @@ public class AiEmployeeService {
         String knowledgeContext = isKnowledgeEnabled(agent)
                 ? aiKnowledgeService.retrieveContext(orgId, request.getMessage())
                 : "";
-        List<LlmMessage> messages = buildMessages(employee, agent, request.getMessage().trim(), knowledgeContext);
+        List<LlmMessage> messages = buildMessages(employee, agent, request.getMessage().trim(), knowledgeContext,
+                request.getContext());
         StringBuilder content = new StringBuilder();
         Exception lastError = null;
         for (AgentModel model : models) {
@@ -228,17 +229,20 @@ public class AiEmployeeService {
 
     // ==================== 内部 ====================
 
-    /** 构造 system + user 消息：角色提示词为底，拼岗位自定义提示词；开启知识库时把召回片段作为参考资料注入用户消息 */
+    /** 构造 system + user 消息：角色提示词为底，拼岗位自定义提示词；开启知识库时把召回片段作为参考资料注入用户消息；context 为此前同事发言（可选） */
     private List<LlmMessage> buildMessages(AiEmployee employee, AiEmployeeAgent agent, String message,
-            String knowledgeContext) {
+            String knowledgeContext, String context) {
         String systemPrompt = employee.getSystemPrompt() == null ? "" : employee.getSystemPrompt().trim();
         if (StringUtils.isNotBlank(agent.getCustomPrompt())) {
             systemPrompt = systemPrompt + "\n\n## 岗位补充要求\n" + agent.getCustomPrompt().trim();
         }
         String userMessage = message;
         if (StringUtils.isNotBlank(knowledgeContext)) {
-            userMessage = message + "\n\n## 参考资料（来自企业知识库）\n" + knowledgeContext
+            userMessage = userMessage + "\n\n## 参考资料（来自企业知识库）\n" + knowledgeContext
                     + "\n\n请优先依据上述资料回答；若资料与问题无关，按你的角色正常回答。";
+        }
+        if (StringUtils.isNotBlank(context)) {
+            userMessage = userMessage + "\n\n## 此前同事发言（供你参考，避免重复）\n" + context.trim();
         }
         List<LlmMessage> messages = new ArrayList<>();
         messages.add(new LlmMessage("system", systemPrompt));

@@ -80,9 +80,7 @@
                   <div
                     v-for="agent in agents"
                     :key="agent.id"
-                    class="agent-card cursor-pointer rounded-[8px] border border-[var(--divider-color)] p-[10px] transition-colors"
-                    :class="activeAgent?.id === agent.id ? 'agent-card--active' : ''"
-                    @click="selectAgent(agent)"
+                    class="agent-card rounded-[8px] border border-[var(--divider-color)] p-[10px] transition-colors"
                   >
                     <div class="flex items-center gap-[10px]">
                       <span class="text-[22px] leading-none">{{ agent.employeeEmoji || '🤖' }}</span>
@@ -91,6 +89,14 @@
                         <div class="truncate text-[12px] text-[var(--text-n3)]">{{ agent.employeeName }}</div>
                       </div>
                       <div class="flex items-center gap-[4px]" @click.stop>
+                        <n-button
+                          size="tiny"
+                          :type="isAttending(agent.id) ? 'primary' : 'default'"
+                          :quaternary="!isAttending(agent.id)"
+                          @click="toggleAttend(agent)"
+                        >
+                          {{ isAttending(agent.id) ? t('aiEmployee.attending') : t('aiEmployee.attend') }}
+                        </n-button>
                         <n-button size="tiny" quaternary @click="openEdit(agent)">{{
                           t('aiEmployee.editAgent')
                         }}</n-button>
@@ -102,72 +108,29 @@
                   </div>
                 </div>
               </n-tab-pane>
+
+              <n-tab-pane name="minutes" :tab="t('aiEmployee.minutesTab')">
+                <div class="minutes-list-pane flex h-full flex-col gap-[8px] overflow-y-auto px-[16px] pb-[16px]">
+                  <template v-if="minutesList.length === 0">
+                    <n-empty :description="t('aiEmployee.minutesEmpty')" class="mt-[48px]" />
+                  </template>
+                  <div
+                    v-for="m in minutesList"
+                    :key="m.id"
+                    class="minutes-card cursor-pointer rounded-[8px] border border-[var(--divider-color)] p-[12px] transition-colors hover:border-[var(--primary-8)]"
+                    @click="openMinutes(m)"
+                  >
+                    <div class="truncate text-[13px] font-medium text-[var(--text-n1)]">{{ m.title }}</div>
+                    <div class="mt-[4px] truncate text-[12px] text-[var(--text-n3)]">{{ m.timeText }}</div>
+                  </div>
+                </div>
+              </n-tab-pane>
             </n-tabs>
           </div>
         </template>
 
         <template #2>
-          <div class="flex h-full flex-col">
-            <template v-if="activeAgent">
-              <div
-                class="chat-header flex items-center gap-[10px] border-b border-[var(--divider-color)] px-[20px] py-[12px]"
-              >
-                <span class="text-[22px] leading-none">{{ activeAgent.employeeEmoji || '🤖' }}</span>
-                <div class="min-w-0 flex-1">
-                  <div class="truncate text-[14px] font-semibold text-[var(--text-n1)]">{{ activeAgent.name }}</div>
-                  <div class="truncate text-[12px] text-[var(--text-n3)]">{{ activeAgent.employeeName }}</div>
-                </div>
-              </div>
-
-              <div ref="messageListRef" class="message-list min-h-0 flex-1 overflow-y-auto px-[20px] py-[16px]">
-                <template v-if="messages.length === 0">
-                  <div class="mt-[48px] text-center text-[13px] text-[var(--text-n3)]">
-                    {{ activeAgent.employeeName }}
-                  </div>
-                </template>
-                <div
-                  v-for="(msg, index) in messages"
-                  :key="index"
-                  class="mb-[12px] flex"
-                  :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
-                >
-                  <div
-                    class="message-bubble max-w-[80%] whitespace-pre-wrap rounded-[10px] px-[14px] py-[10px] text-[13px] leading-[1.6]"
-                    :class="msg.role === 'user' ? 'message-bubble--user' : 'message-bubble--assistant'"
-                  >
-                    <ShimmerText
-                      v-if="msg.role === 'assistant' && index === messages.length - 1 && sending && !msg.content"
-                      size="13px"
-                    >
-                      {{ t('aiEmployee.sending') }}
-                    </ShimmerText>
-                    {{ msg.content }}
-                  </div>
-                </div>
-              </div>
-
-              <div
-                class="chat-input flex items-end gap-[12px] border-t border-[var(--divider-color)] px-[20px] py-[12px]"
-              >
-                <n-input
-                  v-model:value="input"
-                  type="textarea"
-                  :autosize="{ minRows: 1, maxRows: 5 }"
-                  :placeholder="t('aiEmployee.chatPlaceholder')"
-                  :disabled="sending"
-                  @keydown.enter.exact.prevent="send"
-                />
-                <AiActionButton :loading="sending" :disabled="!canSend" @click="send">
-                  {{ t('aiEmployee.send') }}
-                </AiActionButton>
-              </div>
-            </template>
-
-            <div v-else class="flex flex-1 flex-col items-center justify-center gap-[12px] text-[var(--text-n3)]">
-              <CrmIcon type="iconicon_crmbot" :size="48" color="var(--text-n4)" />
-              <span class="text-[13px]">{{ t('aiEmployee.emptyChat') }}</span>
-            </div>
-          </div>
+          <MeetingRoom :attendees="attendees" @minutesGenerated="onMinutesGenerated" />
         </template>
       </CrmSplitPanel>
     </CrmCard>
@@ -177,7 +140,7 @@
       :mask-closable="false"
       preset="card"
       :title="editingAgentId ? t('aiEmployee.editAgent') : t('aiEmployee.createAgent')"
-      class="ai-employee-modal"
+      class="ai-employee-modal !w-[560px]"
     >
       <div v-if="currentRole" class="mb-[16px] rounded-[8px] bg-[var(--fill-1)] p-[12px]">
         <div class="flex items-center gap-[8px]">
@@ -219,11 +182,13 @@
         </div>
       </template>
     </n-modal>
+
+    <MeetingMinutesModal v-model:visible="minutesModalVisible" :minutes="currentMinutes" />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { computed, nextTick, onMounted, ref } from 'vue';
+  import { onMounted, ref } from 'vue';
   import {
     NButton,
     NEmpty,
@@ -239,13 +204,19 @@
   } from 'naive-ui';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
-  import type { AiEmployeeAgent, AiEmployeeDetail, AiEmployeeDivision, AiEmployeeItem } from '@lib/shared/models/ai';
+  import type {
+    AiEmployeeAgent,
+    AiEmployeeDetail,
+    AiEmployeeDivision,
+    AiEmployeeItem,
+    AiMeetingMinutes,
+  } from '@lib/shared/models/ai';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmSplitPanel from '@/components/pure/crm-split-panel/index.vue';
-  import ShimmerText from '@/components/pure/effects/ShimmerText.vue';
-  import AiActionButton from '@/components/business/ai-action-button/index.vue';
+  import MeetingMinutesModal from './components/MeetingMinutesModal.vue';
+  import MeetingRoom from './components/MeetingRoom.vue';
 
   import {
     addAiEmployeeAgent,
@@ -254,14 +225,16 @@
     getAiEmployeeCatalog,
     getAiEmployeeDetail,
     getAiEmployeeDivisions,
-    streamAiEmployeeChat,
+    getAiMeetingMinutes,
     updateAiEmployeeAgent,
   } from '@/api/modules';
   import useModal from '@/hooks/useModal';
 
-  interface ChatMessage {
-    role: 'user' | 'assistant';
-    content: string;
+  interface Attendee {
+    agentId: string;
+    name: string;
+    emoji?: string;
+    color?: string;
   }
 
   const DIVISION_LABELS: Record<string, string> = {
@@ -315,7 +288,7 @@
   const Message = useMessage();
   const { openModal } = useModal();
 
-  const activeTab = ref<'catalog' | 'agents'>('catalog');
+  const activeTab = ref<'catalog' | 'agents' | 'minutes'>('catalog');
   const splitSize = ref(0.42);
   const divisions = ref<AiEmployeeDivision[]>([]);
   const selectedDivision = ref('');
@@ -335,14 +308,10 @@
     knowledgeEnabled: false,
   });
 
-  const activeAgent = ref<AiEmployeeAgent | null>(null);
-  const messages = ref<ChatMessage[]>([]);
-  const input = ref('');
-  const sending = ref(false);
-  const conversationId = ref('');
-  const messageListRef = ref<HTMLElement>();
-
-  const canSend = computed(() => sending.value === false && input.value.trim() !== '');
+  const attendees = ref<Attendee[]>([]);
+  const minutesList = ref<AiMeetingMinutes[]>([]);
+  const minutesModalVisible = ref(false);
+  const currentMinutes = ref<AiMeetingMinutes | null>(null);
 
   function divisionLabel(division: string): string {
     return DIVISION_LABELS[division] || division;
@@ -450,16 +419,9 @@
       }
       showCreateModal.value = false;
       await loadAgents();
-      // 新建岗位后自动切到「我的岗位」并选中，右侧直接进入对话
+      // 新建岗位后自动切到「我的岗位」
       if (isNew) {
-        const created = agents.value.find((a) => a.employeeId === newEmployeeId && a.name === newName);
-        if (created) {
-          activeTab.value = 'agents';
-          activeAgent.value = created;
-          messages.value = [];
-          conversationId.value = '';
-          input.value = '';
-        }
+        activeTab.value = 'agents';
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -484,77 +446,56 @@
       onPositiveClick: async () => {
         await deleteAiEmployeeAgent(agent.id);
         Message.success(t('common.deleteSuccess'));
-        if (activeAgent.value?.id === agent.id) {
-          activeAgent.value = null;
-          messages.value = [];
-          conversationId.value = '';
-        }
+        // 若该岗位已参会，同步移除
+        attendees.value = attendees.value.filter((a) => a.agentId !== agent.id);
         await loadAgents();
       },
     });
   }
 
-  function selectAgent(agent: AiEmployeeAgent) {
-    activeAgent.value = agent;
-    messages.value = [];
-    conversationId.value = '';
-    input.value = '';
+  function isAttending(agentId: string) {
+    return attendees.value.some((a) => a.agentId === agentId);
   }
 
-  function scrollToBottom() {
-    nextTick(() => {
-      const el = messageListRef.value;
-      if (el) {
-        el.scrollTop = el.scrollHeight;
-      }
-    });
-  }
-
-  async function send() {
-    if (!canSend.value || !activeAgent.value) {
-      return;
-    }
-    const text = input.value.trim();
-    input.value = '';
-    messages.value.push({ role: 'user', content: text });
-    messages.value.push({ role: 'assistant', content: '' });
-    sending.value = true;
-    scrollToBottom();
-
-    try {
-      const stream = streamAiEmployeeChat(activeAgent.value.id, {
-        message: text,
-        conversationId: conversationId.value || undefined,
+  function toggleAttend(agent: AiEmployeeAgent) {
+    const idx = attendees.value.findIndex((a) => a.agentId === agent.id);
+    if (idx >= 0) {
+      attendees.value.splice(idx, 1);
+    } else {
+      attendees.value.push({
+        agentId: agent.id,
+        name: agent.name,
+        emoji: agent.employeeEmoji,
+        color: agent.employeeColor,
       });
-
-      // eslint-disable-next-line no-restricted-syntax -- 原生 async generator，无需 regenerator-runtime
-      for await (const event of stream) {
-        if (event.type === 'run') {
-          const cid = event.run?.conversationId || '';
-          if (cid) {
-            conversationId.value = cid;
-          }
-        } else if (event.type === 'chunk') {
-          const last = messages.value[messages.value.length - 1];
-          last.content += event.content || '';
-          scrollToBottom();
-        } else if (event.type === 'error') {
-          const last = messages.value[messages.value.length - 1];
-          last.content = event.errorMessage || t('common.operationFailed');
-          throw new Error(event.errorMessage || t('common.operationFailed'));
-        }
-      }
-    } catch (error) {
-      Message.error((error as Error)?.message || t('common.operationFailed'));
-    } finally {
-      sending.value = false;
-      scrollToBottom();
     }
+  }
+
+  async function loadMinutes() {
+    try {
+      minutesList.value = await getAiMeetingMinutes();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
+  }
+
+  function openMinutes(minutes: AiMeetingMinutes) {
+    currentMinutes.value = minutes;
+    minutesModalVisible.value = true;
+  }
+
+  function onMinutesGenerated(minutes: AiMeetingMinutes) {
+    attendees.value = [];
+    currentMinutes.value = minutes;
+    minutesModalVisible.value = true;
+    loadMinutes();
   }
 
   onMounted(() => {
     loadDivisions();
     loadAgents();
+    loadMinutes();
   });
 </script>
 
