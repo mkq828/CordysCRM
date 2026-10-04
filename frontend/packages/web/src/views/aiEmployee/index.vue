@@ -30,40 +30,44 @@
                     />
                   </div>
 
-                  <div class="division-bar flex gap-[8px] overflow-x-auto px-[16px] pb-[8px]">
+                  <div class="catalog-body flex min-h-0 flex-1">
                     <div
-                      v-for="d in divisions"
-                      :key="d.division"
-                      class="division-chip shrink-0 cursor-pointer rounded-[6px] px-[10px] py-[4px] text-[12px]"
-                      :class="selectedDivision === d.division ? 'division-chip--active' : ''"
-                      @click="handleSelectDivision(d.division)"
+                      class="division-list w-[116px] shrink-0 overflow-y-auto border-r border-[var(--divider)] py-[4px]"
                     >
-                      {{ divisionLabel(d.division) }} · {{ d.count }}
+                      <div
+                        v-for="d in divisions"
+                        :key="d.division"
+                        class="division-item cursor-pointer px-[14px] py-[7px]"
+                        :class="selectedDivision === d.division ? 'division-item--active' : ''"
+                        @click="handleSelectDivision(d.division)"
+                      >
+                        <div class="truncate text-[12px] font-medium">{{ divisionLabel(d.division) }}</div>
+                        <div class="text-[11px] text-[var(--text-n3)]">{{ d.count }}</div>
+                      </div>
                     </div>
-                  </div>
-
-                  <div class="role-list min-h-0 flex-1 overflow-y-auto px-[16px] pb-[16px]">
-                    <n-spin :show="loadingRoles">
-                      <template v-if="roles.length === 0 && !loadingRoles">
-                        <n-empty :description="t('aiEmployee.emptyRoles')" class="mt-[48px]" />
-                      </template>
-                      <div v-else class="flex flex-col gap-[8px]">
-                        <div
-                          v-for="role in roles"
-                          :key="role.id"
-                          class="role-card flex cursor-pointer items-center gap-[10px] rounded-[8px] border border-[var(--divider)] p-[10px] transition-colors hover:border-[var(--primary-8)]"
-                          @click="openCreate(role)"
-                        >
-                          <span class="text-[22px] leading-none">{{ role.emoji || '🤖' }}</span>
-                          <div class="min-w-0 flex-1">
-                            <div class="truncate text-[13px] font-medium text-[var(--text-n1)]">{{ role.name }}</div>
-                            <div class="truncate text-[12px] text-[var(--text-n3)]">{{
-                              role.vibe || role.description
-                            }}</div>
+                    <div class="role-list min-h-0 flex-1 overflow-y-auto px-[14px] pb-[16px] pt-[4px]">
+                      <n-spin :show="loadingRoles">
+                        <template v-if="roles.length === 0 && !loadingRoles">
+                          <n-empty :description="t('aiEmployee.emptyRoles')" class="mt-[48px]" />
+                        </template>
+                        <div v-else class="flex flex-col gap-[8px]">
+                          <div
+                            v-for="role in roles"
+                            :key="role.id"
+                            class="role-card flex cursor-pointer items-center gap-[12px] rounded-[8px] border border-[var(--divider)] p-[12px] transition-colors hover:border-[var(--primary-8)]"
+                            @click="openCreate(role)"
+                          >
+                            <span class="text-[22px] leading-none">{{ role.emoji || '🤖' }}</span>
+                            <div class="min-w-0 flex-1">
+                              <div class="truncate text-[13px] font-medium text-[var(--text-n1)]">{{ role.name }}</div>
+                              <div class="text-[12px] leading-[1.5] text-[var(--text-n3)]">{{
+                                role.vibe || role.description
+                              }}</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </n-spin>
+                      </n-spin>
+                    </div>
                   </div>
                 </div>
               </n-tab-pane>
@@ -269,6 +273,30 @@
     'testing': '测试',
   };
 
+  // 部门展示顺序：公司管理运营优先，其余按与企业经营的关联度降序
+  const DIVISION_ORDER: string[] = [
+    'company',
+    'hr',
+    'finance',
+    'legal',
+    'supply-chain',
+    'sales',
+    'marketing',
+    'paid-media',
+    'product',
+    'project-management',
+    'support',
+    'specialized',
+    'engineering',
+    'design',
+    'security',
+    'testing',
+    'academic',
+    'gis',
+    'spatial-computing',
+    'game-development',
+  ];
+
   const { t } = useI18n();
   const Message = useMessage();
   const { openModal } = useModal();
@@ -323,7 +351,11 @@
 
   async function loadDivisions() {
     const list = await getAiEmployeeDivisions();
-    divisions.value = list || [];
+    const orderIndex = (division: string) => {
+      const index = DIVISION_ORDER.indexOf(division);
+      return index === -1 ? DIVISION_ORDER.length : index;
+    };
+    divisions.value = (list || []).slice().sort((a, b) => orderIndex(a.division) - orderIndex(b.division));
     if (divisions.value.length > 0) {
       selectedDivision.value = divisions.value[0].division;
       await loadRoles();
@@ -506,21 +538,22 @@
       padding: 0;
     }
   }
-  .division-bar {
+  .division-list {
     scrollbar-width: none;
     &::-webkit-scrollbar {
       display: none;
     }
   }
-  .division-chip {
-    border: 1px solid transparent;
-    white-space: nowrap;
+  .division-item {
     color: var(--text-n2);
-    background: var(--fill-1);
+    transition: background 0.2s;
+    &:hover {
+      background: var(--fill-1);
+    }
     &--active {
-      border-color: var(--primary-8);
       color: var(--primary-8);
       background: rgb(249 115 22 / 8%);
+      box-shadow: inset 2px 0 0 var(--primary-8);
     }
   }
   .role-card,
