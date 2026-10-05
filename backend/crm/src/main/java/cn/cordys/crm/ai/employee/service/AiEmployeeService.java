@@ -190,7 +190,7 @@ public class AiEmployeeService {
                 ? aiKnowledgeService.retrieveContext(orgId, request.getMessage())
                 : "";
         List<LlmMessage> messages = buildMessages(employee, agent, request.getMessage().trim(), knowledgeContext,
-                request.getContext());
+                request.getContext(), request.getStage());
         StringBuilder content = new StringBuilder();
         Exception lastError = null;
         for (AgentModel model : models) {
@@ -229,9 +229,9 @@ public class AiEmployeeService {
 
     // ==================== 内部 ====================
 
-    /** 构造 system + user 消息：角色提示词为底，拼岗位自定义提示词；开启知识库时把召回片段作为参考资料注入用户消息；context 为此前同事发言（可选） */
+    /** 构造 system + user 消息：角色提示词为底，拼岗位自定义提示词；开启知识库时把召回片段作为参考资料注入用户消息；context 为会议上下文（发言/讨论），stage 区分发言轮与讨论轮 */
     private List<LlmMessage> buildMessages(AiEmployee employee, AiEmployeeAgent agent, String message,
-            String knowledgeContext, String context) {
+            String knowledgeContext, String context, String stage) {
         String systemPrompt = employee.getSystemPrompt() == null ? "" : employee.getSystemPrompt().trim();
         if (StringUtils.isNotBlank(agent.getCustomPrompt())) {
             systemPrompt = systemPrompt + "\n\n## 岗位补充要求\n" + agent.getCustomPrompt().trim();
@@ -242,7 +242,17 @@ public class AiEmployeeService {
                     + "\n\n请优先依据上述资料回答；若资料与问题无关，按你的角色正常回答。";
         }
         if (StringUtils.isNotBlank(context)) {
-            userMessage = userMessage + "\n\n## 此前同事发言（供你参考，避免重复）\n" + context.trim();
+            if ("discuss".equals(stage)) {
+                userMessage = userMessage + "\n\n## 会议讨论记录\n" + context.trim()
+                        + "\n\n请基于以上所有同事的发言进行讨论：指出你认为有问题、遗漏或需要修正的地方，"
+                        + "补充你的专业意见，并给出最终结论；若完全认同现有观点，请直接回复「无异议」。";
+            } else {
+                userMessage = userMessage + "\n\n## 此前同事发言（供你参考，避免重复）\n" + context.trim();
+            }
+        }
+        if ("speak".equals(stage)) {
+            userMessage = userMessage + "\n\n你正在参加一场多人会议。如果本议题与你的岗位职责无关，"
+                    + "请直接回复「暂无异议」，不要强行发表无关意见。";
         }
         List<LlmMessage> messages = new ArrayList<>();
         messages.add(new LlmMessage("system", systemPrompt));

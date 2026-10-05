@@ -16,4 +16,7 @@ public class AiEmployeeChatRequest {
 
     /** 此前同事发言（可空；虚拟会议室等场景按顺序注入，供当前岗位参考以避免重复） */
     private String context;
+
+    /** 会议阶段（可空；speak=发言轮，discuss=讨论轮，空=普通 1 对 1 对话） */
+    private String stage;
 }

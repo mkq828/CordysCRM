@@ -419,6 +419,8 @@ export interface AiEmployeeChatParams {
   conversationId?: string;
   /** 此前同事发言（虚拟会议室按顺序注入，供当前岗位参考以避免重复） */
   context?: string;
+  /** 会议阶段（speak=发言轮，discuss=讨论轮，空=普通对话） */
+  stage?: 'speak' | 'discuss';
 }
 
 /** AI 员工-虚拟会议室-发言流水 */

@@ -28,28 +28,30 @@
       </aside>
 
       <!-- 中间会议桌 -->
-      <div ref="listRef" class="table">
+      <div class="table-frame">
+        <div ref="listRef" class="table">
+          <div v-if="transcript.length === 0" class="table-empty">
+            <div class="table-empty-icon">🫧</div>
+            <p>{{ t('aiEmployee.inviteHint') }}</p>
+          </div>
+          <template v-for="(msg, index) in transcript" :key="index">
+            <div v-if="msg.time" class="time">{{ msg.time }}</div>
+            <div class="msg" :class="msg.role === 'chairman' ? 'out' : 'in'">
+              <div class="who">{{ msg.speaker }}</div>
+              <div class="bubble" :class="{ 'is-abstain': isAbstain(msg) }">
+                <ShimmerText v-if="msg.streaming && !msg.content" size="14px">
+                  {{ t('aiEmployee.thinking') }}
+                </ShimmerText>
+                <span v-else>{{ msg.content }}</span>
+                <span v-if="msg.streaming && msg.content" class="cursor-blink">▍</span>
+              </div>
+            </div>
+          </template>
+        </div>
         <i class="corner corner--tl"></i>
         <i class="corner corner--tr"></i>
         <i class="corner corner--bl"></i>
         <i class="corner corner--br"></i>
-        <div v-if="transcript.length === 0" class="table-empty">
-          <div class="table-empty-icon">🫧</div>
-          <p>{{ t('aiEmployee.inviteHint') }}</p>
-        </div>
-        <template v-for="(msg, index) in transcript" :key="index">
-          <div v-if="msg.time" class="time">{{ msg.time }}</div>
-          <div class="msg" :class="msg.role === 'chairman' ? 'out' : 'in'">
-            <div class="who">{{ msg.speaker }}</div>
-            <div class="bubble">
-              <ShimmerText v-if="msg.streaming && !msg.content" size="14px">
-                {{ t('aiEmployee.thinking') }}
-              </ShimmerText>
-              <span v-else>{{ msg.content }}</span>
-              <span v-if="msg.streaming && msg.content" class="cursor-blink">▍</span>
-            </div>
-          </div>
-        </template>
       </div>
 
       <!-- 右席位（2,4,6...） -->
@@ -70,26 +72,32 @@
     <div class="composer">
       <div class="composer-head">
         <span class="composer-title">{{ t('aiEmployee.chairman') }}<em>·</em>{{ chairmanName }}</span>
-        <button
-          class="end-btn"
-          type="button"
-          :disabled="sending || generating || transcript.length === 0"
-          @click="endMeeting"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.4"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+        <div class="composer-actions">
+          <label class="discuss-toggle" :title="t('aiEmployee.deepDiscussTip')">
+            <span>{{ t('aiEmployee.deepDiscuss') }}</span>
+            <n-switch v-model:value="deepDiscuss" size="small" :disabled="sending || generating" />
+          </label>
+          <button
+            class="end-btn"
+            type="button"
+            :disabled="sending || generating || transcript.length === 0"
+            @click="endMeeting"
           >
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <path d="M16 17l5-5-5-5" />
-            <path d="M21 12H9" />
-          </svg>
-          <span>{{ t('aiEmployee.endMeeting') }}</span>
-        </button>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="M16 17l5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
+            <span>{{ t('aiEmployee.endMeeting') }}</span>
+          </button>
+        </div>
       </div>
 
       <div class="input-wrap">
@@ -119,7 +127,7 @@
 
 <script setup lang="ts">
   import { computed, nextTick, reactive, ref, watch } from 'vue';
-  import { useMessage } from 'naive-ui';
+  import { NSwitch, useMessage } from 'naive-ui';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import type { AgentChatStreamEvent, AiMeetingMinutes } from '@lib/shared/models/ai';
@@ -128,6 +136,7 @@
 
   import { generateAiMeetingMinutes, streamAiEmployeeChat } from '@/api/modules';
   import useModal from '@/hooks/useModal';
+  import { typewriteStream } from '@/hooks/useTypewriter';
   import useUserStore from '@/store/modules/user';
 
   interface Attendee {
@@ -165,12 +174,9 @@
   const transcript = ref<Speech[]>([]);
   const sending = ref(false);
   const generating = ref(false);
+  const deepDiscuss = ref(false);
   const meetingStartTime = ref(0);
   const listRef = ref<HTMLElement>();
-
-  // 打字机节奏：逐字揭示的每拍字符数与间隔（毫秒），模拟豆包式逐字输出
-  const TYPEWRITER_CHARS_PER_TICK = 3;
-  const TYPEWRITER_TICK_MS = 30;
 
   // 席位分列：左 1,3,5… / 右 2,4,6…（发言顺序仍是原始顺序）
   const leftSeats = computed(() => props.attendees.filter((_, i) => i % 2 === 0));
@@ -192,6 +198,9 @@
 
   const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
 
+  // 视为「弃权/无异议」的回复：渲染成浅色气泡，也不参与讨论轮
+  const ABSTAIN_PHRASES = ['暂无异议', '无异议', '无意见', '不发表意见'];
+
   function pad(n: number): string {
     return String(n).padStart(2, '0');
   }
@@ -201,6 +210,12 @@
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(
       d.getMinutes()
     )}`;
+  }
+
+  // 判断一条发言是否属于「无异议/弃权」（忽略末尾标点）
+  function isAbstain(msg: Speech): boolean {
+    const text = msg.content.trim().replace(/[。.！!，,；;、\s]+$/g, '');
+    return ABSTAIN_PHRASES.includes(text);
   }
 
   function scrollToBottom() {
@@ -228,57 +243,48 @@
 
   // 逐字揭示：网络流式内容先进缓冲，再按固定节奏逐字写入气泡，模拟豆包式打字机效果
   async function revealSpeech(entry: Speech, stream: AsyncIterable<AgentChatStreamEvent>) {
-    let pending = '';
-    let streamFinished = false;
-    let finishReveal: (() => void) | undefined;
-    const revealDone = new Promise<void>((resolve) => {
-      finishReveal = resolve;
+    try {
+      await typewriteStream(stream, {
+        onReveal: (slice) => {
+          entry.content += slice;
+          scrollToBottom();
+        },
+      });
+    } finally {
+      entry.streaming = false;
+      scrollToBottom();
+    }
+  }
+
+  // 组装「当前已发言记录」，供后续岗位参考或讨论
+  function buildContext(): string {
+    return transcript.value
+      .filter((s) => s.role === 'agent' && s.content)
+      .map((s) => `${s.speaker}：${s.content}`)
+      .join('\n');
+  }
+
+  // 让某岗位就议题发言一轮：逐字揭示并等待完成，返回该条发言
+  async function speak(attendee: Attendee, text: string, stage: 'speak' | 'discuss'): Promise<Speech> {
+    // 用 reactive 包裹，逐字揭示时 entry.content 的每次变化都能触发视图更新
+    const entry = reactive<Speech>({
+      role: 'agent',
+      speaker: attendee.name,
+      emoji: attendee.emoji,
+      content: '',
+      streaming: true,
+    });
+    transcript.value.push(entry);
+    scrollToBottom();
+
+    const stream = streamAiEmployeeChat(attendee.agentId, {
+      message: text,
+      context: buildContext() || undefined,
+      stage,
     });
 
-    const revealTimer = window.setInterval(() => {
-      if (pending.length > 0) {
-        entry.content += pending.slice(0, TYPEWRITER_CHARS_PER_TICK);
-        pending = pending.slice(TYPEWRITER_CHARS_PER_TICK);
-        scrollToBottom();
-      } else if (streamFinished && finishReveal) {
-        clearInterval(revealTimer);
-        finishReveal();
-        finishReveal = undefined;
-      }
-    }, TYPEWRITER_TICK_MS);
-
-    let streamError: Error | undefined;
-    try {
-      // eslint-disable-next-line no-restricted-syntax -- 原生 async generator，顺序消费流式事件
-      for await (const event of stream) {
-        if (event.type === 'chunk') {
-          pending += event.content || '';
-        } else if (event.type === 'error') {
-          streamError = new Error(event.errorMessage || t('common.operationFailed'));
-          break;
-        }
-      }
-    } catch (error) {
-      streamError = error as Error;
-    }
-
-    streamFinished = true;
-
-    if (streamError) {
-      clearInterval(revealTimer);
-      // 出错时把已缓冲内容一次性补全，避免丢字
-      if (pending) {
-        entry.content += pending;
-        pending = '';
-      }
-      entry.streaming = false;
-      throw streamError;
-    }
-
-    // 等缓冲区逐字揭示完毕后，再标记发言结束、轮到下一位
-    await revealDone;
-    entry.streaming = false;
-    scrollToBottom();
+    await revealSpeech(entry, stream);
+    return entry;
   }
 
   async function send() {
@@ -295,31 +301,24 @@
     scrollToBottom();
 
     try {
+      // 第一轮：各参会岗位依次发言（与议题无关的岗位会回复「暂无异议」）
+      const speeches: Speech[] = [];
       // eslint-disable-next-line no-restricted-syntax -- 顺序编排参会岗位依次发言
       for (const attendee of props.attendees) {
-        // 用 reactive 包裹，逐字揭示时 entry.content 的每次变化都能触发视图更新
-        const entry = reactive<Speech>({
-          role: 'agent',
-          speaker: attendee.name,
-          emoji: attendee.emoji,
-          content: '',
-          streaming: true,
-        });
-        transcript.value.push(entry);
-        scrollToBottom();
-
-        const prior = transcript.value
-          .filter((s) => s.role === 'agent' && s.content)
-          .map((s) => `${s.speaker}：${s.content}`)
-          .join('\n');
-
-        const stream = streamAiEmployeeChat(attendee.agentId, {
-          message: text,
-          context: prior || undefined,
-        });
-
         // eslint-disable-next-line no-await-in-loop -- 顺序编排，逐位等待发言揭示完成
-        await revealSpeech(entry, stream);
+        speeches.push(await speak(attendee, text, 'speak'));
+      }
+
+      // 第二轮（可选）：开启「深入讨论」后，未弃权的岗位互相点评、补充一轮
+      if (deepDiscuss.value) {
+        const participants = props.attendees.filter((_, i) => !isAbstain(speeches[i]));
+        if (participants.length > 0) {
+          // eslint-disable-next-line no-restricted-syntax -- 顺序编排讨论轮
+          for (const attendee of participants) {
+            // eslint-disable-next-line no-await-in-loop -- 顺序编排，逐位等待讨论揭示完成
+            await speak(attendee, text, 'discuss');
+          }
+        }
       }
     } catch (error) {
       Message.error((error as Error)?.message || t('common.operationFailed'));
@@ -554,6 +553,10 @@
     transform: scale(1.08);
     box-shadow: 0 0 26px rgb(34 211 238 / 82%), inset 0 1.5px 2px rgb(255 255 255 / 60%);
   }
+  .table-frame {
+    position: relative;
+    min-height: 0;
+  }
   .table {
     position: relative;
     // 覆盖 Tailwind 的 .table 工具类（display: table），否则 overflow 不生效、长内容会撑爆
@@ -561,6 +564,7 @@
     overflow-x: hidden;
     overflow-y: auto;
     padding: 26px 28px;
+    height: 100%;
     min-height: 0;
     border: 1px solid rgb(34 211 238 / 30%);
     border-radius: 16px;
@@ -722,6 +726,13 @@
     background: linear-gradient(160deg, rgb(22 32 52 / 94%), rgb(13 20 36 / 94%));
     box-shadow: 0 12px 24px -16px rgb(0 0 0 / 60%), inset 0 1px 0 rgb(255 255 255 / 8%);
   }
+  .msg.in .bubble.is-abstain {
+    border-color: rgb(148 163 184 / 22%);
+    color: rgb(148 163 184 / 78%);
+    background: linear-gradient(160deg, rgb(15 23 42 / 60%), rgb(10 16 30 / 60%));
+    box-shadow: none;
+    font-style: italic;
+  }
   .cursor-blink {
     animation: blink 1s step-end infinite;
     color: #7dd3fc;
@@ -744,6 +755,21 @@
     align-items: center;
     margin-bottom: 10px;
     gap: 12px;
+  }
+  .composer-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .discuss-toggle {
+    display: inline-flex;
+    align-items: center;
+    font-size: 13px;
+    white-space: nowrap;
+    color: #bff4ff;
+    gap: 8px;
+    letter-spacing: 1px;
+    cursor: pointer;
   }
   .composer-title {
     overflow: hidden;

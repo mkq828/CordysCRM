@@ -46,4 +46,6 @@ export default {
   'aiEmployee.liveBadge': 'LIVE',
   'aiEmployee.attendeeCount': '{count} attendees',
   'aiEmployee.thinking': 'Thinking…',
+  'aiEmployee.deepDiscuss': 'Deep Discussion',
+  'aiEmployee.deepDiscussTip': 'After each role speaks, they review and supplement each other for one round',
 };

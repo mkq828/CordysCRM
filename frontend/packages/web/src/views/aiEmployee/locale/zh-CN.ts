@@ -46,4 +46,6 @@ export default {
   'aiEmployee.liveBadge': '实时',
   'aiEmployee.attendeeCount': '{count} 位参会',
   'aiEmployee.thinking': '思考中…',
+  'aiEmployee.deepDiscuss': '深入讨论',
+  'aiEmployee.deepDiscussTip': '开启后各岗位在发言结束后再互相点评、补充一轮',
 };
