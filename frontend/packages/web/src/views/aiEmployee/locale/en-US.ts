@@ -42,4 +42,7 @@ export default {
   'aiEmployee.added': 'Added',
   'aiEmployee.addedTip': 'Already added, no duplicate',
   'aiEmployee.archived': 'Archived',
+  'aiEmployee.meetingRoom': 'Virtual Meeting Room',
+  'aiEmployee.liveBadge': 'LIVE',
+  'aiEmployee.attendeeCount': '{count} attendees',
 };

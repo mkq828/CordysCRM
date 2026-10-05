@@ -553,6 +553,23 @@
       display: none;
     }
   }
+  .role-list {
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-n8) transparent;
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      border-radius: 99px;
+      background: var(--text-n8);
+    }
+    &::-webkit-scrollbar-thumb:hover {
+      background: var(--text-n6);
+    }
+  }
   .division-item {
     color: var(--text-n2);
     transition: background 0.2s;

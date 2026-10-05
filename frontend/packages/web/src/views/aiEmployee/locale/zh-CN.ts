@@ -42,4 +42,7 @@ export default {
   'aiEmployee.added': '已添加',
   'aiEmployee.addedTip': '已添加，不能重复',
   'aiEmployee.archived': '已归档',
+  'aiEmployee.meetingRoom': '虚拟会议室',
+  'aiEmployee.liveBadge': '实时',
+  'aiEmployee.attendeeCount': '{count} 位参会',
 };
