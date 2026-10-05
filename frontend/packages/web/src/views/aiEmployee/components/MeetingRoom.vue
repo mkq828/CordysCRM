@@ -5,8 +5,13 @@
       <!-- 左席位（1,3,5...） -->
       <aside class="side side--left">
         <div v-for="a in leftSeats" :key="a.agentId" class="person">
-          <span class="seat-label" :title="a.name">{{ a.name }}</span>
-          <span class="seat-avatar">{{ a.emoji || '👤' }}</span>
+          <span class="seat-label">{{ a.name }}</span>
+          <span class="seat-avatar">
+            <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <circle cx="20" cy="15" r="7" fill="currentColor" />
+              <path d="M20 24c-6.4 0-11.6 4.8-11.6 10.8V37h23.2v-2.2C31.6 28.8 26.4 24 20 24z" fill="currentColor" />
+            </svg>
+          </span>
         </div>
       </aside>
 
@@ -32,8 +37,13 @@
       <!-- 右席位（2,4,6...） -->
       <aside class="side side--right">
         <div v-for="a in rightSeats" :key="a.agentId" class="person">
-          <span class="seat-avatar">{{ a.emoji || '👤' }}</span>
-          <span class="seat-label" :title="a.name">{{ a.name }}</span>
+          <span class="seat-label">{{ a.name }}</span>
+          <span class="seat-avatar">
+            <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <circle cx="20" cy="15" r="7" fill="currentColor" />
+              <path d="M20 24c-6.4 0-11.6 4.8-11.6 10.8V37h23.2v-2.2C31.6 28.8 26.4 24 20 24z" fill="currentColor" />
+            </svg>
+          </span>
         </div>
       </aside>
     </div>
@@ -288,7 +298,7 @@
   }
   .meeting {
     display: grid;
-    grid-template-columns: 112px minmax(0, 1fr) 112px;
+    grid-template-columns: 140px minmax(0, 1fr) 140px;
     gap: 12px;
     align-items: stretch;
   }
@@ -304,36 +314,26 @@
   .person {
     display: flex;
     align-items: center;
-    gap: 8px;
+    flex-direction: column;
+    gap: 9px;
+    width: 100%;
     transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
-  .side--left .person {
-    flex-direction: row;
-    justify-content: flex-end;
-  }
-  .side--right .person {
-    flex-direction: row;
-    justify-content: flex-start;
-  }
-  .side--left .person:hover {
-    transform: translateX(3px);
-  }
-  .side--right .person:hover {
-    transform: translateX(-3px);
+  .person:hover {
+    transform: translateY(-2px);
   }
   .seat-label {
-    overflow: hidden;
-    padding: 7px 9px;
-    max-width: 74px;
+    padding: 6px 10px;
     font-size: 12.5px;
     border: 1px solid #e8eeeb;
     border-radius: 8px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    text-align: center;
     color: #4b5752;
     background: #fbfdfc;
     box-shadow: 0 1px 2px rgb(30 60 40 / 3%);
     transition: color 0.25s ease, border-color 0.25s ease;
+    line-height: 1.5;
+    overflow-wrap: break-word;
     letter-spacing: 0.4px;
   }
   .person:hover .seat-label {
@@ -344,14 +344,18 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 42px;
-    height: 42px;
-    font-size: 19px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
+    color: #ffffff;
     background: radial-gradient(circle at 34% 26%, #60a5fa, #3b82f6 55%, #2563eb);
     box-shadow: 0 7px 16px -7px rgb(59 130 246 / 90%), inset 0 1.5px 2px rgb(255 255 255 / 50%);
     transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.28s ease;
-    flex: 0 0 42px;
+    flex: 0 0 44px;
+  }
+  .seat-avatar svg {
+    width: 25px;
+    height: 25px;
   }
   .person:hover .seat-avatar {
     transform: scale(1.08);
