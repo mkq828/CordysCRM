@@ -18,6 +18,24 @@ public class InfoData {
     @JsonProperty("TaxNo")
     private String taxNo;
 
+    /**
+     * 统一社会信用代码
+     */
+    @JsonProperty("CreditCode")
+    private String creditCode;
+
+    /**
+     * 法定代表人
+     */
+    @JsonProperty("OperName")
+    private String legalPerson;
+
+    /**
+     * 经营状态
+     */
+    @JsonProperty("Status")
+    private String status;
+
 
     /**
      * 开票信息

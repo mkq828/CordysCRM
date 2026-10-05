@@ -459,3 +459,48 @@ export interface AiMeetingMinutes {
   tasks?: AiMeetingMinutesTask[];
   createTime?: number;
 }
+
+/** 线索爬取-企业信息（搜索列表项/详情复用，未拉详情时仅 name 有值） */
+export interface LeadCrawlEnterprise {
+  name: string;
+  fromCache?: boolean;
+  taxNo?: string;
+  creditCode?: string;
+  legalPerson?: string;
+  status?: string;
+  registerCapi?: string;
+  personScope?: string;
+  scale?: string;
+  industry?: string;
+  areaProvince?: string;
+  areaCity?: string;
+  registerPhone?: string;
+  address?: string;
+  bankName?: string;
+  bankAccount?: string;
+  regNo?: string;
+}
+
+/** 线索爬取-导入线索池结果 */
+export interface LeadCrawlImportResult {
+  successCount: number;
+  failedNames?: string[];
+}
+
+/** 竞品/行业洞察-请求参数 */
+export interface CompetitorInsightParams {
+  competitor?: string;
+  industry?: string;
+  focus?: string;
+  conversationId?: string;
+}
+
+/** 竞品/行业洞察-结构化结果 */
+export interface CompetitorInsightResult {
+  overview?: string;
+  dynamics?: string[];
+  trends?: string[];
+  risks?: string[];
+  suggestions?: string[];
+  rawContent?: string;
+}

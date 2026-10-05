@@ -152,6 +152,11 @@ export enum PptRouteEnum {
   PPT_INDEX = 'aiPptIndex',
 }
 
+export enum LeadCrawlRouteEnum {
+  LEAD_CRAWL = 'aiLeadCrawl',
+  LEAD_CRAWL_INDEX = 'aiLeadCrawlIndex',
+}
+
 export enum AiEmployeeRouteEnum {
   AI_EMPLOYEE = 'aiEmployee',
   AI_EMPLOYEE_INDEX = 'aiEmployeeIndex',
@@ -194,6 +199,7 @@ export const AppRouteEnum = {
   ...ContentRouteEnum,
   ...KnowledgeRouteEnum,
   ...PptRouteEnum,
+  ...LeadCrawlRouteEnum,
   ...AiEmployeeRouteEnum,
   ...EffectsRouteEnum,
   ...PlatformAiQuotaRouteEnum,

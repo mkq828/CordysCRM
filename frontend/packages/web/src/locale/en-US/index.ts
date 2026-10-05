@@ -54,6 +54,7 @@ export default {
     'menu.aiContent': 'AI Content',
     'menu.aiKnowledge': 'AI Knowledge Base',
     'menu.aiPpt': 'Proposal & PPT',
+    'menu.aiLeadCrawl': 'Lead Crawl',
     'menu.aiEmployee': 'AI Employees',
     'menu.effects': 'Effects Library',
     'menu.platformAiQuota': 'AI Quota Mgmt',

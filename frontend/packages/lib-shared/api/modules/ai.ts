@@ -47,6 +47,11 @@ import {
   AiEmployeeAgentDeleteUrl,
   AiEmployeeChatStreamUrl,
   AiMeetingMinutesUrl,
+  LeadCrawlAvailableUrl,
+  LeadCrawlSearchUrl,
+  LeadCrawlDetailUrl,
+  LeadCrawlImportUrl,
+  CompetitorInsightStreamUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -96,6 +101,10 @@ import type {
   AiEmployeeChatParams,
   AiMeetingMinutes,
   AiMeetingMinutesGenerateParams,
+  LeadCrawlEnterprise,
+  LeadCrawlImportResult,
+  CompetitorInsightParams,
+  CompetitorInsightResult,
 } from '../../models/ai';
 
 interface SseBlock {
@@ -588,6 +597,26 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.get<AiMeetingMinutes>({ url: `${AiMeetingMinutesUrl}/${id}` });
   }
 
+  function getLeadCrawlAvailable() {
+    return CDR.get<boolean>({ url: LeadCrawlAvailableUrl });
+  }
+
+  function searchLeadCrawlEnterprise(data: { keyword: string }) {
+    return CDR.post<LeadCrawlEnterprise[]>({ url: LeadCrawlSearchUrl, data });
+  }
+
+  function fetchLeadCrawlDetail(data: { names: string[] }) {
+    return CDR.post<LeadCrawlEnterprise[]>({ url: LeadCrawlDetailUrl, data });
+  }
+
+  function importLeadCrawl(data: { names: string[] }) {
+    return CDR.post<LeadCrawlImportResult>({ url: LeadCrawlImportUrl, data });
+  }
+
+  function streamCompetitorInsight(data: CompetitorInsightParams, options: AgentChatStreamOptions = {}) {
+    return streamSse(CompetitorInsightStreamUrl, data, options);
+  }
+
   function downloadAiSalesScriptTemplate() {
     return CDR.get(
       { url: AiSalesScriptImportTemplateUrl, responseType: 'blob' },
@@ -658,6 +687,11 @@ export default function useAiApi(CDR: CordysAxios) {
     generateAiMeetingMinutes,
     getAiMeetingMinutes,
     getAiMeetingMinutesDetail,
+    getLeadCrawlAvailable,
+    searchLeadCrawlEnterprise,
+    fetchLeadCrawlDetail,
+    importLeadCrawl,
+    streamCompetitorInsight,
     downloadAiSalesScriptTemplate,
     preCheckImportAiSalesScript,
     importAiSalesScript,
