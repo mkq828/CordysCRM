@@ -51,20 +51,34 @@
                           <n-empty :description="t('aiEmployee.emptyRoles')" class="mt-[48px]" />
                         </template>
                         <div v-else class="flex flex-col gap-[8px]">
-                          <div
+                          <n-tooltip
                             v-for="role in roles"
                             :key="role.id"
-                            class="role-card flex cursor-pointer items-center gap-[12px] rounded-[8px] border border-[var(--divider-color)] p-[12px] transition-colors hover:border-[var(--primary-8)]"
-                            @click="openCreate(role)"
+                            :disabled="!isRoleAdded(role.id)"
+                            placement="top"
                           >
-                            <span class="text-[22px] leading-none">{{ role.emoji || '🤖' }}</span>
-                            <div class="min-w-0 flex-1">
-                              <div class="truncate text-[13px] font-medium text-[var(--text-n1)]">{{ role.name }}</div>
-                              <div class="text-[12px] leading-[1.5] text-[var(--text-n3)]">{{
-                                role.vibe || role.description
-                              }}</div>
-                            </div>
-                          </div>
+                            <template #trigger>
+                              <div
+                                class="role-card relative flex cursor-pointer items-center gap-[12px] overflow-hidden rounded-[8px] border border-[var(--divider-color)] p-[12px] transition-colors hover:border-[var(--primary-8)]"
+                                :class="{ 'role-card--added': isRoleAdded(role.id) }"
+                                @click="openCreate(role)"
+                              >
+                                <span class="text-[22px] leading-none">{{ role.emoji || '🤖' }}</span>
+                                <div class="min-w-0 flex-1">
+                                  <div class="truncate text-[13px] font-medium text-[var(--text-n1)]">{{
+                                    role.name
+                                  }}</div>
+                                  <div class="text-[12px] leading-[1.5] text-[var(--text-n3)]">{{
+                                    role.vibe || role.description
+                                  }}</div>
+                                </div>
+                                <span v-if="isRoleAdded(role.id)" class="added-ribbon">{{
+                                  t('aiEmployee.added')
+                                }}</span>
+                              </div>
+                            </template>
+                            {{ t('aiEmployee.addedTip') }}
+                          </n-tooltip>
                         </div>
                       </n-spin>
                     </div>
@@ -200,6 +214,7 @@
     NSwitch,
     NTabPane,
     NTabs,
+    NTooltip,
     useMessage,
   } from 'naive-ui';
 
@@ -358,7 +373,15 @@
     loadRoles();
   }
 
+  function isRoleAdded(employeeId: string) {
+    return agents.value.some((a) => a.employeeId === employeeId);
+  }
+
   async function openCreate(role: AiEmployeeItem) {
+    if (isRoleAdded(role.id)) {
+      Message.warning(t('aiEmployee.addedTip'));
+      return;
+    }
     editingAgentId.value = '';
     currentRole.value = null;
     agentForm.value = {
@@ -547,6 +570,27 @@
     &:hover {
       background: var(--fill-1);
     }
+  }
+  .role-card--added {
+    border-color: #b9e7cb;
+  }
+  .added-ribbon {
+    position: absolute;
+    top: 10px;
+    right: -27px;
+    z-index: 1;
+    padding: 3px 0;
+    width: 92px;
+    font-size: 10.5px;
+    font-weight: 600;
+    text-align: center;
+    color: #ffffff;
+    background: linear-gradient(135deg, #4ade80, #16a34a);
+    box-shadow: 0 1px 3px rgb(22 163 74 / 40%);
+    line-height: 1.5;
+    letter-spacing: 1px;
+    transform: rotate(45deg);
+    pointer-events: none;
   }
   .agent-card--active {
     border-color: var(--primary-8);

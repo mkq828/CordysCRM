@@ -3,81 +3,96 @@
     :show="visible"
     preset="card"
     :mask-closable="false"
-    :title="minutes?.title || t('aiEmployee.minutesTab')"
+    :bordered="false"
     class="meeting-minutes-modal !w-[680px]"
     @update:show="(v: boolean) => emit('update:visible', v)"
   >
-    <div v-if="minutes" class="minutes-body max-h-[70vh] overflow-y-auto">
+    <template #header>
+      <div class="card-head">
+        <span class="card-title">{{ minutes?.title || t('aiEmployee.minutesTab') }}</span>
+        <span class="archive-badge">{{ t('aiEmployee.archived') }}</span>
+      </div>
+    </template>
+
+    <div v-if="minutes" class="card-body">
       <!-- 元信息 -->
-      <div class="minutes-meta mb-[16px] rounded-[8px] bg-[var(--fill-1)] p-[14px] text-[13px] leading-[2]">
-        <div v-if="minutes.timeText" class="flex">
+      <div class="meta">
+        <div v-if="minutes.timeText" class="meta-row">
           <span class="meta-label">{{ t('aiEmployee.minutesTime') }}</span>
-          <span class="text-[var(--text-n2)]">{{ minutes.timeText }}</span>
+          <span class="meta-value">{{ minutes.timeText }}</span>
         </div>
-        <div v-if="minutes.place" class="flex">
+        <div v-if="minutes.place" class="meta-row">
           <span class="meta-label">{{ t('aiEmployee.minutesPlace') }}</span>
-          <span class="text-[var(--text-n2)]">{{ minutes.place }}</span>
+          <span class="meta-value">{{ minutes.place }}</span>
         </div>
-        <div v-if="minutes.host" class="flex">
+        <div v-if="minutes.host" class="meta-row">
           <span class="meta-label">{{ t('aiEmployee.minutesHost') }}</span>
-          <span class="text-[var(--text-n2)]">{{ minutes.host }}</span>
+          <span class="meta-value">{{ minutes.host }}</span>
         </div>
-        <div v-if="minutes.recorder" class="flex">
+        <div v-if="minutes.recorder" class="meta-row">
           <span class="meta-label">{{ t('aiEmployee.minutesRecorder') }}</span>
-          <span class="text-[var(--text-n2)]">{{ minutes.recorder }}</span>
+          <span class="meta-value">{{ minutes.recorder }}</span>
         </div>
-        <div v-if="minutes.attendees?.length" class="flex">
+        <div v-if="minutes.attendees?.length" class="meta-row meta-row--attendees">
           <span class="meta-label">{{ t('aiEmployee.minutesAttendees') }}</span>
-          <span class="flex flex-wrap gap-[6px] text-[var(--text-n2)]">
+          <span class="attendees">
             <span v-for="name in minutes.attendees" :key="name" class="attendee-chip">{{ name }}</span>
           </span>
         </div>
       </div>
 
       <!-- 发言纪要 -->
-      <div v-if="minutes.content?.length" class="minutes-section">
-        <div class="minutes-section-title">{{ t('aiEmployee.minutesContent') }}</div>
-        <ol class="minutes-list">
-          <li v-for="(item, index) in minutes.content" :key="index" class="minutes-list-item">{{ item }}</li>
-        </ol>
+      <div v-if="minutes.content?.length" class="section">
+        <div class="sec-title">{{ t('aiEmployee.minutesContent') }}</div>
+        <ul class="sec-list">
+          <li v-for="(item, index) in minutes.content" :key="index">{{ item }}</li>
+        </ul>
       </div>
 
       <!-- 后续行动 -->
-      <div v-if="minutes.next?.length" class="minutes-section">
-        <div class="minutes-section-title">{{ t('aiEmployee.minutesNext') }}</div>
-        <ol class="minutes-list">
-          <li v-for="(item, index) in minutes.next" :key="index" class="minutes-list-item">{{ item }}</li>
-        </ol>
+      <div v-if="minutes.next?.length" class="section">
+        <div class="sec-title">{{ t('aiEmployee.minutesNext') }}</div>
+        <ul class="sec-list">
+          <li v-for="(item, index) in minutes.next" :key="index">{{ item }}</li>
+        </ul>
       </div>
 
       <!-- 任务清单 -->
-      <div v-if="minutes.tasks?.length" class="minutes-section">
-        <div class="minutes-section-title">{{ t('aiEmployee.minutesTasks') }}</div>
-        <div class="task-table">
-          <div class="task-row task-row--head">
-            <span>{{ t('aiEmployee.taskCol') }}</span>
-            <span>{{ t('aiEmployee.deadlineCol') }}</span>
-            <span>{{ t('aiEmployee.deliverableCol') }}</span>
-          </div>
-          <div v-for="(task, index) in minutes.tasks" :key="index" class="task-row">
-            <span class="text-[var(--text-n1)]">{{ task.task }}</span>
-            <span class="text-[var(--text-n2)]">{{ task.deadline || '—' }}</span>
-            <span class="text-[var(--text-n2)]">{{ task.deliverable || '—' }}</span>
-          </div>
+      <div v-if="minutes.tasks?.length" class="section">
+        <div class="sec-title">{{ t('aiEmployee.minutesTasks') }}</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>{{ t('aiEmployee.taskCol') }}</th>
+                <th>{{ t('aiEmployee.deadlineCol') }}</th>
+                <th>{{ t('aiEmployee.deliverableCol') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(task, index) in minutes.tasks" :key="index">
+                <td class="td-task">{{ task.task }}</td>
+                <td class="td-date">{{ task.deadline || '—' }}</td>
+                <td class="td-deliverable">{{ task.deliverable || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
 
     <template #footer>
-      <div class="flex justify-end">
-        <n-button type="primary" @click="emit('update:visible', false)">{{ t('common.confirm') }}</n-button>
+      <div class="card-footer">
+        <button class="confirm-btn" type="button" @click="emit('update:visible', false)">
+          {{ t('common.confirm') }}
+        </button>
       </div>
     </template>
   </n-modal>
 </template>
 
 <script setup lang="ts">
-  import { NButton, NModal } from 'naive-ui';
+  import { NModal } from 'naive-ui';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import type { AiMeetingMinutes } from '@lib/shared/models/ai';
@@ -95,56 +110,216 @@
 </script>
 
 <style lang="less" scoped>
-  .meta-label {
-    width: 56px;
-    flex-shrink: 0;
-    color: var(--text-n3);
+  .meeting-minutes-modal {
+    :deep(.n-card) {
+      overflow: hidden;
+      max-width: 92vw;
+      border-radius: 24px;
+      box-shadow: 0 30px 70px -30px rgb(17 63 40 / 45%);
+    }
+    :deep(.n-card-header) {
+      padding: 22px 26px 14px;
+    }
+    :deep(.n-card__content) {
+      padding: 0 26px;
+    }
+    :deep(.n-card__action) {
+      padding: 16px 26px 22px;
+    }
   }
-  .attendee-chip {
-    padding: 1px 8px;
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .card-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #22352c;
+    letter-spacing: 1px;
+    line-height: 1.4;
+  }
+  .archive-badge {
+    padding: 3px 11px;
     font-size: 12px;
-    border-radius: 4px;
-    background: var(--fill-2);
-  }
-  .minutes-section {
-    margin-bottom: 18px;
-  }
-  .minutes-section-title {
-    margin-bottom: 8px;
-    font-size: 14px;
     font-weight: 600;
-    color: var(--text-n1);
+    border: 1px solid #b9e7cb;
+    border-radius: 999px;
+    color: #16a34a;
+    background: #e8f8ef;
+    flex-shrink: 0;
     letter-spacing: 1px;
   }
-  .minutes-list {
-    margin: 0;
-    padding-left: 20px;
-    color: var(--text-n2);
+  .card-body {
+    overflow-y: auto;
+    padding-right: 4px;
+    max-height: 66vh;
+    scrollbar-width: thin;
+    scrollbar-color: #d6e4dc transparent;
+    &::-webkit-scrollbar {
+      width: 7px;
+    }
+    &::-webkit-scrollbar-thumb {
+      border-radius: 99px;
+      background: #d6e4dc;
+    }
   }
-  .minutes-list-item {
-    margin-bottom: 6px;
-    line-height: 1.7;
+  .meta {
+    margin-bottom: 20px;
+    padding: 16px 18px;
+    border: 1px solid #e0f0e7;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #f2faf5 0%, #e9f6ee 100%);
+  }
+  .meta-row {
+    display: flex;
+    gap: 12px;
     font-size: 13px;
+    line-height: 1.8;
   }
-  .task-table {
-    overflow: hidden;
-    border: 1px solid var(--divider-color);
-    border-radius: 8px;
+  .meta-row--attendees {
+    align-items: flex-start;
   }
-  .task-row {
-    display: grid;
-    grid-template-columns: 1.6fr 1fr 1.2fr;
+  .meta-label {
+    flex-shrink: 0;
+    width: 56px;
+    color: #8aa197;
+    letter-spacing: 0.5px;
+  }
+  .meta-value {
+    color: #2f3d37;
+    word-break: break-all;
+  }
+  .attendees {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .attendee-chip {
+    padding: 2px 11px;
+    font-size: 12px;
+    border: 1px solid #cfdff5;
+    border-radius: 999px;
+    color: #2563eb;
+    background: #eaf2fd;
+  }
+  .section {
+    margin-bottom: 20px;
+  }
+  .sec-title {
+    display: flex;
+    align-items: center;
     gap: 8px;
-    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #22352c;
+    letter-spacing: 1px;
+  }
+  .sec-title::before {
+    content: '';
+    width: 4px;
+    height: 16px;
+    border-radius: 3px;
+    background: linear-gradient(180deg, #4ade80, #16a34a);
+  }
+  .sec-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .sec-list li {
+    position: relative;
+    margin-bottom: 9px;
+    padding-left: 18px;
     font-size: 13px;
-    border-bottom: 1px solid var(--divider-color);
-    &:last-child {
-      border-bottom: none;
-    }
-    &--head {
-      font-weight: 500;
-      color: var(--text-n3);
-      background: var(--fill-1);
-    }
+    color: #3a4a43;
+    line-height: 1.75;
+    letter-spacing: 0.2px;
+  }
+  .sec-list li::before {
+    position: absolute;
+    top: 10px;
+    left: 2px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 3px #e8f8ef;
+    content: '';
+  }
+  .tbl-wrap {
+    overflow: hidden;
+    border: 1px solid #e4efe9;
+    border-radius: 14px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    padding: 11px 16px;
+    font-weight: 600;
+    text-align: left;
+    color: #ffffff;
+    background: linear-gradient(135deg, #4ade80 0%, #22c55e 55%, #16a34a 100%);
+    letter-spacing: 1px;
+  }
+  thead th:first-child {
+    width: 42%;
+  }
+  thead th:nth-child(2) {
+    width: 26%;
+  }
+  thead th:nth-child(3) {
+    width: 32%;
+  }
+  tbody tr {
+    border-top: 1px solid #eef4f0;
+  }
+  tbody tr:nth-child(even) {
+    background: #fafdfb;
+  }
+  tbody td {
+    padding: 11px 16px;
+    vertical-align: top;
+    line-height: 1.65;
+    color: #3a4a43;
+  }
+  .td-task {
+    color: #2f3d37;
+  }
+  .td-date {
+    color: #16a34a;
+    font-variant-numeric: tabular-nums;
+  }
+  .td-deliverable {
+    color: #2563eb;
+  }
+  .card-footer {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .confirm-btn {
+    padding: 0 26px;
+    height: 40px;
+    font-size: 14px;
+    font-family: inherit;
+    border: none;
+    border-radius: 12px;
+    color: #ffffff;
+    background: linear-gradient(145deg, #4ade80, #22c55e 55%, #16a34a);
+    box-shadow: 0 10px 22px -10px rgb(34 197 94 / 90%), inset 0 1px 0 rgb(255 255 255 / 40%);
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
+    letter-spacing: 2px;
+    cursor: pointer;
+  }
+  .confirm-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 28px -10px rgb(34 197 94 / 100%), inset 0 1px 0 rgb(255 255 255 / 50%);
+  }
+  .confirm-btn:active {
+    transform: translateY(0) scale(0.97);
   }
 </style>
