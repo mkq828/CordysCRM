@@ -16,13 +16,19 @@
     <div class="meeting min-h-0 flex-1" :style="{ '--seat-scale': seatScale }">
       <!-- 左席位（1,3,5...） -->
       <aside class="side side--left">
-        <div v-for="a in leftSeats" :key="a.agentId" class="person">
+        <div
+          v-for="a in leftSeats"
+          :key="a.agentId"
+          class="person"
+          :class="{ 'is-speaking': a.agentId === speakingAgentId }"
+        >
           <span class="seat-label">{{ a.name }}</span>
           <span class="seat-avatar">
             <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
               <circle cx="20" cy="15" r="7" fill="currentColor" />
               <path d="M20 24c-6.4 0-11.6 4.8-11.6 10.8V37h23.2v-2.2C31.6 28.8 26.4 24 20 24z" fill="currentColor" />
             </svg>
+            <span v-if="a.agentId === speakingAgentId" class="seat-wave" aria-hidden="true"><i></i><i></i><i></i></span>
           </span>
         </div>
       </aside>
@@ -56,13 +62,19 @@
 
       <!-- 右席位（2,4,6...） -->
       <aside class="side side--right">
-        <div v-for="a in rightSeats" :key="a.agentId" class="person">
+        <div
+          v-for="a in rightSeats"
+          :key="a.agentId"
+          class="person"
+          :class="{ 'is-speaking': a.agentId === speakingAgentId }"
+        >
           <span class="seat-label">{{ a.name }}</span>
           <span class="seat-avatar">
             <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
               <circle cx="20" cy="15" r="7" fill="currentColor" />
               <path d="M20 24c-6.4 0-11.6 4.8-11.6 10.8V37h23.2v-2.2C31.6 28.8 26.4 24 20 24z" fill="currentColor" />
             </svg>
+            <span v-if="a.agentId === speakingAgentId" class="seat-wave" aria-hidden="true"><i></i><i></i><i></i></span>
           </span>
         </div>
       </aside>
@@ -149,6 +161,7 @@
   interface Speech {
     role: 'chairman' | 'agent';
     speaker: string;
+    agentId?: string;
     emoji?: string;
     content: string;
     streaming?: boolean;
@@ -190,6 +203,12 @@
     if (perSide <= 6) return 0.74;
     if (perSide <= 9) return 0.6;
     return 0.5;
+  });
+
+  // 当前正在发言的岗位（逐字揭示期间唯一），用于给对应席位加「正在发言」特效
+  const speakingAgentId = computed(() => {
+    const active = [...transcript.value].reverse().find((s) => s.role === 'agent' && s.streaming);
+    return active?.agentId || '';
   });
 
   const canSend = computed(
@@ -270,6 +289,7 @@
     const entry = reactive<Speech>({
       role: 'agent',
       speaker: attendee.name,
+      agentId: attendee.agentId,
       emoji: attendee.emoji,
       content: '',
       streaming: true,
@@ -552,6 +572,76 @@
   .person:hover .seat-avatar {
     transform: scale(1.08);
     box-shadow: 0 0 26px rgb(34 211 238 / 82%), inset 0 1.5px 2px rgb(255 255 255 / 60%);
+  }
+  // 正在发言的席位：名字提亮 + 头像呼吸放大 + 更急促的脉冲环，与未发言席位明显区分
+  .person.is-speaking .seat-label {
+    border-color: #22d3ee;
+    color: #ffffff;
+    box-shadow: 0 0 18px rgb(34 211 238 / 55%), inset 0 0 12px rgb(34 211 238 / 18%);
+    animation: speakLabel 1.6s ease-in-out infinite;
+  }
+  .person.is-speaking .seat-avatar {
+    box-shadow: 0 0 32px rgb(34 211 238 / 95%), inset 0 1.5px 2px rgb(255 255 255 / 70%);
+    animation: speakAvatar 1.6s ease-in-out infinite;
+  }
+  .person.is-speaking .seat-avatar::after {
+    border-color: rgb(103 232 249 / 85%);
+    animation: ringPulse 1.1s ease-out infinite;
+  }
+  @keyframes speakLabel {
+    0%,
+    100% {
+      box-shadow: 0 0 12px rgb(34 211 238 / 40%), inset 0 0 8px rgb(34 211 238 / 10%);
+    }
+    50% {
+      box-shadow: 0 0 26px rgb(34 211 238 / 80%), inset 0 0 16px rgb(34 211 238 / 26%);
+    }
+  }
+  @keyframes speakAvatar {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.12);
+    }
+  }
+  // 头像下方的「声波」呼吸条，仅在发言时出现
+  .seat-wave {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 50%;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: calc(12px * var(--seat-scale, 1));
+    transform: translateX(-50%);
+  }
+  .seat-wave i {
+    width: 3px;
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #67e8f9, #22d3ee);
+    box-shadow: 0 0 6px rgb(34 211 238 / 80%);
+    transform-origin: bottom;
+    animation: waveBounce 0.9s ease-in-out infinite;
+  }
+  .seat-wave i:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .seat-wave i:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+  @keyframes waveBounce {
+    0%,
+    100% {
+      transform: scaleY(0.3);
+      opacity: 0.55;
+    }
+    50% {
+      transform: scaleY(1);
+      opacity: 1;
+    }
   }
   .table-frame {
     position: relative;
