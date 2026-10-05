@@ -138,9 +138,10 @@
       }
     }
     .n-card-content {
-      @apply h-full;
-
       padding: 24px !important;
+      min-height: 0;
+      // 用 flex 填充剩余高度而非 height:100%，否则会忽略头部高度、内容多出头部高度被裁剪
+      flex: 1 1 auto;
     }
   }
   .n-card--no-padding {
