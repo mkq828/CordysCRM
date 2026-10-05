@@ -45,4 +45,5 @@ export default {
   'aiEmployee.meetingRoom': '虚拟会议室',
   'aiEmployee.liveBadge': '实时',
   'aiEmployee.attendeeCount': '{count} 位参会',
+  'aiEmployee.thinking': '思考中…',
 };

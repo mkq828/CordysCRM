@@ -45,4 +45,5 @@ export default {
   'aiEmployee.meetingRoom': 'Virtual Meeting Room',
   'aiEmployee.liveBadge': 'LIVE',
   'aiEmployee.attendeeCount': '{count} attendees',
+  'aiEmployee.thinking': 'Thinking…',
 };

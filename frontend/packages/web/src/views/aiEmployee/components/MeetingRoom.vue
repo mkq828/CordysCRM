@@ -42,7 +42,9 @@
           <div class="msg" :class="msg.role === 'chairman' ? 'out' : 'in'">
             <div class="who">{{ msg.speaker }}</div>
             <div class="bubble">
-              <span v-if="msg.streaming && !msg.content" class="typing"><i></i><i></i><i></i></span>
+              <ShimmerText v-if="msg.streaming && !msg.content" size="14px">
+                {{ t('aiEmployee.thinking') }}
+              </ShimmerText>
               <span v-else>{{ msg.content }}</span>
               <span v-if="msg.streaming && msg.content" class="cursor-blink">▍</span>
             </div>
@@ -116,11 +118,13 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, nextTick, ref, watch } from 'vue';
+  import { computed, nextTick, reactive, ref, watch } from 'vue';
   import { useMessage } from 'naive-ui';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
-  import type { AiMeetingMinutes } from '@lib/shared/models/ai';
+  import type { AgentChatStreamEvent, AiMeetingMinutes } from '@lib/shared/models/ai';
+
+  import ShimmerText from '@/components/pure/effects/ShimmerText.vue';
 
   import { generateAiMeetingMinutes, streamAiEmployeeChat } from '@/api/modules';
   import useModal from '@/hooks/useModal';
@@ -164,6 +168,10 @@
   const meetingStartTime = ref(0);
   const listRef = ref<HTMLElement>();
 
+  // 打字机节奏：逐字揭示的每拍字符数与间隔（毫秒），模拟豆包式逐字输出
+  const TYPEWRITER_CHARS_PER_TICK = 3;
+  const TYPEWRITER_TICK_MS = 30;
+
   // 席位分列：左 1,3,5… / 右 2,4,6…（发言顺序仍是原始顺序）
   const leftSeats = computed(() => props.attendees.filter((_, i) => i % 2 === 0));
   const rightSeats = computed(() => props.attendees.filter((_, i) => i % 2 === 1));
@@ -198,7 +206,12 @@
   function scrollToBottom() {
     nextTick(() => {
       const el = listRef.value;
-      if (el) {
+      if (!el) {
+        return;
+      }
+      // 仅当用户本就贴近底部时才跟随滚动；用户上翻查看历史发言时不打扰，避免被拽回底部
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 64;
+      if (nearBottom) {
         el.scrollTop = el.scrollHeight;
       }
     });
@@ -211,6 +224,61 @@
     return `${start.getFullYear()}年${start.getMonth() + 1}月${start.getDate()}日 ${WEEKDAYS[start.getDay()]} ${pad(
       start.getHours()
     )}:${pad(start.getMinutes())} — ${pad(end.getHours())}:${pad(end.getMinutes())}（时长 ${duration} 分钟）`;
+  }
+
+  // 逐字揭示：网络流式内容先进缓冲，再按固定节奏逐字写入气泡，模拟豆包式打字机效果
+  async function revealSpeech(entry: Speech, stream: AsyncIterable<AgentChatStreamEvent>) {
+    let pending = '';
+    let streamFinished = false;
+    let finishReveal: (() => void) | undefined;
+    const revealDone = new Promise<void>((resolve) => {
+      finishReveal = resolve;
+    });
+
+    const revealTimer = window.setInterval(() => {
+      if (pending.length > 0) {
+        entry.content += pending.slice(0, TYPEWRITER_CHARS_PER_TICK);
+        pending = pending.slice(TYPEWRITER_CHARS_PER_TICK);
+        scrollToBottom();
+      } else if (streamFinished && finishReveal) {
+        clearInterval(revealTimer);
+        finishReveal();
+        finishReveal = undefined;
+      }
+    }, TYPEWRITER_TICK_MS);
+
+    let streamError: Error | undefined;
+    try {
+      // eslint-disable-next-line no-restricted-syntax -- 原生 async generator，顺序消费流式事件
+      for await (const event of stream) {
+        if (event.type === 'chunk') {
+          pending += event.content || '';
+        } else if (event.type === 'error') {
+          streamError = new Error(event.errorMessage || t('common.operationFailed'));
+          break;
+        }
+      }
+    } catch (error) {
+      streamError = error as Error;
+    }
+
+    streamFinished = true;
+
+    if (streamError) {
+      clearInterval(revealTimer);
+      // 出错时把已缓冲内容一次性补全，避免丢字
+      if (pending) {
+        entry.content += pending;
+        pending = '';
+      }
+      entry.streaming = false;
+      throw streamError;
+    }
+
+    // 等缓冲区逐字揭示完毕后，再标记发言结束、轮到下一位
+    await revealDone;
+    entry.streaming = false;
+    scrollToBottom();
   }
 
   async function send() {
@@ -229,13 +297,14 @@
     try {
       // eslint-disable-next-line no-restricted-syntax -- 顺序编排参会岗位依次发言
       for (const attendee of props.attendees) {
-        const entry: Speech = {
+        // 用 reactive 包裹，逐字揭示时 entry.content 的每次变化都能触发视图更新
+        const entry = reactive<Speech>({
           role: 'agent',
           speaker: attendee.name,
           emoji: attendee.emoji,
           content: '',
           streaming: true,
-        };
+        });
         transcript.value.push(entry);
         scrollToBottom();
 
@@ -249,18 +318,8 @@
           context: prior || undefined,
         });
 
-        // eslint-disable-next-line no-restricted-syntax, no-await-in-loop -- 原生 async generator，顺序消费流式事件
-        for await (const event of stream) {
-          if (event.type === 'chunk') {
-            entry.content += event.content || '';
-            scrollToBottom();
-          } else if (event.type === 'error') {
-            entry.content = event.errorMessage || t('common.operationFailed');
-            throw new Error(event.errorMessage || t('common.operationFailed'));
-          }
-        }
-        entry.streaming = false;
-        scrollToBottom();
+        // eslint-disable-next-line no-await-in-loop -- 顺序编排，逐位等待发言揭示完成
+        await revealSpeech(entry, stream);
       }
     } catch (error) {
       Message.error((error as Error)?.message || t('common.operationFailed'));
@@ -615,6 +674,9 @@
     flex-direction: column;
     animation: msgIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
+  .msg + .msg {
+    margin-top: 18px;
+  }
   @keyframes msgIn {
     from {
       opacity: 0;
@@ -632,7 +694,7 @@
     align-items: flex-start;
   }
   .msg .who {
-    margin-bottom: 7px;
+    margin-bottom: 10px;
     padding: 0 4px;
     font-size: 12.5px;
     color: #7dd3fc;
@@ -668,38 +730,6 @@
   @keyframes blink {
     50% {
       opacity: 0;
-    }
-  }
-  .typing {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 0;
-  }
-  .typing i {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #7dd3fc;
-    opacity: 0.45;
-    animation: typing 1.2s infinite;
-  }
-  .typing i:nth-child(2) {
-    animation-delay: 0.2s;
-  }
-  .typing i:nth-child(3) {
-    animation-delay: 0.4s;
-  }
-  @keyframes typing {
-    0%,
-    60%,
-    100% {
-      opacity: 0.3;
-      transform: translateY(0);
-    }
-    30% {
-      opacity: 1;
-      transform: translateY(-3px);
     }
   }
   .composer {
