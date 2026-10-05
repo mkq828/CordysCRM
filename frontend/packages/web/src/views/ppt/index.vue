@@ -171,6 +171,7 @@
   import SlidePreview from './components/SlidePreview.vue';
 
   import { streamGenerateAiPptOutline, streamGenerateAiPptSlides } from '@/api/modules';
+  import useTypewriter from '@/hooks/useTypewriter';
 
   const FEATURE_PPT = 'ai_ppt';
 
@@ -186,7 +187,7 @@
   const focus = ref('');
 
   const generating = ref<'none' | 'outline' | 'slides'>('none');
-  const streamingText = ref('');
+  const { text: streamingText, feed: feedStreaming, reset: resetStreaming } = useTypewriter();
   const outline = ref<AiPptOutlineResult | null>(null);
   const slides = ref<AiPptSlidesResult | null>(null);
   const activeConversationId = ref('');
@@ -247,7 +248,7 @@
       return;
     }
     generating.value = 'outline';
-    streamingText.value = '';
+    resetStreaming();
     slides.value = null;
 
     try {
@@ -271,7 +272,7 @@
             conversationPanelRef.value?.reload();
           }
         } else if (event.type === 'chunk') {
-          streamingText.value += event.content || '';
+          feedStreaming(event.content || '');
         } else if (event.type === 'error') {
           throw new Error(event.errorMessage || t('common.operationFailed'));
         } else if (event.type === 'done') {
@@ -286,13 +287,13 @@
       Message.error((error as Error)?.message || t('common.operationFailed'));
     } finally {
       generating.value = 'none';
-      streamingText.value = '';
+      resetStreaming();
     }
   }
 
   async function handleGeneratePpt(payload: { title?: string; sections: AiPptSection[] }) {
     generating.value = 'slides';
-    streamingText.value = '';
+    resetStreaming();
     slides.value = null;
 
     try {
@@ -311,7 +312,7 @@
             conversationPanelRef.value?.reload();
           }
         } else if (event.type === 'chunk') {
-          streamingText.value += event.content || '';
+          feedStreaming(event.content || '');
         } else if (event.type === 'error') {
           throw new Error(event.errorMessage || t('common.operationFailed'));
         } else if (event.type === 'done') {
@@ -326,7 +327,7 @@
       Message.error((error as Error)?.message || t('common.operationFailed'));
     } finally {
       generating.value = 'none';
-      streamingText.value = '';
+      resetStreaming();
     }
   }
 </script>

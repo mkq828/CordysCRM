@@ -140,6 +140,7 @@
   import ContentResult from './components/ContentResult.vue';
 
   import { streamGenerateAiContent } from '@/api/modules';
+  import useTypewriter from '@/hooks/useTypewriter';
   import useUserStore from '@/store/modules/user';
 
   const FEATURE_ACQUIRE = 'ai_acquire';
@@ -152,7 +153,7 @@
   const platform = ref<'douyin' | 'xiaohongshu' | 'moments'>('douyin');
   const topicCount = ref(5);
   const generating = ref(false);
-  const streamingText = ref('');
+  const { text: streamingText, feed: feedStreaming, finish: finishStreaming, reset: resetStreaming } = useTypewriter();
 
   interface ThreadItem {
     id: string;
@@ -224,7 +225,7 @@
       return;
     }
     generating.value = true;
-    streamingText.value = '';
+    resetStreaming();
 
     const userText = `${t('content.industry')}：${industry.value.trim()}；${t(
       'content.product'
@@ -257,10 +258,11 @@
             conversationPanelRef.value?.reload();
           }
         } else if (event.type === 'chunk') {
-          streamingText.value += event.content || '';
+          feedStreaming(event.content || '');
         } else if (event.type === 'error') {
           throw new Error(event.errorMessage || t('common.operationFailed'));
         } else if (event.type === 'done' && !assistantPushed) {
+          await finishStreaming();
           const result = (event.data?.payload as AiContentGenerateResult) || null;
           thread.value.push({
             id: `a_${Date.now()}`,
@@ -286,7 +288,7 @@
       }
     } finally {
       generating.value = false;
-      streamingText.value = '';
+      resetStreaming();
     }
   }
 </script>

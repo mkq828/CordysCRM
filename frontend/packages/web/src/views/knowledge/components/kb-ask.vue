@@ -127,6 +127,7 @@
   import KbAnswerResult from './KbAnswerResult.vue';
 
   import { getAiKnowledgeConfig, saveAiKnowledgeConfig, streamAskKnowledge } from '@/api/modules';
+  import useTypewriter from '@/hooks/useTypewriter';
   import useUserStore from '@/store/modules/user';
 
   const FEATURE_KB = 'ai_kb';
@@ -137,7 +138,7 @@
 
   const question = ref('');
   const asking = ref(false);
-  const streamingText = ref('');
+  const { text: streamingText, feed: feedStreaming, finish: finishStreaming, reset: resetStreaming } = useTypewriter();
   const snippetMax = ref<number | null>(200);
   const savingSnippet = ref(false);
 
@@ -226,7 +227,7 @@
       return;
     }
     asking.value = true;
-    streamingText.value = '';
+    resetStreaming();
 
     thread.value.push({
       id: `u_${Date.now()}`,
@@ -253,10 +254,11 @@
             conversationPanelRef.value?.reload();
           }
         } else if (event.type === 'chunk') {
-          streamingText.value += event.content || '';
+          feedStreaming(event.content || '');
         } else if (event.type === 'error') {
           throw new Error(event.errorMessage || t('common.operationFailed'));
         } else if (event.type === 'done' && !assistantPushed) {
+          await finishStreaming();
           const result = (event.data?.payload as AiKnowledgeAnswerResult) || null;
           thread.value.push({
             id: `a_${Date.now()}`,
@@ -281,7 +283,7 @@
       }
     } finally {
       asking.value = false;
-      streamingText.value = '';
+      resetStreaming();
       question.value = '';
     }
   }

@@ -179,6 +179,7 @@
   import AdvisorResult from './AdvisorResult.vue';
 
   import { getCustomerOptions, streamSalesAdvisor, uploadTempAttachment } from '@/api/modules';
+  import useTypewriter from '@/hooks/useTypewriter';
   import useUserStore from '@/store/modules/user';
 
   const FEATURE_ADVISOR = 'ai_advisor';
@@ -190,7 +191,7 @@
   const message = ref('');
   const analyzing = ref(false);
   const streaming = ref(false);
-  const streamingText = ref('');
+  const { text: streamingText, feed: feedStreaming, finish: finishStreaming, reset: resetStreaming } = useTypewriter();
 
   interface Pic {
     id: string;
@@ -309,7 +310,7 @@
     }
     analyzing.value = true;
     streaming.value = true;
-    streamingText.value = '';
+    resetStreaming();
 
     const userText = message.value.trim() || (pics.value.length ? `【聊天记录截图】×${pics.value.length}` : '');
     thread.value.push({
@@ -339,10 +340,11 @@
             conversationPanelRef.value?.reload();
           }
         } else if (event.type === 'chunk') {
-          streamingText.value += event.content || '';
+          feedStreaming(event.content || '');
         } else if (event.type === 'error') {
           throw new Error(event.errorMessage || t('common.operationFailed'));
         } else if (event.type === 'done' && !assistantPushed) {
+          await finishStreaming();
           const payload = (event.data?.payload as SalesAdvisorAnalyzeResult) || null;
           thread.value.push({
             id: `a_${Date.now()}`,
@@ -367,7 +369,7 @@
       }
     } finally {
       streaming.value = false;
-      streamingText.value = '';
+      resetStreaming();
       analyzing.value = false;
     }
   }
