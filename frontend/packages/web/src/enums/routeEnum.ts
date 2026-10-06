@@ -159,6 +159,11 @@ export enum LeadCrawlRouteEnum {
   LEAD_CRAWL_INDEX = 'aiLeadCrawlIndex',
 }
 
+export enum VideoRouteEnum {
+  VIDEO = 'aiVideo',
+  VIDEO_INDEX = 'aiVideoIndex',
+}
+
 export enum AiEmployeeRouteEnum {
   AI_EMPLOYEE = 'aiEmployee',
   AI_EMPLOYEE_INDEX = 'aiEmployeeIndex',
@@ -202,6 +207,7 @@ export const AppRouteEnum = {
   ...KnowledgeRouteEnum,
   ...PptRouteEnum,
   ...LeadCrawlRouteEnum,
+  ...VideoRouteEnum,
   ...AiEmployeeRouteEnum,
   ...EffectsRouteEnum,
   ...PlatformAiQuotaRouteEnum,

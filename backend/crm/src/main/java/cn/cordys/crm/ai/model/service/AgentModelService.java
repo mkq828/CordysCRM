@@ -129,6 +129,14 @@ public class AgentModelService {
      * 未配置或未启用时抛异常，提示先到模型设置开通。
      */
     public String resolveProviderApiKey(String orgId, String provider) {
+        return resolveProviderApiKey(orgId, provider, "语音转写");
+    }
+
+    /**
+     * 取租户某 provider 下第一个启用且已填 apiKey 的模型密钥，供非对话能力（ASR/TTS）复用。
+     * purpose 用于拼错误提示里的用途（语音转写 / 语音合成）。
+     */
+    public String resolveProviderApiKey(String orgId, String provider, String purpose) {
         AgentModel criteria = new AgentModel();
         criteria.setOrganizationId(orgId);
         criteria.setProvider(provider);
@@ -138,7 +146,7 @@ public class AgentModelService {
                 return model.getApiKey();
             }
         }
-        throw new GenericException("请先在「模型设置」中配置并启用「" + provider + "」模型，用于语音转写");
+        throw new GenericException("请先在「模型设置」中配置并启用「" + provider + "」模型，用于" + purpose);
     }
 
     public List<AgentModelOptionResponse> options(String orgId) {

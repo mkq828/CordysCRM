@@ -1,0 +1,92 @@
+package cn.cordys.crm.ai.video.tts;
+
+import cn.cordys.common.util.JSON;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Component;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 阿里云百炼 CosyVoice 语音合成（功能 7 TTS）。
+ * 复用租户「阿里云」模型的同一把百炼 API Key（与通话复盘 ASR 的 paraformer-v2 同账号）。
+ * 协议参考 DashScope 语音合成：POST /api/v1/services/aigc/multimodal-generation/generation，model=cosyvoice-v1。
+ */
+@Slf4j
+@Component
+public class AliyunCosyVoiceTtsProvider implements TtsProvider {
+
+    private static final String BASE_URL = "https://dashscope.aliyuncs.com/api/v1";
+    private static final String MODEL = "cosyvoice-v1";
+    private static final String DEFAULT_VOICE = "longxiaochun";
+    private static final ObjectMapper MAPPER = JSON.MAPPER;
+
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+
+    @Override
+    public String name() {
+        return "阿里云";
+    }
+
+    @Override
+    public byte[] synthesize(String text, String voice, String apiKey) throws Exception {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", MODEL);
+        body.put("input", Map.of("messages", List.of(
+                Map.of("role", "user", "content", List.of(Map.of("text", text))))));
+        Map<String, Object> parameters = new LinkedHashMap<>();
+        parameters.put("voice", StringUtils.defaultIfBlank(voice, DEFAULT_VOICE));
+        parameters.put("format", "mp3");
+        body.put("parameters", parameters);
+
+        HttpRequest request = HttpRequest.newBuilder(
+                        URI.create(BASE_URL + "/services/aigc/multimodal-generation/generation"))
+                .timeout(Duration.ofMinutes(2))
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(JSON.toJSONString(body), StandardCharsets.UTF_8))
+                .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            log.error("阿里云 TTS 合成失败，status={}, body={}", response.statusCode(), response.body());
+            throw new RuntimeException("阿里云语音合成失败(" + response.statusCode() + ")");
+        }
+
+        JsonNode audio = MAPPER.readTree(response.body()).path("output").path("audio");
+        String url = audio.path("url").asText(null);
+        if (StringUtils.isNotBlank(url)) {
+            return download(url);
+        }
+        String data = audio.path("data").asText(null);
+        if (StringUtils.isNotBlank(data)) {
+            return Base64.getDecoder().decode(data);
+        }
+        throw new RuntimeException("阿里云语音合成未返回音频: " + response.body());
+    }
+
+    /** 下载百炼返回的临时音频地址（已签名 OSS URL，无需鉴权） */
+    private byte[] download(String url) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                .timeout(Duration.ofMinutes(2))
+                .GET()
+                .build();
+        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new RuntimeException("阿里云语音合成音频下载失败(" + response.statusCode() + ")");
+        }
+        return response.body();
+    }
+}

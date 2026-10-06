@@ -58,6 +58,8 @@ import {
   DmProfileAccountsUrl,
   DmProfileProfilesUrl,
   DmProfileImportUrl,
+  AiVideoAvailableUrl,
+  AiVideoTasksUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -115,6 +117,8 @@ import type {
   DmAccount,
   DmProfile,
   DmProfileImportResult,
+  AiVideoGenerateParams,
+  AiVideoTask,
 } from '../../models/ai';
 
 interface SseBlock {
@@ -663,6 +667,26 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post<DmProfileImportResult>({ url: DmProfileImportUrl, data });
   }
 
+  function getAiVideoAvailable() {
+    return CDR.get<boolean>({ url: AiVideoAvailableUrl });
+  }
+
+  function createAiVideoTask(data: AiVideoGenerateParams) {
+    return CDR.post<AiVideoTask>({ url: AiVideoTasksUrl, data });
+  }
+
+  function getAiVideoTasks() {
+    return CDR.get<AiVideoTask[]>({ url: AiVideoTasksUrl });
+  }
+
+  function getAiVideoTask(id: string) {
+    return CDR.get<AiVideoTask>({ url: `${AiVideoTasksUrl}/${id}` });
+  }
+
+  function deleteAiVideoTask(id: string) {
+    return CDR.delete({ url: `${AiVideoTasksUrl}/${id}` });
+  }
+
   function downloadAiSalesScriptTemplate() {
     return CDR.get(
       { url: AiSalesScriptImportTemplateUrl, responseType: 'blob' },
@@ -747,6 +771,11 @@ export default function useAiApi(CDR: CordysAxios) {
     crawlDmProfile,
     getDmProfileProfiles,
     importDmProfile,
+    getAiVideoAvailable,
+    createAiVideoTask,
+    getAiVideoTasks,
+    getAiVideoTask,
+    deleteAiVideoTask,
     downloadAiSalesScriptTemplate,
     preCheckImportAiSalesScript,
     importAiSalesScript,

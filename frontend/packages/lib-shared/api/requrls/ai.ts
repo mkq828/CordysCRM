@@ -61,3 +61,5 @@ export const DmProfileAvailableUrl = '/agent/dm-profile/available'; // 私信获
 export const DmProfileAccountsUrl = '/agent/dm-profile/accounts'; // 私信获客画像-账号列表/绑定（解绑、采集拼 /{id}、/{id}/crawl）
 export const DmProfileProfilesUrl = '/agent/dm-profile/profiles'; // 私信获客画像-画像结果列表（按 status 筛选）
 export const DmProfileImportUrl = '/agent/dm-profile/profiles/import'; // 私信获客画像-导入线索池
+export const AiVideoAvailableUrl = '/agent/video/available'; // 短视频生成-版本开关查询
+export const AiVideoTasksUrl = '/agent/video/tasks'; // 短视频生成-任务（POST 提交 / GET 列表 / 拼 /{id} 详情与删除）

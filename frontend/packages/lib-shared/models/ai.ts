@@ -606,3 +606,24 @@ export interface DmProfileSnapshot {
   likedCount?: string;
   isGroup?: boolean;
 }
+
+/** 短视频生成-提交参数（功能 7） */
+export interface AiVideoGenerateParams {
+  title: string;
+  extraText?: string;
+  voice?: string;
+  style?: string;
+}
+
+/** 短视频生成-任务（列表与详情复用，生成进度由前端轮询感知） */
+export interface AiVideoTask {
+  id: string;
+  title: string;
+  voice?: string;
+  style?: string;
+  status: 'PENDING' | 'SCRIPTING' | 'TTS' | 'SYNTH' | 'DONE' | 'FAILED' | string;
+  progress?: number;
+  attachmentId?: string;
+  errorMsg?: string;
+  createTime?: number;
+}
