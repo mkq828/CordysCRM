@@ -55,7 +55,7 @@ public class VideoGenerateService {
     private static final String STATUS_DONE = "DONE";
     private static final String STATUS_FAILED = "FAILED";
 
-    private static final String DEFAULT_VOICE = "longxiaochun";
+    private static final String DEFAULT_VOICE = "Cherry";
     private static final String DEFAULT_STYLE = "口播";
     private static final String TTS_PROVIDER = "阿里云";
 
@@ -125,7 +125,7 @@ public class VideoGenerateService {
         }
         File workDir = workDir(taskId);
         workDir.mkdirs();
-        File audioFile = new File(workDir, "audio.mp3");
+        File audioFile = new File(workDir, "audio.wav");
         File videoFile = new File(workDir, "output.mp4");
         try {
             updateTask(task, STATUS_SCRIPTING, 10, null, null);

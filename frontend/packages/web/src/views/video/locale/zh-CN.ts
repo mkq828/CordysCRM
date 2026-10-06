@@ -28,9 +28,8 @@ export default {
   'video.status.FAILED': '失败',
   'video.style.koushuo': '口播',
   'video.style.cuxiao': '促销',
-  'video.voice.longxiaochun': '龙小淳（女声·温柔）',
-  'video.voice.longwan': '龙婉（女声·柔声）',
-  'video.voice.longjing': '龙婧（女声·播音）',
-  'video.voice.longxiaocheng': '龙小诚（男声·大叔）',
-  'video.voice.longshuo': '龙硕（男声·干练）',
+  'video.voice.cherry': '芊悦（女声·亲切自然）',
+  'video.voice.serena': '苏瑶（女声·温柔）',
+  'video.voice.chelsie': '活力女声（甜美）',
+  'video.voice.ethan': '晨煦（男声·阳光）',
 };

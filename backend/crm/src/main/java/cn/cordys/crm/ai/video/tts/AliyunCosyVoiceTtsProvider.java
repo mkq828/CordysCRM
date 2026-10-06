@@ -15,21 +15,22 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
- * 阿里云百炼 CosyVoice 语音合成（功能 7 TTS）。
+ * 阿里云百炼 TTS 语音合成（功能 7 TTS）。
  * 复用租户「阿里云」模型的同一把百炼 API Key（与通话复盘 ASR 的 paraformer-v2 同账号）。
- * 协议参考 DashScope 语音合成：POST /api/v1/services/aigc/multimodal-generation/generation，model=cosyvoice-v1。
+ * 协议参考 DashScope 语音合成：POST /api/v1/services/aigc/multimodal-generation/generation，model=qwen3-tts-flash。
+ * 注意：经典 cosyvoice-v1 的 HTTP 合成要求账号开通专用端点，普通百炼 key 会报「不支持 http call」，
+ * 故改用同账号可直接调用的 qwen3-tts-flash（返回 WAV）。
  */
 @Slf4j
 @Component
 public class AliyunCosyVoiceTtsProvider implements TtsProvider {
 
     private static final String BASE_URL = "https://dashscope.aliyuncs.com/api/v1";
-    private static final String MODEL = "cosyvoice-v1";
-    private static final String DEFAULT_VOICE = "longxiaochun";
+    private static final String MODEL = "qwen3-tts-flash";
+    private static final String DEFAULT_VOICE = "Cherry";
     private static final ObjectMapper MAPPER = JSON.MAPPER;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -45,11 +46,10 @@ public class AliyunCosyVoiceTtsProvider implements TtsProvider {
     public byte[] synthesize(String text, String voice, String apiKey) throws Exception {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", MODEL);
-        body.put("input", Map.of("messages", List.of(
-                Map.of("role", "user", "content", List.of(Map.of("text", text))))));
+        body.put("input", Map.of("text", text));
         Map<String, Object> parameters = new LinkedHashMap<>();
         parameters.put("voice", StringUtils.defaultIfBlank(voice, DEFAULT_VOICE));
-        parameters.put("format", "mp3");
+        parameters.put("format", "wav");
         body.put("parameters", parameters);
 
         HttpRequest request = HttpRequest.newBuilder(

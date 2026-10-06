@@ -31,9 +31,8 @@ export default {
   'video.status.FAILED': 'Failed',
   'video.style.koushuo': 'Voice-over',
   'video.style.cuxiao': 'Promo',
-  'video.voice.longxiaochun': 'Xiaochun (female · gentle)',
-  'video.voice.longwan': 'Wan (female · soft)',
-  'video.voice.longjing': 'Jing (female · news)',
-  'video.voice.longxiaocheng': 'Xiaocheng (male · mature)',
-  'video.voice.longshuo': 'Shuo (male · crisp)',
+  'video.voice.cherry': 'Cherry (female · friendly)',
+  'video.voice.serena': 'Serena (female · gentle)',
+  'video.voice.chelsie': 'Chelsie (female · lively)',
+  'video.voice.ethan': 'Ethan (male · sunny)',
 };

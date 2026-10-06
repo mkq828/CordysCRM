@@ -90,7 +90,7 @@
   const form = ref<AiVideoGenerateParams>({
     title: '',
     extraText: '',
-    voice: 'longxiaochun',
+    voice: 'Cherry',
     style: '口播',
   });
   const generating = ref(false);
@@ -100,11 +100,10 @@
   const IN_PROGRESS = ['PENDING', 'SCRIPTING', 'TTS', 'SYNTH'];
 
   const voiceOptions = computed(() => [
-    { label: t('video.voice.longxiaochun'), value: 'longxiaochun' },
-    { label: t('video.voice.longwan'), value: 'longwan' },
-    { label: t('video.voice.longjing'), value: 'longjing' },
-    { label: t('video.voice.longxiaocheng'), value: 'longxiaocheng' },
-    { label: t('video.voice.longshuo'), value: 'longshuo' },
+    { label: t('video.voice.cherry'), value: 'Cherry' },
+    { label: t('video.voice.serena'), value: 'Serena' },
+    { label: t('video.voice.chelsie'), value: 'Chelsie' },
+    { label: t('video.voice.ethan'), value: 'Ethan' },
   ]);
 
   const styleOptions = computed(() => [
