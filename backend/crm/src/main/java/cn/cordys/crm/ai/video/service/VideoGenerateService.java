@@ -136,7 +136,7 @@ public class VideoGenerateService {
             synthesizeAudio(script, task.getVoice(), orgId, audioFile);
             updateTask(task, STATUS_SYNTH, 75, null, null);
 
-            videoSynthesizer.synthesize(audioFile, videoFile);
+            videoSynthesizer.synthesize(audioFile, videoFile, task.getTitle(), script);
 
             String attachmentId = saveAttachment(videoFile, task, orgId, userId);
             updateTask(task, STATUS_DONE, 100, attachmentId, null);

@@ -50,6 +50,8 @@ public class AliyunCosyVoiceTtsProvider implements TtsProvider {
         Map<String, Object> parameters = new LinkedHashMap<>();
         parameters.put("voice", StringUtils.defaultIfBlank(voice, DEFAULT_VOICE));
         parameters.put("format", "wav");
+        // 情感引导：口播短视频需要更有感染力，避免平淡播报（qwen3-tts-flash 支持 instruction）
+        parameters.put("instruction", "用自然、有感染力、有节奏感的口播语气播报，重点信息适当加重语气");
         body.put("parameters", parameters);
 
         HttpRequest request = HttpRequest.newBuilder(
