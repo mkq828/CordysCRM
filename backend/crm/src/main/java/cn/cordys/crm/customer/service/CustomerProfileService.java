@@ -44,6 +44,8 @@ public class CustomerProfileService {
 
         CustomerProfileResponse response = new CustomerProfileResponse();
         response.setAvailable(editionService.hasFeature(orgId, AiQuotaConstant.AI_CUSTOMER_PROFILE));
+        // 私信画像快照独立于「客户画像」升级门槛：采集→线索→客户带入后始终回读，保证闭环不断
+        response.setDmProfile(loadDmProfile(customerId));
         if (!Boolean.TRUE.equals(response.getAvailable())) {
             // 未开通专业版+：只返回可用性，不聚合业务数据（前端渲染升级空态）
             return response;
@@ -97,6 +99,20 @@ public class CustomerProfileService {
             return JSON.parseObject(latest.getResultJson());
         } catch (Exception e) {
             log.warn("解析客户画像 AI 洞察失败, customerId={}", customerId, e);
+            return null;
+        }
+    }
+
+    /** 回读线索转客户时带入的私信画像快照，反序列化成结构化对象 */
+    private Object loadDmProfile(String customerId) {
+        String json = customerService.getDmProfileJson(customerId);
+        if (StringUtils.isBlank(json)) {
+            return null;
+        }
+        try {
+            return JSON.parseObject(json);
+        } catch (Exception e) {
+            log.warn("解析客户私信画像失败, customerId={}", customerId, e);
             return null;
         }
     }

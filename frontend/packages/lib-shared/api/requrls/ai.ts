@@ -55,3 +55,7 @@ export const LeadCrawlSearchUrl = '/agent/lead-crawl/search'; // 线索爬取-�
 export const LeadCrawlDetailUrl = '/agent/lead-crawl/detail'; // 线索爬取-拉取企业完整工商信息
 export const LeadCrawlImportUrl = '/agent/lead-crawl/import'; // 线索爬取-导入线索池
 export const CompetitorInsightStreamUrl = '/agent/lead-crawl/insight/stream'; // 竞品/行业洞察-流式生成
+export const DmProfileAvailableUrl = '/agent/dm-profile/available'; // 私信获客画像-版本开关查询
+export const DmProfileAccountsUrl = '/agent/dm-profile/accounts'; // 私信获客画像-账号列表/绑定（解绑、采集拼 /{id}、/{id}/crawl）
+export const DmProfileProfilesUrl = '/agent/dm-profile/profiles'; // 私信获客画像-画像结果列表（按 status 筛选）
+export const DmProfileImportUrl = '/agent/dm-profile/profiles/import'; // 私信获客画像-导入线索池

@@ -52,6 +52,10 @@ import {
   LeadCrawlDetailUrl,
   LeadCrawlImportUrl,
   CompetitorInsightStreamUrl,
+  DmProfileAvailableUrl,
+  DmProfileAccountsUrl,
+  DmProfileProfilesUrl,
+  DmProfileImportUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -105,6 +109,9 @@ import type {
   LeadCrawlImportResult,
   CompetitorInsightParams,
   CompetitorInsightResult,
+  DmAccount,
+  DmProfile,
+  DmProfileImportResult,
 } from '../../models/ai';
 
 interface SseBlock {
@@ -617,6 +624,34 @@ export default function useAiApi(CDR: CordysAxios) {
     return streamSse(CompetitorInsightStreamUrl, data, options);
   }
 
+  function getDmProfileAvailable() {
+    return CDR.get<boolean>({ url: DmProfileAvailableUrl });
+  }
+
+  function getDmProfileAccounts() {
+    return CDR.get<DmAccount[]>({ url: DmProfileAccountsUrl });
+  }
+
+  function bindDmProfileAccount(data: { platform: string; cookieText: string }) {
+    return CDR.post<DmAccount>({ url: DmProfileAccountsUrl, data });
+  }
+
+  function unbindDmProfileAccount(id: string) {
+    return CDR.delete({ url: `${DmProfileAccountsUrl}/${id}` });
+  }
+
+  function crawlDmProfile(id: string) {
+    return CDR.post<DmAccount>({ url: `${DmProfileAccountsUrl}/${id}/crawl` });
+  }
+
+  function getDmProfileProfiles(status?: string) {
+    return CDR.get<DmProfile[]>({ url: DmProfileProfilesUrl, params: status ? { status } : undefined });
+  }
+
+  function importDmProfile(data: { profileIds: string[] }) {
+    return CDR.post<DmProfileImportResult>({ url: DmProfileImportUrl, data });
+  }
+
   function downloadAiSalesScriptTemplate() {
     return CDR.get(
       { url: AiSalesScriptImportTemplateUrl, responseType: 'blob' },
@@ -692,6 +727,13 @@ export default function useAiApi(CDR: CordysAxios) {
     fetchLeadCrawlDetail,
     importLeadCrawl,
     streamCompetitorInsight,
+    getDmProfileAvailable,
+    getDmProfileAccounts,
+    bindDmProfileAccount,
+    unbindDmProfileAccount,
+    crawlDmProfile,
+    getDmProfileProfiles,
+    importDmProfile,
     downloadAiSalesScriptTemplate,
     preCheckImportAiSalesScript,
     importAiSalesScript,

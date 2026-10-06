@@ -1,0 +1,28 @@
+export default {
+  'dmProfileGuide.title': 'DM Profiling · Guide',
+  'dmProfileGuide.back': 'Back',
+  'dmProfileGuide.whyTitle': 'Why install an extension?',
+  'dmProfileGuide.whyDesc':
+    'Binding needs your Douyin login cookie. The key sessionid_ss is a hidden, httpOnly item that normal web scripts cannot read — only a browser extension can copy it in one click, avoiding manual DevTools digging.',
+  'dmProfileGuide.downloadTitle': 'Step 1: Download the extension',
+  'dmProfileGuide.downloadDesc': 'Click the button to download the extension zip',
+  'dmProfileGuide.download': 'Download',
+  'dmProfileGuide.installTitle': 'Step 2: Install the extension (once)',
+  'dmProfileGuide.installDesc': 'Unzip the downloaded archive and load the extension; only needs to be done once.',
+  'dmProfileGuide.install.step1': 'Unzip the archive to get the cookie-editor folder',
+  'dmProfileGuide.install.step2': 'Open chrome://extensions/ (Edge uses edge://extensions/)',
+  'dmProfileGuide.install.step3': 'Turn on "Developer mode" in the top-right',
+  'dmProfileGuide.install.step4': 'Click "Load unpacked" and select the unzipped cookie-editor folder',
+  'dmProfileGuide.useTitle': 'Step 3: Copy the cookie',
+  'dmProfileGuide.use.step1': 'Open and log in to www.douyin.com',
+  'dmProfileGuide.use.step2': 'Click the "私信获客 Cookie 助手" toolbar icon',
+  'dmProfileGuide.use.step3': 'See green "logged in" with both sessionid_ss and uid_tt checked',
+  'dmProfileGuide.use.step4': 'Click "Copy Cookie"',
+  'dmProfileGuide.bindTitle': 'Step 4: Paste and bind',
+  'dmProfileGuide.bind.step1': 'Back on the "Account" tab, pick platform "Douyin"',
+  'dmProfileGuide.bind.step2': 'Paste the copied cookie into the input',
+  'dmProfileGuide.bind.step3': 'Click "Bind", then "Crawl" to read DMs',
+  'dmProfileGuide.tipTitle': 'Security note',
+  'dmProfileGuide.tip':
+    'The cookie is your Douyin login credential — paste it only into this system and never share it. It is encrypted before storage.',
+};

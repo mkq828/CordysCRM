@@ -36,6 +36,7 @@ import cn.cordys.crm.system.service.EditionService;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.mybatis.DataAccessLayer;
 import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
+import cn.cordys.security.SessionUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -112,6 +113,14 @@ public class AiQuotaService {
      * 调用前校验：不记账，只返回当前额度状态。模型层据此决定是否放行（HARD/RATE/CIRCUIT 应拦截）。
      */
     public AiQuotaRecordResult checkQuota(String organizationId) {
+        return checkQuota(organizationId, SessionUtils.getUserId());
+    }
+
+    /**
+     * 调用前校验（可显式指定操作用户）：异步线程拿不到请求上下文，平台内部用户（admin）的
+     * 额度豁免若依赖 {@link SessionUtils#getUser()} 会误判为「额度用完」，故此处接受显式 userId。
+     */
+    public AiQuotaRecordResult checkQuota(String organizationId, String userId) {
         AiQuotaRecordResult result = new AiQuotaRecordResult();
         result.setQuota(getMonthlyQuota(organizationId));
         result.setUsedCalls(getUsedCalls(organizationId));
@@ -120,7 +129,7 @@ public class AiQuotaService {
             status = STATUS_CIRCUIT_BROKEN;
         } else if (readRateExceeded(organizationId)) {
             status = STATUS_RATE_LIMITED;
-        } else if (isPlatformInternalUser()) {
+        } else if (isPlatformInternalUser(userId)) {
             status = STATUS_NORMAL;
         } else {
             status = resolveStatus(organizationId, BigDecimal.ZERO);
@@ -150,7 +159,7 @@ public class AiQuotaService {
         BigDecimal costCalls = calcCostCalls(inputTokens, outputTokens);
         result.setCostCalls(costCalls);
         String status = resolveStatus(organizationId, costCalls);
-        if (isPlatformInternalUser()) {
+        if (isPlatformInternalUser(userId)) {
             status = STATUS_NORMAL;
         }
         if (STATUS_HARD_LIMITED.equals(status)) {
@@ -171,7 +180,7 @@ public class AiQuotaService {
      * 超限抛异常；null 或 &lt;=0 表示不限制。今日已消耗按 ai_usage_record 当日 total_tokens 累计。
      */
     public void checkModelDailyLimit(String organizationId, AgentModel model, String userId) {
-        if (isPlatformInternalUser()) {
+        if (isPlatformInternalUser(userId)) {
             return;
         }
         if (model == null) {
@@ -560,8 +569,8 @@ public class AiQuotaService {
      * 平台侧账号（admin / 城市经理）豁免业务额度：测试与演示不受租户月度配额、模型每日 token 上限约束；
      * 限流与熔断等防失控保护仍生效。
      */
-    private boolean isPlatformInternalUser() {
-        return PlatformSessionUtils.isAdmin() || PlatformSessionUtils.isCityManager();
+    private boolean isPlatformInternalUser(String userId) {
+        return InternalUser.ADMIN.getValue().equals(userId) || PlatformSessionUtils.isCityManager();
     }
 
     /**

@@ -1,4 +1,5 @@
 import type { CustomerFollowPlanStatusEnum, CustomerSearchTypeEnum } from '../../enums/customerEnum';
+import type { DmProfileSnapshot } from '../ai';
 import type { ModuleField, TableExportParams, TableQueryParams } from '../common';
 
 export interface SaveCustomerParams {
@@ -430,4 +431,6 @@ export interface CustomerProfileResponse {
   paidAmount?: number | string;
   paymentRate?: number | string;
   aiInsight?: Record<string, any> | null;
+  /** 私信画像结构化字段（线索转客户带入，无则 null） */
+  dmProfile?: DmProfileSnapshot | null;
 }

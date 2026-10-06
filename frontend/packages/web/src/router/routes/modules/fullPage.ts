@@ -1,4 +1,4 @@
-import { FullPageEnum } from '@/enums/routeEnum';
+import { FullPageEnum, WorkbenchRouteEnum } from '@/enums/routeEnum';
 
 import { FULL_PAGE_LAYOUT } from '../base';
 import type { AppRouteRecordRaw } from '../types';
@@ -35,6 +35,16 @@ const FullPage: AppRouteRecordRaw = {
       component: () => import('@/views/order/order/components/exportPdf.vue'),
       meta: {
         permissions: ['ORDER:READ'],
+      },
+    },
+    {
+      path: 'dmProfileGuide',
+      name: WorkbenchRouteEnum.WORKBENCH_DM_PROFILE_GUIDE,
+      component: () => import('@/views/workbench/dmProfile/guide/index.vue'),
+      meta: {
+        locale: 'menu.workbench.dmProfileGuide',
+        permissions: [],
+        hideInMenu: true,
       },
     },
   ],

@@ -42,4 +42,7 @@ public class Customer extends BaseModel {
 
     @Schema(description = "公海原因ID")
     private String reasonId;
+
+    @Schema(description = "私信画像快照JSON(来源 ai_dm_profile，线索转客户时带入)")
+    private String dmProfileJson;
 }

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 300px;
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: #1f2937;
+      background: #fff;
+    }
+    .header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .header h1 { font-size: 15px; font-weight: 600; }
+    .header p { font-size: 12px; color: #8a94a6; margin-top: 2px; }
+    .body { padding: 14px 16px; }
+    .status {
+      font-size: 13px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #f7f8fa;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    .status.ok { background: #ecfdf5; color: #16a34a; }
+    .status.warn { background: #fffbeb; color: #d97706; }
+    .status.err { background: #fef2f2; color: #dc2626; }
+    .section-title { font-size: 12px; color: #8a94a6; margin: 8px 0 6px; }
+    .item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      padding: 4px 0;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+    }
+    .item.ok { color: #16a34a; }
+    .item.miss { color: #dc2626; }
+    button {
+      width: 100%;
+      margin-top: 14px;
+      padding: 11px 0;
+      border: none;
+      border-radius: 8px;
+      background: #fe2c55;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:disabled { background: #cbd5e1; cursor: not-allowed; }
+    .footer {
+      padding: 0 16px 14px;
+      font-size: 11px;
+      color: #8a94a6;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>私信获客 Cookie 助手</h1>
+    <p>一键导出抖音登录态，粘贴到 CRM 绑定账号</p>
+  </div>
+  <div class="body">
+    <div id="status" class="status">正在检测…</div>
+    <div class="section-title">关键登录项</div>
+    <div id="required"></div>
+    <button id="copy" disabled>复制 Cookie</button>
+  </div>
+  <div class="footer" id="hint">
+    复制后，到 CRM「私信获客画像 → 绑定账号」粘贴即可。
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -50,6 +50,16 @@ const workbench: AppRouteRecordRaw = {
         isTopMenu: true,
       },
     },
+    {
+      path: 'dmProfile',
+      name: WorkbenchRouteEnum.WORKBENCH_DM_PROFILE,
+      component: () => import('@/views/workbench/dmProfile/index.vue'),
+      meta: {
+        locale: 'menu.workbench.dmProfile',
+        permissions: [],
+        isTopMenu: true,
+      },
+    },
   ],
 };
 

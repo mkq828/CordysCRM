@@ -472,6 +472,12 @@ public class CustomerService {
         return customer;
     }
 
+    /** 读取客户私信画像快照 JSON（线索转客户时带入，无则 null），供画像聚合回读 */
+    public String getDmProfileJson(String customerId) {
+        Customer customer = customerMapper.selectByPrimaryKey(customerId);
+        return customer == null ? null : customer.getDmProfileJson();
+    }
+
     @OperationLog(module = LogModule.CUSTOMER_INDEX, type = LogType.UPDATE, resourceId = "{#request.id}")
     public Customer update(CustomerUpdateRequest request, String userId, String orgId) {
         Customer originCustomer = customerMapper.selectByPrimaryKey(request.getId());

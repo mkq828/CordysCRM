@@ -20,6 +20,13 @@ public class SSRFValidator {
     @Value("#{'${allowed.ip.ranges:}'.split(',')}")
     private List<String> allowedList;
 
+    /**
+     * 部署方显式信任的内部服务地址（逗号分隔，精确匹配 host、不含端口），如自建采集微服务。
+     * 命中后跳过主机白名单与内网/回环限制。
+     */
+    @Value("${ssrf.allowed-internal-hosts:}")
+    private String allowedInternalHosts;
+
     private static final List<String> ALLOWED_PROTOCOLS = List.of("http", "https");
 
     // ========== DNS rebinding & redirect notice ==========
@@ -58,10 +65,16 @@ public class SSRFValidator {
             throw new IllegalArgumentException("URL 缺少主机名");
         }
 
-        // 3. 白名单检查（基于主机名）
+        // 3. 显式信任的内部服务地址（部署方配置）：命中后直接放行，跳过主机白名单与内网/回环限制
+        if (isExplicitlyAllowedInternal(host)) {
+            log.info("SSRF validation passed (internal allowlist) for {}", host);
+            return;
+        }
+
+        // 4. 白名单检查（基于主机名）
         validateAgainstWhitelist(host);
 
-        // 4. 解析并检查 IP
+        // 5. 解析并检查 IP
         InetAddress inetAddress = resolveHost(host);
         validateIpAddress(inetAddress);
         log.info("SSRF validation passed for {} -> {}", host, inetAddress.getHostAddress());
@@ -299,6 +312,24 @@ public class SSRFValidator {
     }
 
     // ==================== whitelist ====================
+
+    /**
+     * 判断 host 是否为部署方显式信任的内部服务地址（精确匹配，忽略大小写与空白）。
+     * 不做 DNS 解析，仅精确比较字面值，避免引入 DNS rebinding 风险。
+     */
+    private boolean isExplicitlyAllowedInternal(String host) {
+        if (StringUtils.isBlank(allowedInternalHosts)) {
+            return false;
+        }
+        String normalized = host.toLowerCase(Locale.ROOT).trim();
+        for (String item : allowedInternalHosts.split(",")) {
+            if (StringUtils.isNotBlank(item) && normalized.equals(item.trim().toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void validateAgainstWhitelist(String host) {
         if (!Boolean.TRUE.equals(whitelistEnabled)) {
             return;

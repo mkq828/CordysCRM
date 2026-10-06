@@ -33,4 +33,7 @@ public class CustomerAddRequest {
 
     @Schema(description = "最新跟进时间(转客户时需录入)")
     private Long followTime;
+
+    @Schema(description = "私信画像快照JSON(来源 ai_dm_profile，线索转客户时带入；普通新建客户为空)")
+    private String dmProfileJson;
 }

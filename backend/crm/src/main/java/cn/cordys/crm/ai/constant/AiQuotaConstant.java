@@ -74,6 +74,9 @@ public final class AiQuotaConstant {
     /** 线索爬取 + 竞品/行业洞察（功能 10，爬取不计量，竞品洞察走任务模型挂 G2 额度 + G3 权限） */
     public static final String AI_LEAD_CRAWL = "lead_crawl";
 
+    /** 私信获客画像（功能 8，采集不计量，AI 画像走任务模型挂 G2 额度 + G3 权限） */
+    public static final String AI_DM_PROFILE = "dm_profile";
+
     public static final List<String> AI_FEATURE_CODES = List.of(
             "ai_advisor", "ai_acquire", "ai_sales_rag", "ai_video", "wecom_auto_analysis",
             "ai_ppt", "lead_crawl", "dm_profile", "ai_employee", "ai_kb", "digital_human", "ai_call_review");

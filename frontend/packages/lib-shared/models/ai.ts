@@ -504,3 +504,78 @@ export interface CompetitorInsightResult {
   suggestions?: string[];
   rawContent?: string;
 }
+
+/** 私信获客画像-已绑定平台账号 */
+export interface DmAccount {
+  id: string;
+  platform: string;
+  accountName?: string;
+  uniqueId?: string;
+  status: 'LOGGED_IN' | 'CRAWLING' | 'EXPIRED' | 'FAILED' | string;
+  lastCrawlTime?: number;
+  lastError?: string;
+}
+
+/** 私信获客画像-画像结果（画像字段在 profileJson 内，由前端解析渲染） */
+export interface DmProfile {
+  id: string;
+  nickname?: string;
+  uniqueId?: string;
+  followerCount?: string;
+  followingCount?: string;
+  likedCount?: string;
+  /** 主页图标判色的性别（男/女，可能为空，为空时回退 profileJson.gender） */
+  gender?: string;
+  /** 主页简介（签名/认证文本，用于 AI 提炼账号品类） */
+  bio?: string;
+  isGroup?: boolean;
+  phone?: string;
+  wechat?: string;
+  status: 'RAW' | 'ANALYZED' | 'IMPORTED' | 'FAILED' | string;
+  profileJson?: string;
+  clueId?: string;
+  createTime?: number;
+}
+
+/** 私信获客画像-导入线索池结果 */
+export interface DmProfileImportResult {
+  successCount: number;
+  /** 因无联系方式被过滤、未导入的条数 */
+  filteredCount?: number;
+  failedNames?: string[];
+}
+
+/** 私信获客画像-profileJson 解析后的结构化字段 */
+export interface DmProfileDetail {
+  name?: string;
+  gender?: string;
+  age?: string;
+  city?: string;
+  accountCategory?: string;
+  category?: string;
+  preference?: string;
+  summary?: string;
+  confidence?: string;
+}
+
+/** 私信画像快照：线索转客户时拍平落库到客户，客户详情「私信画像」tab 展示 */
+export interface DmProfileSnapshot {
+  nickname?: string;
+  name?: string;
+  gender?: string;
+  age?: string;
+  city?: string;
+  accountCategory?: string;
+  category?: string;
+  preference?: string;
+  summary?: string;
+  confidence?: string;
+  phone?: string;
+  wechat?: string;
+  bio?: string;
+  uniqueId?: string;
+  followerCount?: string;
+  followingCount?: string;
+  likedCount?: string;
+  isGroup?: boolean;
+}

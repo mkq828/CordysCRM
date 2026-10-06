@@ -152,10 +152,13 @@ export default function useTable<T>(
   async function loadList(
     isPageChange = false,
     refreshId: string | number | undefined = undefined,
-    _tableKey?: TableKeyEnum | string
+    _tableKey?: TableKeyEnum | string,
+    silent = false
   ) {
     if (!loadListFunc || propsRes.value.loading) return;
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
     await getPaginationType(_tableKey || (propsRes.value.tableKey as TableKeyEnum));
     try {
       tableQueryParams.value = {
@@ -247,7 +250,9 @@ export default function useTable<T>(
       }
       throw error;
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }
 

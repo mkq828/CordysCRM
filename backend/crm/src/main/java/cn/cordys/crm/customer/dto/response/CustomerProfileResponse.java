@@ -59,4 +59,8 @@ public class CustomerProfileResponse {
     // ==================== AI 洞察（会话军师沉淀，回读） ====================
     @Schema(description = "最新 AI 洞察（会话军师结构化结论；无则 null）")
     private Object aiInsight;
+
+    // ==================== 私信画像（线索转客户带入，回读） ====================
+    @Schema(description = "私信画像结构化字段（来源线索转客户时带入的画像快照；无则 null）")
+    private Object dmProfile;
 }

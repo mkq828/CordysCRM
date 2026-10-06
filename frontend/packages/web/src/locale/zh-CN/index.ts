@@ -22,6 +22,8 @@ export default {
     'menu.workbench.smart': '智慧工作台',
     'menu.workbench.board': '我的看板',
     'menu.workbench.callReview': '智能通话复盘',
+    'menu.workbench.dmProfile': '私信获客画像',
+    'menu.workbench.dmProfileGuide': '使用说明',
     'menu.settings': '系统',
     'menu.collapsedSettings': '系统',
     'menu.settings.org': '组织架构',

@@ -29,6 +29,8 @@ import cn.cordys.common.util.BeanUtils;
 import cn.cordys.common.util.JSON;
 import cn.cordys.common.util.Translator;
 import cn.cordys.common.utils.ConditionFilterUtils;
+import cn.cordys.crm.ai.dmprofile.domain.AiDmProfile;
+import cn.cordys.crm.ai.dmprofile.dto.DmProfileSnapshot;
 import cn.cordys.crm.clue.constants.ClueStatus;
 import cn.cordys.crm.clue.domain.*;
 import cn.cordys.crm.clue.dto.ClueFollowDTO;
@@ -159,6 +161,8 @@ public class ClueService {
     private LogService logService;
     @Resource
     private BaseMapper<CustomerContact> customerContactMapper;
+    @Resource
+    private BaseMapper<AiDmProfile> aiDmProfileMapper;
     @Resource
     private PermissionCache permissionCache;
     @Resource
@@ -543,6 +547,12 @@ public class ClueService {
      * @param orgId   组织ID
      */
     public void transitionCustomer(ClueTransitionCustomerRequest request, String userId, String orgId) {
+        // 线索转客户时带入私信画像快照，形成「采集 → 线索 → 客户」闭环
+        String dmProfileJson = loadDmProfileSnapshotJson(request.getClueId());
+        if (StringUtils.isNotBlank(dmProfileJson)) {
+            request.setDmProfileJson(dmProfileJson);
+        }
+
         Customer customer = customerService.add(request, userId, orgId);
         Clue clue = clueMapper.selectByPrimaryKey(request.getClueId());
         clue.setTransitionId(customer.getId());
@@ -574,6 +584,23 @@ public class ClueService {
         commonNoticeSendService.sendNotice(NotificationConstants.Module.CLUE,
                 NotificationConstants.Event.CLUE_CONVERT_CUSTOMER, clue.getName(), userId,
                 orgId, List.of(clue.getOwner()), true);
+    }
+
+    /**
+     * 按线索 ID 反查私信画像，拍平成结构化快照 JSON；无画像或线索为空返回 null。
+     * 线索转客户（transitionCustomer / transform）共用，保证「采集 → 线索 → 客户」闭环。
+     */
+    private String loadDmProfileSnapshotJson(String clueId) {
+        if (StringUtils.isBlank(clueId)) {
+            return null;
+        }
+        LambdaQueryWrapper<AiDmProfile> profileWrapper = new LambdaQueryWrapper<>();
+        profileWrapper.eq(AiDmProfile::getClueId, clueId);
+        List<AiDmProfile> profiles = aiDmProfileMapper.selectListByLambda(profileWrapper);
+        if (CollectionUtils.isEmpty(profiles)) {
+            return null;
+        }
+        return JSON.toJSONString(DmProfileSnapshot.from(profiles.get(0)));
     }
 
 
@@ -851,6 +878,14 @@ public class ClueService {
         } else {
             // 根据表单联动来创建客户
             transformCustomer = generateCustomerByLinkForm(clue, currentUser, orgId);
+        }
+        // 线索转客户带入私信画像快照，形成「采集 → 线索 → 客户」闭环；已存在同名客户且已有画像时不覆盖
+        String dmProfileJson = loadDmProfileSnapshotJson(clue.getId());
+        if (StringUtils.isNotBlank(dmProfileJson) && StringUtils.isBlank(transformCustomer.getDmProfileJson())) {
+            Customer dmUpdate = new Customer();
+            dmUpdate.setId(transformCustomer.getId());
+            dmUpdate.setDmProfileJson(dmProfileJson);
+            customerMapper.updateById(dmUpdate);
         }
         // 刷新转换过程中同名客户的最新跟进时间
         refreshCsFollowTime(clue, transformCustomer);

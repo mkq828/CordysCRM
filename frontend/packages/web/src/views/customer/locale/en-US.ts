@@ -67,6 +67,7 @@ export default {
     "Selected accounts: chosen from list; Other accounts: visible accounts; Owner assignment: only selected accounts' owners can be chosen; other accounts' owners remain unchanged",
   'customer.selectedMergeAccountNumber': 'Selected {number} accounts',
   'customer.profile': 'Customer profile',
+  'customer.profileBasicInfo': 'Basic info',
   'customer.profileUpgradeTip':
     'Customer profile is available on Professional edition and above. Please upgrade to view.',
   'customer.profileUpgradeAction': 'Learn about upgrade',
@@ -74,6 +75,10 @@ export default {
   'customer.profileNoAiInsight':
     'No AI insight yet. Analyze this customer in the sales advisor and it will be collected here.',
   'customer.profileGoAdvisor': 'Go to sales advisor',
+  'customer.profileDmProfile': 'DM profile',
+  'customer.profileNoDmProfile': 'No DM profile yet',
+  'customer.profileNoDmProfileHint':
+    'After crawling, importing as a lead and converting to a customer, the DM profile stays attached here',
   'customer.profileCustomerName': 'Customer',
   'customer.profileOwnerName': 'Owner',
   'customer.profileFollow': 'Follow-ups',

@@ -38,6 +38,7 @@ export enum TableKeyEnum {
   AI_SALES_SCRIPT = 'aiSalesScript',
   AI_KNOWLEDGE_DOC = 'aiKnowledgeDoc',
   AI_CALL_REVIEW = 'aiCallReview',
+  DM_PROFILE = 'dmProfile',
   LOGIN_LOG = 'loginLog',
   FOLLOW_PLAN = 'followPlan',
   FOLLOW_RECORD = 'followRecord',

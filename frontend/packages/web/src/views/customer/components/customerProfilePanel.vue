@@ -18,7 +18,7 @@
 
     <template v-else>
       <!-- 客户基础 -->
-      <CrmCard :title="t('customer.profile')" hide-footer auto-height>
+      <CrmCard :title="t('customer.profileBasicInfo')" hide-footer auto-height>
         <div class="flex flex-wrap items-center gap-x-[24px] gap-y-[8px] text-[13px] text-[var(--text-n2)]">
           <span>{{ t('customer.profileCustomerName') }}：{{ profile.customerName || '—' }}</span>
           <span>{{ t('customer.profileOwnerName') }}：{{ profile.ownerName || '—' }}</span>

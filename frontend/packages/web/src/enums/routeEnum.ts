@@ -69,6 +69,8 @@ export enum WorkbenchRouteEnum {
   WORKBENCH_SMART = 'workbenchSmart',
   WORKBENCH_BOARD = 'workbenchBoard',
   WORKBENCH_CALL_REVIEW = 'workbenchCallReview',
+  WORKBENCH_DM_PROFILE = 'workbenchDmProfile',
+  WORKBENCH_DM_PROFILE_GUIDE = 'workbenchDmProfileGuide',
 }
 
 export enum AgentRouteEnum {

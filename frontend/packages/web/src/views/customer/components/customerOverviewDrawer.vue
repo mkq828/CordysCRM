@@ -40,6 +40,7 @@
     <template #right>
       <div class="h-full pt-[16px]">
         <customerProfilePanel v-if="activeTab === 'profile'" :source-id="props.sourceId" />
+        <dmProfilePanel v-else-if="activeTab === 'dmProfile'" :source-id="props.sourceId" />
         <ContactTable
           v-else-if="activeTab === 'contact'"
           :refresh-key="refreshKey"
@@ -158,6 +159,7 @@
   import collaborator from './collaborator.vue';
   import customerProfilePanel from './customerProfilePanel.vue';
   import customerRelation from './customerRelation.vue';
+  import dmProfilePanel from './dmProfilePanel.vue';
   import ContractTimeline from '@/views/contract/contract/components/contractTimeline.vue';
   import ContractDetailDrawer from '@/views/contract/contract/components/detail.vue';
   import opportunityTable from '@/views/opportunity/components/opportunityTable.vue';
@@ -249,6 +251,11 @@
       {
         name: 'profile',
         tab: t('customer.profile'),
+        enable: true,
+      },
+      {
+        name: 'dmProfile',
+        tab: t('customer.profileDmProfile'),
         enable: true,
       },
       {
