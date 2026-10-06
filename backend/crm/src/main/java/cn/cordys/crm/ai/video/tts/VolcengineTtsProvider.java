@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -88,9 +89,9 @@ public class VolcengineTtsProvider implements TtsProvider {
         return parseSseAudio(response.body());
     }
 
-    /** 解析 SSE：逐行 {@code data: {json}}，累积 data 字段的 base64 音频块后解码为 WAV 字节 */
+    /** 解析 SSE：逐行 {@code data: {json}}，每个分片独立 base64 解码后按字节拼接为 WAV */
     private byte[] parseSseAudio(String body) throws Exception {
-        StringBuilder base64 = new StringBuilder();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
         String lastError = null;
         for (String line : body.split("\n")) {
             String trimmed = line.trim();
@@ -114,13 +115,15 @@ public class VolcengineTtsProvider implements TtsProvider {
             }
             String audio = extractAudio(node);
             if (StringUtils.isNotBlank(audio)) {
-                base64.append(audio);
+                // 每个 SSE data 分片都是独立 base64 编码，各自带 = 填充；
+                // 必须逐片解码成字节再拼接，不能先拼 base64 字符串再一次性解码（会撞上中间分片的 = 填充）。
+                out.write(Base64.getDecoder().decode(audio));
             }
         }
-        if (base64.length() == 0) {
+        if (out.size() == 0) {
             throw new RuntimeException("豆包语音未返回音频" + (lastError == null ? "" : ": " + lastError));
         }
-        return Base64.getDecoder().decode(base64.toString());
+        return out.toByteArray();
     }
 
     /** data 字段可能是 base64 字符串，也可能是对象（内嵌 audio/payload 字段），兼容两种返回 */
