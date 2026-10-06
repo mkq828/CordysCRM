@@ -277,6 +277,7 @@ public class AiEmployeeService {
         agent.setName(request.getName().trim());
         agent.setEmployeeId(request.getEmployeeId());
         agent.setCustomPrompt(request.getCustomPrompt());
+        agent.setDescription(StringUtils.isBlank(request.getDescription()) ? null : request.getDescription().trim());
         agent.setKnowledgeEnabled(Boolean.TRUE.equals(request.getKnowledgeEnabled()) ? 1 : 0);
         agent.setSort(request.getSort() == null ? 0L : request.getSort());
     }
@@ -322,7 +323,9 @@ public class AiEmployeeService {
             response.setEmployeeName(employee.getName());
             response.setEmployeeEmoji(employee.getEmoji());
             response.setEmployeeColor(employee.getColor());
+            response.setEmployeeDescription(employee.getDescription());
         }
+        response.setDescription(agent.getDescription());
         response.setCustomPrompt(agent.getCustomPrompt());
         response.setKnowledgeEnabled(agent.getKnowledgeEnabled());
         response.setSort(agent.getSort());

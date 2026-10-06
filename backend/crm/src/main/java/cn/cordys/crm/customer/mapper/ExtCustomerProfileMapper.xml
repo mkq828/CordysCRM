@@ -30,11 +30,12 @@
     </select>
 
     <select id="opportunityStageDistribution" resultType="cn.cordys.crm.customer.dto.response.ProfileOpportunityStageCount">
-        select stage as stage, count(1) as count
-        from opportunity
-        where customer_id = #{customerId}
-          and organization_id = #{orgId}
-        group by stage
+        select ifnull(osc.name, o.stage) as stage, count(1) as count
+        from opportunity o
+        left join opportunity_stage_config osc on o.stage = osc.id and osc.organization_id = o.organization_id
+        where o.customer_id = #{customerId}
+          and o.organization_id = #{orgId}
+        group by ifnull(osc.name, o.stage)
         order by count(1) desc
     </select>
 

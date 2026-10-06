@@ -21,6 +21,9 @@ public class AiEmployeeAgentSaveRequest {
     @Schema(description = "追加的自定义提示词(可选)")
     private String customPrompt;
 
+    @Schema(description = "岗位描述(可选，为空时回退角色描述)")
+    private String description;
+
     @Schema(description = "是否挂知识库检索(1=是)")
     private Boolean knowledgeEnabled;
 

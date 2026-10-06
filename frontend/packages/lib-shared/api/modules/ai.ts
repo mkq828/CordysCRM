@@ -46,6 +46,8 @@ import {
   AiEmployeeAgentUpdateUrl,
   AiEmployeeAgentDeleteUrl,
   AiEmployeeChatStreamUrl,
+  AiEmployeeTaskStreamUrl,
+  AiEmployeeTaskApplyUrl,
   AiMeetingMinutesUrl,
   LeadCrawlAvailableUrl,
   LeadCrawlSearchUrl,
@@ -103,6 +105,7 @@ import type {
   AiEmployeeAgent,
   AiEmployeeAgentSaveParams,
   AiEmployeeChatParams,
+  AgentTaskApplyRequest,
   AiMeetingMinutes,
   AiMeetingMinutesGenerateParams,
   LeadCrawlEnterprise,
@@ -592,6 +595,14 @@ export default function useAiApi(CDR: CordysAxios) {
     return streamSse(`${AiEmployeeChatStreamUrl}/${agentId}/chat/stream`, data, options);
   }
 
+  function streamAiEmployeeTask(agentId: string, data: AiEmployeeChatParams, options: AgentChatStreamOptions = {}) {
+    return streamSse(`${AiEmployeeTaskStreamUrl}/${agentId}/task/stream`, data, options);
+  }
+
+  function applyAiEmployeeTask(agentId: string, data: AgentTaskApplyRequest) {
+    return CDR.post({ url: `${AiEmployeeTaskApplyUrl}/${agentId}/task/apply`, data });
+  }
+
   function generateAiMeetingMinutes(data: AiMeetingMinutesGenerateParams) {
     return CDR.post<AiMeetingMinutes>({ url: AiMeetingMinutesUrl, data });
   }
@@ -719,6 +730,8 @@ export default function useAiApi(CDR: CordysAxios) {
     updateAiEmployeeAgent,
     deleteAiEmployeeAgent,
     streamAiEmployeeChat,
+    streamAiEmployeeTask,
+    applyAiEmployeeTask,
     generateAiMeetingMinutes,
     getAiMeetingMinutes,
     getAiMeetingMinutesDetail,

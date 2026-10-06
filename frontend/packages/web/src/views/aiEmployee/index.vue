@@ -100,9 +100,14 @@
                       <span class="text-[22px] leading-none">{{ agent.employeeEmoji || '🤖' }}</span>
                       <div class="min-w-0 flex-1">
                         <div class="truncate text-[13px] font-medium text-[var(--text-n1)]">{{ agent.name }}</div>
-                        <div class="truncate text-[12px] text-[var(--text-n3)]">{{ agent.employeeName }}</div>
+                        <div class="text-[12px] leading-[1.5] text-[var(--text-n3)]">
+                          {{ agent.description || agent.employeeDescription }}
+                        </div>
                       </div>
                       <div class="flex items-center gap-[4px]" @click.stop>
+                        <n-button size="tiny" type="primary" secondary @click="openChat(agent)">
+                          {{ t('aiEmployee.chat') }}
+                        </n-button>
                         <n-button
                           size="tiny"
                           :type="isAttending(agent.id) ? 'primary' : 'default'"
@@ -144,7 +149,8 @@
         </template>
 
         <template #2>
-          <MeetingRoom :attendees="attendees" @minutesGenerated="onMinutesGenerated" />
+          <AgentTaskChat v-if="activeChatAgent" :agent="activeChatAgent" @back="activeChatAgent = null" />
+          <MeetingRoom v-else :attendees="attendees" @minutesGenerated="onMinutesGenerated" />
         </template>
       </CrmSplitPanel>
     </CrmCard>
@@ -170,6 +176,14 @@
       <n-form label-placement="top">
         <n-form-item :label="t('aiEmployee.agentName')">
           <n-input v-model:value="agentForm.name" :placeholder="t('aiEmployee.agentNamePlaceholder')" />
+        </n-form-item>
+        <n-form-item :label="t('aiEmployee.agentDescription')">
+          <n-input
+            v-model:value="agentForm.description"
+            type="textarea"
+            :autosize="{ minRows: 2, maxRows: 4 }"
+            :placeholder="t('aiEmployee.agentDescriptionPlaceholder')"
+          />
         </n-form-item>
         <n-form-item :label="t('aiEmployee.customPrompt')">
           <n-input
@@ -230,6 +244,7 @@
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmSplitPanel from '@/components/pure/crm-split-panel/index.vue';
+  import AgentTaskChat from './components/AgentTaskChat.vue';
   import MeetingMinutesModal from './components/MeetingMinutesModal.vue';
   import MeetingRoom from './components/MeetingRoom.vue';
 
@@ -311,6 +326,7 @@
   const roles = ref<AiEmployeeItem[]>([]);
   const loadingRoles = ref(false);
   const agents = ref<AiEmployeeAgent[]>([]);
+  const activeChatAgent = ref<AiEmployeeAgent | null>(null);
 
   const showCreateModal = ref(false);
   const saving = ref(false);
@@ -319,6 +335,7 @@
   const agentForm = ref({
     name: '',
     employeeId: '',
+    description: '',
     customPrompt: '',
     knowledgeEnabled: false,
   });
@@ -387,6 +404,7 @@
     agentForm.value = {
       name: role.name,
       employeeId: role.id,
+      description: '',
       customPrompt: '',
       knowledgeEnabled: false,
     };
@@ -405,6 +423,7 @@
     agentForm.value = {
       name: agent.name,
       employeeId: agent.employeeId,
+      description: agent.description || '',
       customPrompt: agent.customPrompt || '',
       knowledgeEnabled: agent.knowledgeEnabled === 1,
     };
@@ -430,6 +449,7 @@
         id: editingAgentId.value || undefined,
         name: newName,
         employeeId: newEmployeeId,
+        description: agentForm.value.description,
         customPrompt: agentForm.value.customPrompt,
         knowledgeEnabled: agentForm.value.knowledgeEnabled,
       };
@@ -471,6 +491,10 @@
         Message.success(t('common.deleteSuccess'));
         // 若该岗位已参会，同步移除
         attendees.value = attendees.value.filter((a) => a.agentId !== agent.id);
+        // 若正在与该岗位对话，关闭对话面板
+        if (activeChatAgent.value?.id === agent.id) {
+          activeChatAgent.value = null;
+        }
         await loadAgents();
       },
     });
@@ -478,6 +502,10 @@
 
   function isAttending(agentId: string) {
     return attendees.value.some((a) => a.agentId === agentId);
+  }
+
+  function openChat(agent: AiEmployeeAgent) {
+    activeChatAgent.value = agent;
   }
 
   function toggleAttend(agent: AiEmployeeAgent) {
@@ -539,12 +567,10 @@
     :deep(.n-tabs-nav) {
       flex-shrink: 0;
     }
-    :deep(.n-tabs-pane-wrapper) {
-      flex: 1;
-      min-height: 0;
-    }
     :deep(.n-tab-pane) {
-      height: 100%;
+      overflow: hidden;
+      min-height: 0;
+      flex: 1;
     }
   }
   .division-list {

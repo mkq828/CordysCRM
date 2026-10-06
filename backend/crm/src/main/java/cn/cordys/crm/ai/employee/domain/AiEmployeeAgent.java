@@ -25,6 +25,9 @@ public class AiEmployeeAgent extends BaseModel {
     @Schema(description = "追加的自定义提示词(可选，拼在角色提示词后)")
     private String customPrompt;
 
+    @Schema(description = "岗位描述(可选，为空时回退角色描述)")
+    private String description;
+
     @Schema(description = "是否挂知识库检索(1=是)")
     private Integer knowledgeEnabled;
 

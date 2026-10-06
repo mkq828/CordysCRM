@@ -30,6 +30,12 @@ public class AiEmployeeAgentResponse {
     @Schema(description = "追加的自定义提示词")
     private String customPrompt;
 
+    @Schema(description = "岗位描述(添加时填写；为空时前端回退到 employeeDescription)")
+    private String description;
+
+    @Schema(description = "关联角色描述(角色目录里该岗位的描述，作为 description 为空时的回退)")
+    private String employeeDescription;
+
     @Schema(description = "是否挂知识库检索(1=是)")
     private Integer knowledgeEnabled;
 

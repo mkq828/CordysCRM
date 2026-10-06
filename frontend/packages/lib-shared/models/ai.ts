@@ -396,6 +396,10 @@ export interface AiEmployeeAgent {
   employeeName?: string;
   employeeEmoji?: string;
   employeeColor?: string;
+  /** 岗位描述（添加时填写；为空时回退到 employeeDescription） */
+  description?: string;
+  /** 关联角色描述（角色目录里该岗位的描述，作为 description 为空时的回退） */
+  employeeDescription?: string;
   customPrompt?: string;
   knowledgeEnabled?: number;
   sort?: number;
@@ -409,6 +413,7 @@ export interface AiEmployeeAgentSaveParams {
   name: string;
   employeeId: string;
   customPrompt?: string;
+  description?: string;
   knowledgeEnabled?: boolean;
   sort?: number;
 }
@@ -421,6 +426,28 @@ export interface AiEmployeeChatParams {
   context?: string;
   /** 会议阶段（speak=发言轮，discuss=讨论轮，空=普通对话） */
   stage?: 'speak' | 'discuss';
+}
+
+/** AI 员工-客户字段修改建议中的单项（old→new） */
+export interface AgentUpdateChange {
+  fieldId: string;
+  fieldLabel: string;
+  oldValue?: string;
+  newValue: string;
+}
+
+/** AI 员工-客户字段修改建议（经 done.payload 下发，用户确认后才落库） */
+export interface AgentUpdateProposal {
+  type: string;
+  customerId: string;
+  customerName?: string;
+  changes: AgentUpdateChange[];
+}
+
+/** AI 员工-确认执行客户字段修改的请求体（只回传要改的字段，旧值由服务端重读） */
+export interface AgentTaskApplyRequest {
+  customerId: string;
+  changes: { fieldId: string; newValue: string }[];
 }
 
 /** AI 员工-虚拟会议室-发言流水 */

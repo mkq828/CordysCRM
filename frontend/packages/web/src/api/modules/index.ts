@@ -906,6 +906,8 @@ export const {
   updateAiEmployeeAgent,
   deleteAiEmployeeAgent,
   streamAiEmployeeChat,
+  streamAiEmployeeTask,
+  applyAiEmployeeTask,
   generateAiMeetingMinutes,
   getAiMeetingMinutes,
   getAiMeetingMinutesDetail,
