@@ -19,7 +19,6 @@ import cn.cordys.crm.ai.leadcrawl.dto.response.LeadCrawlImportResponse;
 import cn.cordys.crm.ai.leadcrawl.service.CompetitorInsightService;
 import cn.cordys.crm.ai.leadcrawl.service.LeadCrawlService;
 import cn.cordys.crm.ai.llm.LlmUsage;
-import cn.cordys.crm.platform.util.PlatformSessionUtils;
 import cn.cordys.crm.system.service.EditionService;
 import cn.cordys.security.SessionUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -61,10 +60,6 @@ public class LeadCrawlController extends BaseAiStreamController {
     @GetMapping("/available")
     @Operation(summary = "查询当前租户是否开通线索爬取与竞品洞察")
     public boolean available() {
-        // 功能未完成（未接入真实企查查 Key 验证），暂仅管理员可见，不对外开放
-        if (!PlatformSessionUtils.isAdmin()) {
-            return false;
-        }
         return editionService.hasFeature(OrganizationContext.getOrganizationId(), AiQuotaConstant.AI_LEAD_CRAWL);
     }
 
@@ -135,10 +130,6 @@ public class LeadCrawlController extends BaseAiStreamController {
     }
 
     private void checkAvailable(String orgId) {
-        // 功能未完成（未接入真实企查查 Key 验证），暂仅管理员可见，不对外开放
-        if (!PlatformSessionUtils.isAdmin()) {
-            throw new GenericException("线索爬取与竞品洞察暂未开放，仅管理员可见");
-        }
         if (!editionService.hasFeature(orgId, AiQuotaConstant.AI_LEAD_CRAWL)) {
             throw new GenericException("当前版本未开通线索爬取与竞品洞察，请升级至企业版");
         }

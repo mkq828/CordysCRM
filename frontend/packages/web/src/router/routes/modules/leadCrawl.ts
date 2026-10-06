@@ -3,9 +3,8 @@ import { LeadCrawlRouteEnum } from '@/enums/routeEnum';
 import { DEFAULT_LAYOUT } from '../base';
 import type { AppRouteRecordRaw } from '../types';
 
-// 线索爬取 + 竞品洞察（功能 10）暂未完成（未接入真实企查查 Key 验证），
-// 现仅 admin 可见、不对外开放。permissions 用专属 code（未写入后端权限种子），
-// 普通角色永远无法被授权看到，admin 通过 isAdmin 短路放行（仿 platformDashboard）。
+// 线索爬取 + 竞品洞察（功能 10，企业版）。菜单对所有登录用户可见，
+// 版本门控由后端 hasFeature(lead_crawl) 控制（与 AI 方案/PPT、话术库一致）。
 const leadCrawl: AppRouteRecordRaw = {
   path: '/ai-lead-crawl',
   name: LeadCrawlRouteEnum.LEAD_CRAWL,
@@ -13,7 +12,7 @@ const leadCrawl: AppRouteRecordRaw = {
   component: DEFAULT_LAYOUT,
   meta: {
     locale: 'menu.aiLeadCrawl',
-    permissions: ['ADMIN_LEAD_CRAWL:READ'],
+    permissions: [],
     icon: 'iconicon_crmbot',
     hideChildrenInMenu: true,
     collapsedLocale: 'menu.aiLeadCrawl',
@@ -25,7 +24,7 @@ const leadCrawl: AppRouteRecordRaw = {
       component: () => import('@/views/leadCrawl/index.vue'),
       meta: {
         locale: 'menu.aiLeadCrawl',
-        permissions: ['ADMIN_LEAD_CRAWL:READ'],
+        permissions: [],
       },
     },
   ],
