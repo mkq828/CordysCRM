@@ -16,8 +16,10 @@ import cn.cordys.crm.ai.service.AiQuotaService;
 import cn.cordys.crm.ai.video.domain.AiVideoTask;
 import cn.cordys.crm.ai.video.dto.request.VideoGenerateRequest;
 import cn.cordys.crm.ai.video.dto.response.VideoTaskResponse;
+import cn.cordys.crm.ai.video.tts.TtsConfig;
 import cn.cordys.crm.ai.video.tts.TtsProvider;
 import cn.cordys.crm.ai.video.tts.TtsProviderFactory;
+import cn.cordys.crm.ai.video.tts.TtsVoice;
 import cn.cordys.crm.system.domain.Attachment;
 import cn.cordys.crm.system.service.AttachmentService;
 import cn.cordys.crm.system.service.FileCommonService;
@@ -57,7 +59,6 @@ public class VideoGenerateService {
 
     private static final String DEFAULT_VOICE = "Cherry";
     private static final String DEFAULT_STYLE = "口播";
-    private static final String TTS_PROVIDER = "阿里云";
 
     private static final ObjectMapper MAPPER = JSON.MAPPER;
 
@@ -177,6 +178,21 @@ public class VideoGenerateService {
         aiVideoTaskMapper.deleteByPrimaryKey(id);
     }
 
+    /**
+     * 查询当前配音模型支持的音色列表（前端下拉用）。
+     * 跟随「模型设置」里 admin 配置的配音模型，换服务商后音色自动切换，无需改前端。
+     */
+    public List<TtsVoice> voices(String orgId) {
+        for (AgentModel model : agentModelService.resolveTtsModels(orgId)) {
+            try {
+                return ttsProviderFactory.get(model.getProvider()).voices();
+            } catch (Exception ignored) {
+                // 该模型非 TTS provider 或异常，尝试下一个候选
+            }
+        }
+        return List.of();
+    }
+
     // ==================== 私有：脚本生成 ====================
 
     private String generateScript(String title, String style, String extraText, String orgId, String userId) {
@@ -285,10 +301,30 @@ public class VideoGenerateService {
     // ==================== 私有：TTS / 合成 / 附件 ====================
 
     private void synthesizeAudio(String script, String voice, String orgId, File audioFile) throws Exception {
-        String apiKey = agentModelService.resolveProviderApiKey(orgId, TTS_PROVIDER, "语音合成");
-        TtsProvider tts = ttsProviderFactory.get(TTS_PROVIDER);
-        byte[] audio = tts.synthesize(script, voice, apiKey);
-        Files.write(audioFile.toPath(), audio);
+        List<AgentModel> ttsModels = agentModelService.resolveTtsModels(orgId);
+        Exception lastError = null;
+        for (AgentModel model : ttsModels) {
+            if (StringUtils.isBlank(model.getApiKey())) {
+                continue;
+            }
+            try {
+                TtsConfig config = new TtsConfig();
+                config.setModel(model.getModelName());
+                config.setApiKey(model.getApiKey());
+                config.setModelParams(model.getModelParams());
+                TtsProvider tts = ttsProviderFactory.get(model.getProvider());
+                byte[] audio = tts.synthesize(script, voice, config);
+                Files.write(audioFile.toPath(), audio);
+                return;
+            } catch (Exception e) {
+                lastError = e;
+                log.warn("短视频 TTS 合成失败，降级尝试下一个，provider={}, model={}",
+                        model.getProvider(), model.getModelName(), e);
+            }
+        }
+        log.error("短视频 TTS 合成全部失败，候选数={}", ttsModels.size(), lastError);
+        throw new GenericException(lastError == null || lastError.getMessage() == null
+                ? "请先在「模型设置」配置并启用配音模型" : lastError.getMessage());
     }
 
     private String saveAttachment(File videoFile, AiVideoTask task, String orgId, String userId) {

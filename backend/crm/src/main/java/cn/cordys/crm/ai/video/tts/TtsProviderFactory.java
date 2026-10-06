@@ -27,4 +27,9 @@ public class TtsProviderFactory {
         }
         return provider;
     }
+
+    /** 该 provider 是否已接入语音合成适配器 */
+    public boolean supports(String name) {
+        return providers.containsKey(name);
+    }
 }

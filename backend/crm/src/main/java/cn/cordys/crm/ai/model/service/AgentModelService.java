@@ -27,6 +27,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * AI 模型配置服务（租户级，agent_model 表）。
@@ -42,8 +43,12 @@ public class AgentModelService {
             "阿里云", "https://dashscope.aliyuncs.com/compatible-mode/v1",
             "Anthropic", "https://api.anthropic.com/v1",
             "腾讯云", "https://api.hunyuan.cloud.tencent.com/v1",
-            "豆包", "https://ark.cn-beijing.volces.com/api/v3"
+            "豆包", "https://ark.cn-beijing.volces.com/api/v3",
+            "豆包语音", "https://openspeech.bytedance.com/api/v3"
     );
+
+    /** 已接入语音合成（TTS）适配器的 provider 名，用于配音模型回退与校验 */
+    private static final Set<String> TTS_PROVIDERS = Set.of("阿里云", "豆包语音");
 
     @Resource
     private BaseMapper<AgentModel> agentModelMapper;
@@ -98,15 +103,7 @@ public class AgentModelService {
     }
 
     private List<AgentModel> resolveModels(String orgId, List<String> modelIds, boolean fallback) {
-        List<AgentModel> candidates = new ArrayList<>();
-        if (modelIds != null) {
-            for (String id : modelIds) {
-                AgentModel model = agentModelMapper.selectByPrimaryKey(id);
-                if (model != null && Boolean.TRUE.equals(model.getEnable()) && orgId.equals(model.getOrganizationId())) {
-                    candidates.add(model);
-                }
-            }
-        }
+        List<AgentModel> candidates = resolveByIds(orgId, modelIds);
         // 策略未配置或无可用模型时，回退到第一个启用模型
         if (candidates.isEmpty()) {
             AgentModel criteria = new AgentModel();
@@ -120,6 +117,44 @@ public class AgentModelService {
         // 未开启自动降级时只保留首选
         if (!fallback && !candidates.isEmpty()) {
             return List.of(candidates.get(0));
+        }
+        return candidates;
+    }
+
+    /**
+     * 解析「配音模型」候选（路由策略 ttsModels 顺序），供功能 7 短视频生成 TTS 使用。
+     * ttsModels 未配置时回退到第一个启用且 provider 支持语音合成的模型（兼容历史阿里云直连），
+     * 保证存量租户无感。TTS 不做「任意第一个启用模型」回退，避免误用对话模型合成语音。
+     */
+    public List<AgentModel> resolveTtsModels(String orgId) {
+        AgentModelStrategyResponse strategy = agentModelStrategyService.get();
+        List<String> ids = strategy.getTtsModels();
+        if (ids != null && !ids.isEmpty()) {
+            List<AgentModel> resolved = resolveByIds(orgId, ids);
+            if (!resolved.isEmpty()) {
+                return resolved;
+            }
+        }
+        AgentModel criteria = new AgentModel();
+        criteria.setOrganizationId(orgId);
+        criteria.setEnable(true);
+        for (AgentModel model : agentModelMapper.select(criteria)) {
+            if (TTS_PROVIDERS.contains(model.getProvider()) && StringUtils.isNotBlank(model.getApiKey())) {
+                return List.of(model);
+            }
+        }
+        return List.of();
+    }
+
+    private List<AgentModel> resolveByIds(String orgId, List<String> modelIds) {
+        List<AgentModel> candidates = new ArrayList<>();
+        if (modelIds != null) {
+            for (String id : modelIds) {
+                AgentModel model = agentModelMapper.selectByPrimaryKey(id);
+                if (model != null && Boolean.TRUE.equals(model.getEnable()) && orgId.equals(model.getOrganizationId())) {
+                    candidates.add(model);
+                }
+            }
         }
         return candidates;
     }

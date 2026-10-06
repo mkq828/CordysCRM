@@ -40,5 +40,6 @@ export interface AiModelRouteStrategy {
   id?: string;
   chatModels: string[];
   taskModels: string[];
+  ttsModels?: string[];
   fallback: boolean;
 }

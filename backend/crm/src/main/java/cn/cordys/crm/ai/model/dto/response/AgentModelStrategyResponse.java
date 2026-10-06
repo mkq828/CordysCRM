@@ -17,6 +17,9 @@ public class AgentModelStrategyResponse {
     @Schema(description = "任务模型ID列表")
     private List<String> taskModels;
 
+    @Schema(description = "配音模型ID列表（功能7 TTS）")
+    private List<String> ttsModels;
+
     @Schema(description = "是否自动降级")
     private Boolean fallback;
 }

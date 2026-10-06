@@ -627,3 +627,9 @@ export interface AiVideoTask {
   errorMsg?: string;
   createTime?: number;
 }
+
+/** 短视频生成-配音音色选项（跟随已配置的配音模型） */
+export interface AiVideoVoice {
+  value: string;
+  label: string;
+}

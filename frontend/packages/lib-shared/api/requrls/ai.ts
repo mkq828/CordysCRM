@@ -63,3 +63,4 @@ export const DmProfileProfilesUrl = '/agent/dm-profile/profiles'; // 私信获�
 export const DmProfileImportUrl = '/agent/dm-profile/profiles/import'; // 私信获客画像-导入线索池
 export const AiVideoAvailableUrl = '/agent/video/available'; // 短视频生成-版本开关查询
 export const AiVideoTasksUrl = '/agent/video/tasks'; // 短视频生成-任务（POST 提交 / GET 列表 / 拼 /{id} 详情与删除）
+export const AiVideoVoicesUrl = '/agent/video/voices'; // 短视频生成-配音音色列表（跟随已配置的配音模型）

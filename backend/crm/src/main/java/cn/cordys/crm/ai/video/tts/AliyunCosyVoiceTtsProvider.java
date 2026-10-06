@@ -15,12 +15,13 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * 阿里云百炼 TTS 语音合成（功能 7 TTS）。
  * 复用租户「阿里云」模型的同一把百炼 API Key（与通话复盘 ASR 的 paraformer-v2 同账号）。
- * 协议参考 DashScope 语音合成：POST /api/v1/services/aigc/multimodal-generation/generation，model=qwen3-tts-flash。
+ * 协议参考 DashScope 语音合成：POST /api/v1/services/aigc/multimodal-generation/generation。
  * 注意：经典 cosyvoice-v1 的 HTTP 合成要求账号开通专用端点，普通百炼 key 会报「不支持 http call」，
  * 故改用同账号可直接调用的 qwen3-tts-flash（返回 WAV）。
  */
@@ -29,7 +30,7 @@ import java.util.Map;
 public class AliyunCosyVoiceTtsProvider implements TtsProvider {
 
     private static final String BASE_URL = "https://dashscope.aliyuncs.com/api/v1";
-    private static final String MODEL = "qwen3-tts-flash";
+    private static final String DEFAULT_MODEL = "qwen3-tts-flash";
     private static final String DEFAULT_VOICE = "Cherry";
     private static final ObjectMapper MAPPER = JSON.MAPPER;
 
@@ -43,9 +44,23 @@ public class AliyunCosyVoiceTtsProvider implements TtsProvider {
     }
 
     @Override
-    public byte[] synthesize(String text, String voice, String apiKey) throws Exception {
+    public List<TtsVoice> voices() {
+        return List.of(
+                new TtsVoice("Cherry", "芊悦（女声·亲切自然）"),
+                new TtsVoice("Serena", "苏瑶（女声·温柔）"),
+                new TtsVoice("Chelsie", "活力女声（甜美）"),
+                new TtsVoice("Ethan", "晨煦（男声·阳光）"));
+    }
+
+    @Override
+    public byte[] synthesize(String text, String voice, TtsConfig config) throws Exception {
+        // 阿里云复用「阿里云」LLM 模型的同一把百炼 key，但 TTS 与 LLM 模型名不同：
+        // agent_model 里存的是 LLM 模型（如 qwen-max），TTS 固定用 qwen3-tts-flash，故不取 config.model。
+        String model = DEFAULT_MODEL;
+        String apiKey = config.getApiKey();
+
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("model", MODEL);
+        body.put("model", model);
         body.put("input", Map.of("text", text));
         Map<String, Object> parameters = new LinkedHashMap<>();
         parameters.put("voice", StringUtils.defaultIfBlank(voice, DEFAULT_VOICE));

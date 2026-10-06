@@ -72,13 +72,19 @@
   import dayjs from 'dayjs';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
-  import type { AiVideoGenerateParams, AiVideoTask } from '@lib/shared/models/ai';
+  import type { AiVideoGenerateParams, AiVideoTask, AiVideoVoice } from '@lib/shared/models/ai';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import ShimmerText from '@/components/pure/effects/ShimmerText.vue';
   import AiActionButton from '@/components/business/ai-action-button/index.vue';
 
-  import { createAiVideoTask, deleteAiVideoTask, downloadAttachment, getAiVideoTasks } from '@/api/modules';
+  import {
+    createAiVideoTask,
+    deleteAiVideoTask,
+    downloadAttachment,
+    getAiVideoTasks,
+    getAiVideoVoices,
+  } from '@/api/modules';
   import useModal from '@/hooks/useModal';
 
   import type { DataTableColumns } from 'naive-ui';
@@ -96,15 +102,12 @@
   const generating = ref(false);
   const tasks = ref<AiVideoTask[]>([]);
   const loading = ref(false);
+  const voices = ref<AiVideoVoice[]>([]);
 
   const IN_PROGRESS = ['PENDING', 'SCRIPTING', 'TTS', 'SYNTH'];
 
-  const voiceOptions = computed(() => [
-    { label: t('video.voice.cherry'), value: 'Cherry' },
-    { label: t('video.voice.serena'), value: 'Serena' },
-    { label: t('video.voice.chelsie'), value: 'Chelsie' },
-    { label: t('video.voice.ethan'), value: 'Ethan' },
-  ]);
+  // 音色列表跟随「模型设置」里 admin 配置的配音模型，换服务商后前端无需改动
+  const voiceOptions = computed(() => voices.value.map((v) => ({ label: v.label, value: v.value })));
 
   const styleOptions = computed(() => [
     { label: t('video.style.koushuo'), value: '口播' },
@@ -151,6 +154,18 @@
       tasks.value = await getAiVideoTasks();
     } catch (error) {
       Message.error((error as Error)?.message || t('common.operationFailed'));
+    }
+  }
+
+  async function loadVoices() {
+    try {
+      const list = await getAiVideoVoices();
+      voices.value = list ?? [];
+      if (voices.value.length && !voices.value.some((v) => v.value === form.value.voice)) {
+        form.value.voice = voices.value[0].value;
+      }
+    } catch {
+      // 音色拉取失败忽略，保留默认值
     }
   }
 
@@ -303,6 +318,7 @@
   onMounted(async () => {
     loading.value = true;
     try {
+      await loadVoices();
       await loadTasks();
       if (hasRunning.value) {
         startPolling();

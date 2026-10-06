@@ -6,6 +6,7 @@ import cn.cordys.crm.ai.constant.AiQuotaConstant;
 import cn.cordys.crm.ai.video.dto.request.VideoGenerateRequest;
 import cn.cordys.crm.ai.video.dto.response.VideoTaskResponse;
 import cn.cordys.crm.ai.video.service.VideoGenerateService;
+import cn.cordys.crm.ai.video.tts.TtsVoice;
 import cn.cordys.crm.system.service.EditionService;
 import cn.cordys.security.SessionUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +41,14 @@ public class VideoController {
     @Operation(summary = "查询当前租户是否开通短视频生成")
     public boolean available() {
         return editionService.hasFeature(OrganizationContext.getOrganizationId(), AiQuotaConstant.AI_VIDEO);
+    }
+
+    @GetMapping("/voices")
+    @Operation(summary = "查询配音音色列表（跟随已配置的配音模型）")
+    public List<TtsVoice> voices() {
+        String orgId = OrganizationContext.getOrganizationId();
+        checkAvailable(orgId);
+        return videoGenerateService.voices(orgId);
     }
 
     @PostMapping("/tasks")

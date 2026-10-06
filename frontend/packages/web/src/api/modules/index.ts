@@ -927,6 +927,7 @@ export const {
   createAiVideoTask,
   getAiVideoTasks,
   getAiVideoTask,
+  getAiVideoVoices,
   deleteAiVideoTask,
   downloadAiSalesScriptTemplate,
   preCheckImportAiSalesScript,

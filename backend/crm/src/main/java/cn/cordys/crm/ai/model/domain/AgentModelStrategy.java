@@ -20,6 +20,9 @@ public class AgentModelStrategy {
     @Schema(description = "任务模型ID（逗号分隔）")
     private String taskModels;
 
+    @Schema(description = "配音模型ID（逗号分隔，功能7 TTS）")
+    private String ttsModels;
+
     @Schema(description = "是否自动降级")
     private Boolean fallback;
 }

@@ -27,27 +27,31 @@ public class AgentModelStrategyService {
         if (strategy != null) {
             response.setChatModels(split(strategy.getChatModels()));
             response.setTaskModels(split(strategy.getTaskModels()));
+            response.setTtsModels(split(strategy.getTtsModels()));
             response.setFallback(Boolean.TRUE.equals(strategy.getFallback()));
         } else {
             response.setChatModels(List.of());
             response.setTaskModels(List.of());
+            response.setTtsModels(List.of());
             response.setFallback(true);
         }
         return response;
     }
 
-    public void config(List<String> chatModels, List<String> taskModels, Boolean fallback) {
+    public void config(List<String> chatModels, List<String> taskModels, List<String> ttsModels, Boolean fallback) {
         AgentModelStrategy strategy = strategyMapper.selectByPrimaryKey(STRATEGY_ID);
         if (strategy == null) {
             strategy = new AgentModelStrategy();
             strategy.setId(STRATEGY_ID);
             strategy.setChatModels(join(chatModels));
             strategy.setTaskModels(join(taskModels));
+            strategy.setTtsModels(join(ttsModels));
             strategy.setFallback(fallback == null ? Boolean.TRUE : fallback);
             strategyMapper.insert(strategy);
         } else {
             strategy.setChatModels(join(chatModels));
             strategy.setTaskModels(join(taskModels));
+            strategy.setTtsModels(join(ttsModels));
             strategy.setFallback(fallback == null ? Boolean.TRUE : fallback);
             strategyMapper.updateById(strategy);
         }

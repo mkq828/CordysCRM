@@ -60,6 +60,7 @@ import {
   DmProfileImportUrl,
   AiVideoAvailableUrl,
   AiVideoTasksUrl,
+  AiVideoVoicesUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -119,6 +120,7 @@ import type {
   DmProfileImportResult,
   AiVideoGenerateParams,
   AiVideoTask,
+  AiVideoVoice,
 } from '../../models/ai';
 
 interface SseBlock {
@@ -687,6 +689,10 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.delete({ url: `${AiVideoTasksUrl}/${id}` });
   }
 
+  function getAiVideoVoices() {
+    return CDR.get<AiVideoVoice[]>({ url: AiVideoVoicesUrl });
+  }
+
   function downloadAiSalesScriptTemplate() {
     return CDR.get(
       { url: AiSalesScriptImportTemplateUrl, responseType: 'blob' },
@@ -775,6 +781,7 @@ export default function useAiApi(CDR: CordysAxios) {
     createAiVideoTask,
     getAiVideoTasks,
     getAiVideoTask,
+    getAiVideoVoices,
     deleteAiVideoTask,
     downloadAiSalesScriptTemplate,
     preCheckImportAiSalesScript,

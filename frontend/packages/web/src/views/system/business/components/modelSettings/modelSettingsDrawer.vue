@@ -163,6 +163,7 @@
     { label: 'Anthropic', value: 'Anthropic' },
     { label: t('system.business.modelSettings.providerTencent'), value: '腾讯云' },
     { label: t('system.business.modelSettings.providerDoubao'), value: '豆包' },
+    { label: t('system.business.modelSettings.providerDoubaoVoice'), value: '豆包语音' },
     { label: t('system.business.modelSettings.providerCustom'), value: '自定义' },
   ]);
 

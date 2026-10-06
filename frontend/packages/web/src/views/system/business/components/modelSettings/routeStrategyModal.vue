@@ -59,6 +59,17 @@
         />
       </n-form-item>
 
+      <n-form-item :label="t('system.business.modelSettings.ttsModel')">
+        <n-select
+          v-model:value="form.ttsModelId"
+          clearable
+          :disabled="props.readonly"
+          :fallback-option="form.ttsModelId ? fallbackModelOption : false"
+          :options="modelOptions"
+          :placeholder="t('common.pleaseSelect')"
+        />
+      </n-form-item>
+
       <div class="flex items-center gap-[8px]">
         <n-switch v-model:value="form.fallback" :disabled="props.readonly" :rubber-band="false" />
         <div class="text-[var(--text-n1)]">
@@ -105,6 +116,7 @@
   interface RouteStrategyForm {
     defaultModelId?: string;
     insightModelId?: string;
+    ttsModelId?: string;
     backupModelIds: string[];
     fallback: boolean;
   }
@@ -127,6 +139,7 @@
       const [strategy, models] = await Promise.all([getAiModelRouteStrategy(), getAiModelOptions()]);
       form.defaultModelId = strategy?.chatModels?.[0];
       form.insightModelId = strategy?.taskModels?.[0];
+      form.ttsModelId = strategy?.ttsModels?.[0];
       form.backupModelIds = strategy?.chatModels?.slice(1) ?? [];
       form.fallback = strategy?.fallback ?? true;
       modelOptions.value = models.map((model) => ({
@@ -163,6 +176,7 @@
     return {
       chatModels: [form.defaultModelId, ...backupModels].filter((modelId, index) => index === 0 || modelId) as string[],
       taskModels: [form.insightModelId].filter(Boolean) as string[],
+      ttsModels: [form.ttsModelId].filter(Boolean) as string[],
       fallback: form.fallback,
     };
   }

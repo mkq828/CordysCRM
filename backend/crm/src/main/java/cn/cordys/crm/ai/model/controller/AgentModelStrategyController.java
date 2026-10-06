@@ -36,6 +36,6 @@ public class AgentModelStrategyController {
     @RequiresPermissions(PermissionConstants.SYSTEM_SETTING_UPDATE)
     @Operation(summary = "模型路由策略-更新")
     public void config(@RequestBody AgentModelStrategySaveRequest request) {
-        agentModelStrategyService.config(request.getChatModels(), request.getTaskModels(), request.getFallback());
+        agentModelStrategyService.config(request.getChatModels(), request.getTaskModels(), request.getTtsModels(), request.getFallback());
     }
 }
