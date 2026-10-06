@@ -94,13 +94,13 @@
                   <div
                     v-for="agent in agents"
                     :key="agent.id"
-                    class="agent-card rounded-[8px] border border-[var(--divider-color)] p-[10px] transition-colors"
+                    class="agent-card shrink-0 rounded-[8px] border border-[var(--divider-color)] p-[10px] transition-colors"
                   >
                     <div class="flex items-center gap-[10px]">
                       <span class="text-[22px] leading-none">{{ agent.employeeEmoji || '🤖' }}</span>
                       <div class="min-w-0 flex-1">
                         <div class="truncate text-[13px] font-medium text-[var(--text-n1)]">{{ agent.name }}</div>
-                        <div class="text-[12px] leading-[1.5] text-[var(--text-n3)]">
+                        <div class="break-words text-[12px] leading-[1.5] text-[var(--text-n3)]">
                           {{ agent.description || agent.employeeDescription }}
                         </div>
                       </div>
@@ -136,7 +136,7 @@
                   <div
                     v-for="m in minutesList"
                     :key="m.id"
-                    class="minutes-card cursor-pointer rounded-[8px] border border-[var(--divider-color)] p-[12px] transition-colors hover:border-[var(--primary-8)]"
+                    class="minutes-card shrink-0 cursor-pointer rounded-[8px] border border-[var(--divider-color)] p-[12px] transition-colors hover:border-[var(--primary-8)]"
                     @click="openMinutes(m)"
                   >
                     <div class="truncate text-[13px] font-medium text-[var(--text-n1)]">{{ m.title }}</div>
