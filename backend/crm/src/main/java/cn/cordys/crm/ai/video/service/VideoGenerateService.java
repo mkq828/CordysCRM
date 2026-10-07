@@ -6,6 +6,7 @@ import cn.cordys.common.util.JSON;
 import cn.cordys.crm.ai.constant.AiQuotaConstant;
 import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
 import cn.cordys.crm.ai.llm.LlmChatRequest;
+import cn.cordys.crm.ai.llm.LlmImageRequest;
 import cn.cordys.crm.ai.llm.LlmMessage;
 import cn.cordys.crm.ai.llm.LlmProvider;
 import cn.cordys.crm.ai.llm.LlmProviderFactory;
@@ -39,7 +40,11 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * 短视频生成（功能 7 MVP）：主题 → 口播文案(LLM) → TTS 配音 → FFmpeg 合成 → 存附件。
@@ -52,6 +57,7 @@ public class VideoGenerateService {
     // ==================== 任务状态机 ====================
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_SCRIPTING = "SCRIPTING";
+    private static final String STATUS_IMAGING = "IMAGING";
     private static final String STATUS_TTS = "TTS";
     private static final String STATUS_SYNTH = "SYNTH";
     private static final String STATUS_DONE = "DONE";
@@ -60,18 +66,40 @@ public class VideoGenerateService {
     private static final String DEFAULT_VOICE = "Cherry";
     private static final String DEFAULT_STYLE = "口播";
 
+    /** 文生图输出尺寸与画面风格后缀（保证竖屏高清、画面无文字，避免与字幕打架） */
+    private static final String IMAGE_SIZE = "1080x1920";
+    private static final String IMAGE_PROMPT_SUFFIX = "，竖屏9:16构图，高清写实，画面中不要出现任何文字";
+
+    /** 分镜脚本：标题 + 若干分镜（每镜口播文本 + 配图提示词） */
+    public record VideoScript(String title, List<VideoSegment> segments) {}
+
+    public record VideoSegment(String text, String image) {}
+
     private static final ObjectMapper MAPPER = JSON.MAPPER;
 
-    /** 口播脚本生成 system prompt：钩子开头 + 口语短句 + 讲利益，输出严格 JSON */
+    /** 口播脚本生成 system prompt：钩子开头 + 口语短句 + 讲利益，并拆成分镜配图，输出严格 JSON */
     private static final String SCRIPT_SYSTEM_PROMPT = """
-            你是短视频口播脚本专家。请根据用户提供的主题（和可选卖点），生成一条适合抖音/视频号竖屏口播的脚本。
+            你是短视频口播脚本专家。请根据用户提供的主题（和可选卖点），生成一条适合抖音/视频号竖屏口播的脚本，并拆成分镜。
             写作要求：
             1. 开头 3 秒有钩子，抓注意力；
             2. 口语化短句、有节奏感，像真人说话；
             3. 讲利益、讲场景，不讲空泛参数；
-            4. 全篇控制在 80~150 字左右，用中文标点断句，方便配音。
+            4. 全篇控制在 80~150 字左右，用中文标点断句，方便配音；
+            5. 拆成 3~5 个分镜，每个分镜是口播的一句或几句，并配一句「画面描述」（描述场景/主体/氛围，用于 AI 生成配图，不要出现文字）。
             只输出一个严格 JSON（不要任何多余文字）：
-            {"title":"视频标题","script":"口播脚本正文，用中文标点断句"}
+            {"title":"视频标题","segments":[{"text":"口播内容","image":"画面描述"},{"text":"口播内容","image":"画面描述"}]}
+            """;
+
+    /** 配套文案 system prompt：出片后按三平台各出一套可直接发布的文案，复用功能 3 的平台写作口径 */
+    private static final String COPY_SYSTEM_PROMPT = """
+            你是短视频配套文案专家。已有一条竖屏口播视频，请为它生成 3 套「可直接发布」的配套文案，分别适配抖音、小红书、微信朋友圈。
+            写作铁律：讲利益不讲功能、具体优于模糊、口语化、别用空话。
+            按平台特点：
+            - 抖音：标题要有钩子，正文是口播字幕稿，带 2-4 个话题标签。
+            - 小红书：种草体、带 emoji、利他干货、真诚人设，带 2-4 个话题标签。
+            - 微信朋友圈：软性信任感、场景代入、口语化、像朋友分享，不需要标签（hashtags 输出空数组）。
+            只输出一个严格 JSON（不要任何多余文字）：
+            {"douyin":{"title":"标题","copy":"正文","hashtags":["#标签"]},"xiaohongshu":{"title":"标题","copy":"正文","hashtags":["#标签"]},"moments":{"title":"标题","copy":"正文","hashtags":[]}}
             """;
 
     @Resource
@@ -130,14 +158,21 @@ public class VideoGenerateService {
         File videoFile = new File(workDir, "output.mp4");
         try {
             updateTask(task, STATUS_SCRIPTING, 10, null, null);
-            String script = generateScript(task.getTitle(), task.getStyle(), extraText, orgId, userId);
-            task.setScriptText(script);
-            updateTask(task, STATUS_TTS, 45, null, null);
+            VideoScript script = generateScript(task.getTitle(), task.getStyle(), extraText, orgId, userId);
+            String scriptText = fullScript(script);
+            task.setScriptText(scriptText);
+            // 配套文案（抖音/小红书/朋友圈）：与功能 3 打通，失败不阻断主流程
+            task.setCopyJson(generateCompanionCopy(task.getTitle(), scriptText, orgId, userId));
+            updateTask(task, STATUS_IMAGING, 35, null, null);
 
-            synthesizeAudio(script, task.getVoice(), orgId, audioFile);
-            updateTask(task, STATUS_SYNTH, 75, null, null);
+            List<File> images = generateSceneImages(script, orgId, workDir);
+            updateTask(task, STATUS_TTS, 60, null, null);
 
-            videoSynthesizer.synthesize(audioFile, videoFile, task.getTitle(), script);
+            synthesizeAudio(scriptText, task.getVoice(), orgId, audioFile);
+            updateTask(task, STATUS_SYNTH, 80, null, null);
+
+            List<VideoSynthesizer.Scene> scenes = buildScenes(script, images);
+            videoSynthesizer.synthesize(audioFile, videoFile, task.getTitle(), scenes);
 
             String attachmentId = saveAttachment(videoFile, task, orgId, userId);
             updateTask(task, STATUS_DONE, 100, attachmentId, null);
@@ -195,7 +230,7 @@ public class VideoGenerateService {
 
     // ==================== 私有：脚本生成 ====================
 
-    private String generateScript(String title, String style, String extraText, String orgId, String userId) {
+    private VideoScript generateScript(String title, String style, String extraText, String orgId, String userId) {
         List<AgentModel> models = agentModelService.resolveChatModels(orgId);
         if (models.isEmpty()) {
             throw new GenericException("请先在「模型设置」中配置并启用一个模型");
@@ -221,7 +256,7 @@ public class VideoGenerateService {
                 LlmUsage usage = provider.chatStream(llmRequest, sb::append);
                 aiQuotaService.record(orgId, AiQuotaConstant.AI_VIDEO, model.getModelName(),
                         usage.getInputTokens(), usage.getOutputTokens(), userId);
-                return parseScript(sb.toString());
+                return parseVideoScript(sb.toString(), title);
             } catch (Exception e) {
                 lastError = e;
                 log.warn("短视频脚本生成模型调用失败，自动降级尝试下一个候选，provider={}, model={}",
@@ -249,27 +284,36 @@ public class VideoGenerateService {
         return messages;
     }
 
-    /** 解析模型返回 JSON 的 script 字段；解析失败回退整段原文 */
-    private String parseScript(String text) {
+    /** 解析模型返回 JSON 的分镜字段；无合法分镜时回退整段原文作为单分镜（无配图） */
+    private VideoScript parseVideoScript(String text, String fallbackTitle) {
         String json = extractJson(text);
-        if (json == null) {
-            return text.trim();
-        }
-        try {
-            JsonNode root = MAPPER.readTree(json);
-            String script = root.path("script").asText(null);
-            if (StringUtils.isNotBlank(script)) {
-                return script.trim();
+        if (json != null) {
+            try {
+                JsonNode root = MAPPER.readTree(json);
+                String title = StringUtils.defaultIfBlank(root.path("title").asText(null), fallbackTitle);
+                JsonNode segs = root.path("segments");
+                if (segs.isArray() && !segs.isEmpty()) {
+                    List<VideoSegment> list = new ArrayList<>();
+                    for (JsonNode seg : segs) {
+                        String segText = seg.path("text").asText(null);
+                        if (StringUtils.isNotBlank(segText)) {
+                            list.add(new VideoSegment(segText.trim(), StringUtils.defaultString(seg.path("image").asText(null)).trim()));
+                        }
+                    }
+                    if (!list.isEmpty()) {
+                        return new VideoScript(title, list);
+                    }
+                }
+                // 兼容旧格式：只有 script 字段
+                String script = root.path("script").asText(null);
+                if (StringUtils.isNotBlank(script)) {
+                    return new VideoScript(title, List.of(new VideoSegment(script.trim(), "")));
+                }
+            } catch (Exception e) {
+                log.warn("短视频分镜 JSON 解析失败，回退原文", e);
             }
-            String title = root.path("title").asText(null);
-            if (StringUtils.isNotBlank(title)) {
-                return title.trim();
-            }
-            return text.trim();
-        } catch (Exception e) {
-            log.warn("短视频脚本 JSON 解析失败，回退原文", e);
-            return text.trim();
         }
+        return new VideoScript(fallbackTitle, List.of(new VideoSegment(text.trim(), "")));
     }
 
     /** 剥 ```json ... ``` 包裹，取首个 { 到末个 } 的 JSON 片段；无合法片段返回 null */
@@ -296,6 +340,153 @@ public class VideoGenerateService {
             return null;
         }
         return t.substring(begin, end + 1);
+    }
+
+    // ==================== 私有：配套文案 ====================
+
+    /** 出片配套文案：调对话模型出抖音/小红书/朋友圈三套，返回 JSON 字符串；任一环节失败返回 null，不阻断主流程 */
+    private String generateCompanionCopy(String title, String scriptText, String orgId, String userId) {
+        if (StringUtils.isBlank(scriptText)) {
+            return null;
+        }
+        try {
+            List<AgentModel> models = agentModelService.resolveChatModels(orgId);
+            for (AgentModel model : models) {
+                try {
+                    aiQuotaService.checkModelDailyLimit(orgId, model, userId);
+                    LlmProvider provider = llmProviderFactory.get(model.getProvider());
+                    LlmChatRequest llmRequest = new LlmChatRequest();
+                    llmRequest.setModel(model.getModelName());
+                    llmRequest.setBaseUrl(model.getApiUrl());
+                    llmRequest.setApiKey(model.getApiKey());
+                    agentModelService.applyModelParams(llmRequest, model);
+                    llmRequest.setMessages(buildCopyMessages(title, scriptText));
+
+                    StringBuilder sb = new StringBuilder();
+                    LlmUsage usage = provider.chatStream(llmRequest, sb::append);
+                    aiQuotaService.record(orgId, AiQuotaConstant.AI_VIDEO, model.getModelName(),
+                            usage.getInputTokens(), usage.getOutputTokens(), userId);
+                    return parseCompanionCopy(sb.toString());
+                } catch (Exception e) {
+                    log.warn("短视频配套文案生成失败，尝试下一个候选，provider={}, model={}",
+                            model.getProvider(), model.getModelName(), e);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("短视频配套文案生成异常，跳过", e);
+        }
+        return null;
+    }
+
+    private List<LlmMessage> buildCopyMessages(String title, String scriptText) {
+        List<LlmMessage> messages = new ArrayList<>();
+        messages.add(new LlmMessage("system", COPY_SYSTEM_PROMPT));
+        StringBuilder sb = new StringBuilder();
+        sb.append("视频主题：").append(StringUtils.defaultIfBlank(title, "").trim()).append('\n');
+        sb.append("口播文案：\n").append(scriptText.trim()).append('\n');
+        sb.append("请生成三套配套文案。");
+        messages.add(new LlmMessage("user", sb.toString()));
+        return messages;
+    }
+
+    /** 校验并规范化配套文案 JSON：至少含 douyin/xiaohongshu/moments 之一才视为有效，否则返回 null */
+    private String parseCompanionCopy(String text) {
+        String json = extractJson(text);
+        if (json == null) {
+            return null;
+        }
+        try {
+            JsonNode root = MAPPER.readTree(json);
+            if (!root.isObject()) {
+                return null;
+            }
+            boolean hasAny = root.has("douyin") || root.has("xiaohongshu") || root.has("moments");
+            return hasAny ? root.toString() : null;
+        } catch (Exception e) {
+            log.warn("短视频配套文案 JSON 解析失败，跳过", e);
+            return null;
+        }
+    }
+
+    // ==================== 私有：配图 ====================
+
+    /** 分镜正文拼接为完整口播文案（配音用） */
+    private String fullScript(VideoScript script) {
+        return script.segments().stream().map(VideoSegment::text).collect(java.util.stream.Collectors.joining());
+    }
+
+    /**
+     * 为每个分镜生成配图（豆包 Seedream 文生图）。未配置配图模型或某一镜生成失败时该镜返回 null，
+     * 合成阶段回退纯色背景，保证「有图更好、无图也能成片」。
+     */
+    private List<File> generateSceneImages(VideoScript script, String orgId, File workDir) {
+        int size = script.segments().size();
+        List<File> images = new ArrayList<>(Collections.nCopies(size, null));
+        List<AgentModel> imageModels = agentModelService.resolveImageModels(orgId);
+        if (imageModels.isEmpty()) {
+            return images;
+        }
+        AgentModel model = imageModels.get(0);
+        List<Integer> indexes = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            if (StringUtils.isNotBlank(script.segments().get(i).image())) {
+                indexes.add(i);
+            }
+        }
+        if (indexes.isEmpty()) {
+            return images;
+        }
+        // 文生图单张约 2 分钟，逐张串行会拖到近 10 分钟；最多 4 并发并行生成，缩短等待
+        ExecutorService pool = Executors.newFixedThreadPool(Math.min(indexes.size(), 4));
+        try {
+            List<Future<File>> futures = new ArrayList<>(indexes.size());
+            for (int index : indexes) {
+                VideoSegment segment = script.segments().get(index);
+                futures.add(pool.submit(() -> generateOneImage(
+                        model, segment.image(), new File(workDir, "scene-" + index + ".png"))));
+            }
+            for (int i = 0; i < indexes.size(); i++) {
+                try {
+                    images.set(indexes.get(i), futures.get(i).get());
+                } catch (Exception e) {
+                    log.warn("短视频配图生成失败，第 {} 镜回退纯色背景，provider={}, model={}",
+                            indexes.get(i), model.getProvider(), model.getModelName(), e);
+                }
+            }
+        } finally {
+            pool.shutdown();
+        }
+        return images;
+    }
+
+    /** 单张分镜配图：调 Seedream 文生图并落盘；失败返回 null（回退纯色背景） */
+    private File generateOneImage(AgentModel model, String imagePrompt, File target) {
+        try {
+            LlmProvider provider = llmProviderFactory.get(model.getProvider());
+            LlmImageRequest request = new LlmImageRequest();
+            request.setModel(model.getModelName());
+            request.setBaseUrl(StringUtils.defaultIfBlank(model.getApiUrl(), "https://ark.cn-beijing.volces.com/api/v3"));
+            request.setApiKey(model.getApiKey());
+            request.setSize(IMAGE_SIZE);
+            request.setPrompt(imagePrompt + IMAGE_PROMPT_SUFFIX);
+            byte[] bytes = provider.generateImage(request);
+            Files.write(target.toPath(), bytes);
+            return target;
+        } catch (Exception e) {
+            log.warn("短视频配图生成失败，回退纯色背景，provider={}, model={}",
+                    model.getProvider(), model.getModelName(), e);
+            return null;
+        }
+    }
+
+    /** 组装合成器的分镜列表（文本 + 配图文件，无图时 image=null） */
+    private List<VideoSynthesizer.Scene> buildScenes(VideoScript script, List<File> images) {
+        List<VideoSegment> segments = script.segments();
+        List<VideoSynthesizer.Scene> scenes = new ArrayList<>(segments.size());
+        for (int i = 0; i < segments.size(); i++) {
+            scenes.add(new VideoSynthesizer.Scene(segments.get(i).text(), images.get(i)));
+        }
+        return scenes;
     }
 
     // ==================== 私有：TTS / 合成 / 附件 ====================
@@ -403,6 +594,7 @@ public class VideoGenerateService {
         response.setStatus(task.getStatus());
         response.setProgress(task.getProgress());
         response.setAttachmentId(task.getAttachmentId());
+        response.setCopyJson(task.getCopyJson());
         response.setErrorMsg(task.getErrorMsg());
         response.setCreateTime(task.getCreateTime());
         return response;

@@ -23,9 +23,14 @@
             {{ index + 1 }}
           </span>
           <div class="flex min-w-0 flex-1 flex-col gap-[10px]">
-            <div v-if="item.topic" class="flex items-center gap-[8px]">
-              <span class="content-field-label">{{ t('content.topic') }}</span>
-              <span class="text-[14px] font-semibold text-[var(--text-n1)]">{{ item.topic }}</span>
+            <div class="flex items-center gap-[8px]">
+              <template v-if="item.topic">
+                <span class="content-field-label">{{ t('content.topic') }}</span>
+                <span class="text-[14px] font-semibold text-[var(--text-n1)]">{{ item.topic }}</span>
+              </template>
+              <n-button size="tiny" quaternary type="primary" class="ml-auto" @click="makeVideo(item)">
+                {{ t('content.makeVideo') }}
+              </n-button>
             </div>
             <div v-for="field in itemTextFields(item)" :key="field.label" class="content-field">
               <div class="flex items-center justify-between">
@@ -54,6 +59,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useRouter } from 'vue-router';
   import { NButton, NTag, useMessage } from 'naive-ui';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -66,6 +72,21 @@
 
   const { t } = useI18n();
   const Message = useMessage();
+  const router = useRouter();
+
+  // 一键把这条获客内容带进「短视频生成」：主题 + 口播脚本（缺脚本回退到正文）
+  function makeVideo(item: AiContentItem) {
+    const title = item.topic || item.title || '';
+    const extraText = item.script || item.copy || '';
+    const query: Record<string, string> = {};
+    if (title) {
+      query.title = title;
+    }
+    if (extraText) {
+      query.extraText = extraText;
+    }
+    router.push({ path: '/ai-video/index', query });
+  }
 
   // 每条内容中需要展示 + 可复制的文本字段，按固定顺序渲染
   function itemTextFields(item: AiContentItem) {

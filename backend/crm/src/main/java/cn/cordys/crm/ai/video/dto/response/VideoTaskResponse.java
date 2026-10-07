@@ -30,6 +30,9 @@ public class VideoTaskResponse {
     @Schema(description = "输出视频附件ID，DONE 后可下载")
     private String attachmentId;
 
+    @Schema(description = "配套文案(抖音/小红书/朋友圈 JSON，供前端渲染复制)")
+    private String copyJson;
+
     @Schema(description = "失败原因")
     private String errorMsg;
 

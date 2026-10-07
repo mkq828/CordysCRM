@@ -29,4 +29,5 @@ export default {
   'content.copied': 'Copied',
   'content.empty': 'No results yet',
   'content.rawFallback': 'AI did not return structured output. Raw response:',
+  'content.makeVideo': 'Make video',
 };

@@ -624,6 +624,8 @@ export interface AiVideoTask {
   status: 'PENDING' | 'SCRIPTING' | 'TTS' | 'SYNTH' | 'DONE' | 'FAILED' | string;
   progress?: number;
   attachmentId?: string;
+  /** 配套文案（抖音/小红书/朋友圈 JSON，生成失败为 null） */
+  copyJson?: string;
   errorMsg?: string;
   createTime?: number;
 }

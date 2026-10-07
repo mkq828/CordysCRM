@@ -28,4 +28,5 @@ export default {
   'content.copied': '已复制',
   'content.empty': '暂无生成结果',
   'content.rawFallback': 'AI 未按结构化格式返回，原文如下',
+  'content.makeVideo': '做成视频',
 };

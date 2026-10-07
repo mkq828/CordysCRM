@@ -1,7 +1,9 @@
 package cn.cordys.crm.ai.llm;
 
 import cn.cordys.common.util.JSON;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,6 +16,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +33,9 @@ import java.util.function.Consumer;
 public abstract class OpenAiCompatibleProvider implements LlmProvider {
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(120);
+
+    /** 文生图同步出图较慢（Seedream 5.0 pro 实测约 2 分钟），单独放宽到 5 分钟，避免被对话超时截断 */
+    private static final Duration IMAGE_REQUEST_TIMEOUT = Duration.ofMinutes(5);
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
@@ -117,6 +123,57 @@ public abstract class OpenAiCompatibleProvider implements LlmProvider {
             }
         }
         return usage;
+    }
+
+    @Override
+    public byte[] generateImage(LlmImageRequest request) throws Exception {
+        String url = request.getBaseUrl() + "/images/generations";
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", request.getModel());
+        body.put("prompt", request.getPrompt());
+        body.put("size", request.getSize());
+        body.put("response_format", "url");
+        body.put("watermark", false);
+
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(IMAGE_REQUEST_TIMEOUT)
+                .header("Authorization", "Bearer " + request.getApiKey())
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(JSON.toJSONString(body), StandardCharsets.UTF_8))
+                .build();
+        HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            log.error("{} 文生图失败，status={}, body={}", name(), response.statusCode(), response.body());
+            throw new RuntimeException(name() + " 文生图失败(" + response.statusCode() + ")");
+        }
+
+        JsonNode data = JSON.MAPPER.readTree(response.body()).path("data");
+        if (data.isArray() && !data.isEmpty()) {
+            String imageUrl = data.get(0).path("url").asText(null);
+            if (StringUtils.isNotBlank(imageUrl)) {
+                return downloadImage(imageUrl);
+            }
+            String b64 = data.get(0).path("b64_json").asText(null);
+            if (StringUtils.isNotBlank(b64)) {
+                return Base64.getDecoder().decode(b64);
+            }
+        }
+        throw new RuntimeException(name() + " 文生图未返回图片: " + response.body());
+    }
+
+    /** 下载文生图返回的临时 URL（已签名，通常 24 小时内有效，需及时下载） */
+    private byte[] downloadImage(String imageUrl) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(imageUrl))
+                .timeout(Duration.ofMinutes(2))
+                .GET()
+                .build();
+        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new RuntimeException("图片下载失败(" + response.statusCode() + ")");
+        }
+        return response.body();
     }
 
     /** 构造单条消息；带图片时 content 用 OpenAI 多模态数组（text + image_url） */

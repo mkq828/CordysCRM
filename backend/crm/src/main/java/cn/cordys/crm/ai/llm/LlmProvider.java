@@ -22,4 +22,14 @@ public interface LlmProvider {
      * @return 本次调用的 input/output token 用量
      */
     LlmUsage chatStream(LlmChatRequest request, Consumer<String> onChunk) throws Exception;
+
+    /**
+     * 文生图（OpenAI 兼容 {@code /images/generations}）。仅支持文生图的 provider 覆盖实现，
+     * 其余 provider 默认不支持（如 DeepSeek），调用即抛异常。
+     *
+     * @return 生成图片的二进制内容（jpg/png）
+     */
+    default byte[] generateImage(LlmImageRequest request) throws Exception {
+        throw new UnsupportedOperationException("当前模型不支持文生图: " + name());
+    }
 }

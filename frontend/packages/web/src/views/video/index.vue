@@ -63,12 +63,57 @@
 
       <div class="mt-[12px] text-[12px] text-orange-500">{{ t('video.compliance') }}</div>
     </CrmCard>
+
+    <!-- 配套文案弹窗 -->
+    <n-modal v-model:show="copyModalVisible" preset="card" :title="t('video.copyTitle')" class="!w-[640px]">
+      <n-tabs v-model:value="activeCopyPlatform" type="line" justify-content="space-evenly">
+        <n-tab-pane name="douyin" :tab="t('video.copyDouyin')" />
+        <n-tab-pane name="xiaohongshu" :tab="t('video.copyXiaohongshu')" />
+        <n-tab-pane name="moments" :tab="t('video.copyMoments')" />
+      </n-tabs>
+      <template v-if="platformCopy">
+        <div v-if="platformCopy.title" class="mt-[12px] flex flex-col gap-[4px]">
+          <span class="text-[12px] text-[var(--text-n3)]">{{ t('video.copyLabelTitle') }}</span>
+          <span class="text-[15px] font-semibold text-[var(--text-n1)]">{{ platformCopy.title }}</span>
+        </div>
+        <div v-if="platformCopy.copy" class="mt-[12px] flex flex-col gap-[4px]">
+          <span class="text-[12px] text-[var(--text-n3)]">{{ t('video.copyBody') }}</span>
+          <div
+            class="whitespace-pre-wrap rounded-[6px] bg-[rgb(148_163_184_/_8%)] p-[10px] text-[13px] leading-[1.6] text-[var(--text-n2)]"
+          >
+            {{ platformCopy.copy }}
+          </div>
+        </div>
+        <div v-if="platformCopy.hashtags?.length" class="mt-[12px] flex flex-wrap items-center gap-[6px]">
+          <n-tag v-for="tag in platformCopy.hashtags" :key="tag" size="small" type="warning" :bordered="false">
+            {{ tag }}
+          </n-tag>
+        </div>
+        <div class="mt-[16px]">
+          <n-button type="primary" size="small" @click="copyPlatform">{{ t('video.copyAll') }}</n-button>
+        </div>
+      </template>
+      <n-empty v-else :description="t('video.noCopy')" class="py-[24px]" />
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
   import { computed, h, onBeforeUnmount, onMounted, ref } from 'vue';
-  import { NButton, NDataTable, NEmpty, NInput, NProgress, NSelect, useMessage } from 'naive-ui';
+  import { useRoute } from 'vue-router';
+  import {
+    NButton,
+    NDataTable,
+    NEmpty,
+    NInput,
+    NModal,
+    NProgress,
+    NSelect,
+    NTabPane,
+    NTabs,
+    NTag,
+    useMessage,
+  } from 'naive-ui';
   import dayjs from 'dayjs';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -92,6 +137,7 @@
   const { t } = useI18n();
   const Message = useMessage();
   const { openModal } = useModal();
+  const route = useRoute();
 
   const form = ref<AiVideoGenerateParams>({
     title: '',
@@ -104,7 +150,80 @@
   const loading = ref(false);
   const voices = ref<AiVideoVoice[]>([]);
 
-  const IN_PROGRESS = ['PENDING', 'SCRIPTING', 'TTS', 'SYNTH'];
+  const IN_PROGRESS = ['PENDING', 'SCRIPTING', 'IMAGING', 'TTS', 'SYNTH'];
+
+  // 配套文案（抖音/小红书/朋友圈）
+  interface CompanionCopy {
+    title?: string;
+    copy?: string;
+    hashtags?: string[];
+  }
+  type VideoCompanionCopy = {
+    douyin?: CompanionCopy;
+    xiaohongshu?: CompanionCopy;
+    moments?: CompanionCopy;
+  };
+
+  const copyModalVisible = ref(false);
+  const currentCopy = ref<VideoCompanionCopy | null>(null);
+  const activeCopyPlatform = ref<'douyin' | 'xiaohongshu' | 'moments'>('douyin');
+
+  const platformCopy = computed(() => currentCopy.value?.[activeCopyPlatform.value] ?? null);
+
+  function parseCopy(json?: string): VideoCompanionCopy | null {
+    if (!json) {
+      return null;
+    }
+    try {
+      return JSON.parse(json) as VideoCompanionCopy;
+    } catch {
+      return null;
+    }
+  }
+
+  function handleShowCopy(row: AiVideoTask) {
+    const copy = parseCopy(row.copyJson);
+    if (!copy) {
+      Message.warning(t('video.noCopy'));
+      return;
+    }
+    currentCopy.value = copy;
+    activeCopyPlatform.value = 'douyin';
+    copyModalVisible.value = true;
+  }
+
+  async function writeClipboard(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      Message.success(t('video.copied'));
+    } catch {
+      Message.error(t('common.operationFailed'));
+    }
+  }
+
+  function platformFullText(data?: CompanionCopy): string {
+    if (!data) {
+      return '';
+    }
+    const parts: string[] = [];
+    if (data.title) {
+      parts.push(data.title);
+    }
+    if (data.copy) {
+      parts.push(data.copy);
+    }
+    if (data.hashtags?.length) {
+      parts.push(data.hashtags.join(' '));
+    }
+    return parts.join('\n\n');
+  }
+
+  async function copyPlatform() {
+    const text = platformFullText(platformCopy.value ?? undefined);
+    if (text) {
+      await writeClipboard(text);
+    }
+  }
 
   // 音色列表跟随「模型设置」里 admin 配置的配音模型，换服务商后前端无需改动
   const voiceOptions = computed(() => voices.value.map((v) => ({ label: v.label, value: v.value })));
@@ -134,6 +253,7 @@
     const map: Record<string, string> = {
       PENDING: '#f97316',
       SCRIPTING: '#2563eb',
+      IMAGING: '#2563eb',
       TTS: '#2563eb',
       SYNTH: '#2563eb',
       DONE: '#18a058',
@@ -296,7 +416,7 @@
     {
       title: t('video.colAction'),
       key: 'action',
-      width: 140,
+      width: 220,
       render: (row) =>
         h('div', { class: 'flex items-center gap-[8px]' }, [
           row.status === 'DONE' && row.attachmentId
@@ -304,6 +424,13 @@
                 NButton,
                 { size: 'tiny', text: true, type: 'primary', onClick: () => handleDownload(row) },
                 { default: () => t('video.download') }
+              )
+            : null,
+          row.copyJson
+            ? h(
+                NButton,
+                { size: 'tiny', text: true, type: 'info', onClick: () => handleShowCopy(row) },
+                { default: () => t('video.copy') }
               )
             : null,
           h(
@@ -318,6 +445,15 @@
   onMounted(async () => {
     loading.value = true;
     try {
+      // 从获客内容「做成视频」跳转过来时，带主题/文案进来预填
+      const titleParam = route.query.title;
+      const extraParam = route.query.extraText;
+      if (typeof titleParam === 'string' && titleParam) {
+        form.value.title = titleParam;
+      }
+      if (typeof extraParam === 'string' && extraParam) {
+        form.value.extraText = extraParam;
+      }
       await loadVoices();
       await loadTasks();
       if (hasRunning.value) {

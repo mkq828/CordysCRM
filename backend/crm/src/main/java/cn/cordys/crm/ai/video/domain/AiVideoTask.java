@@ -21,6 +21,9 @@ public class AiVideoTask extends BaseModel {
     @Schema(description = "口播文案全文(分句)")
     private String scriptText;
 
+    @Schema(description = "配套文案(抖音/小红书/朋友圈 JSON，生成失败为 NULL)")
+    private String copyJson;
+
     @Schema(description = "音色标识")
     private String voice;
 

@@ -146,6 +146,25 @@ public class AgentModelService {
         return List.of();
     }
 
+    /**
+     * 解析「文生图」模型（功能 7 短视频配图用）。当前按约定识别：豆包方舟的 seedream 系列模型
+     * （modelName 含 seedream）即配图模型，admin 在模型设置里新增一条 provider=豆包、modelName=doubao-seedream-* 即可生效。
+     * 未配置时返回空列表，业务侧回退纯色背景，不影响成片。
+     */
+    public List<AgentModel> resolveImageModels(String orgId) {
+        AgentModel criteria = new AgentModel();
+        criteria.setOrganizationId(orgId);
+        criteria.setEnable(true);
+        for (AgentModel model : agentModelMapper.select(criteria)) {
+            if ("豆包".equals(model.getProvider())
+                    && StringUtils.defaultString(model.getModelName()).toLowerCase().contains("seedream")
+                    && StringUtils.isNotBlank(model.getApiKey())) {
+                return List.of(model);
+            }
+        }
+        return List.of();
+    }
+
     private List<AgentModel> resolveByIds(String orgId, List<String> modelIds) {
         List<AgentModel> candidates = new ArrayList<>();
         if (modelIds != null) {

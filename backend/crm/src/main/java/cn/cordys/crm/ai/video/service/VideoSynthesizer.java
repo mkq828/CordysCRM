@@ -12,8 +12,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * FFmpeg 视频合成（功能 7 MVP）：竖屏背景 + 封面标题卡 + 口播字幕 + 结尾卡 → mp4。
+ * FFmpeg 视频合成（功能 7）：竖屏背景 + 封面标题卡 + 分镜配图（Ken Burns 推拉）+ 口播字幕 + 结尾卡 → mp4。
  * ffmpeg 为服务器部署依赖，本类通过 ProcessBuilder 调用；字幕走 ASS（libass）渲染，中文由字体配置提供。
+ * 有配图的分镜用 zoompan 做缓慢推拉，无配图的分镜回退纯色背景（配图模型未配置或生成失败时也能成片）。
  */
 @Slf4j
 @Component
@@ -23,7 +24,7 @@ public class VideoSynthesizer {
     private static final int WIDTH = 1080;
     private static final int HEIGHT = 1920;
     private static final int FPS = 30;
-    /** 深色背景（后续可换品牌色或背景图/素材库） */
+    /** 深色背景（无配图分镜与片头片尾的底色） */
     private static final String BACKGROUND_COLOR = "0x1E1B2E";
 
     /** 片头标题卡与片尾卡时长（秒），期间静音 */
@@ -41,23 +42,39 @@ public class VideoSynthesizer {
     @Value("${cordys.video.subtitle-font:PingFang SC}")
     private String subtitleFont;
 
+    /** 一帧画面：口播文本 + 可选配图（无图则纯色背景） */
+    public static class Scene {
+        private final String text;
+        private final File image;
+
+        public Scene(String text, File image) {
+            this.text = text == null ? "" : text;
+            this.image = image;
+        }
+
+        public String text() {
+            return text;
+        }
+
+        public File image() {
+            return image;
+        }
+    }
+
+    /** 合成时的一帧画面（按字数占比分摊后的时长） */
+    private record SceneTiming(String text, File image, double duration) {}
+
     /**
-     * 合成竖屏口播视频：纯色背景 + 标题卡 + 分段字幕 + 结尾卡，输出 mp4。
-     *
-     * @param audioFile  语音文件（wav/mp3）
-     * @param outputFile 输出 mp4
-     * @param title      视频标题（封面大字）
-     * @param script     口播脚本正文（拆分为字幕段）
+     * 合成竖屏口播视频：标题卡 + 分镜（配图 Ken Burns 或纯色）+ 字幕 + 结尾卡，输出 mp4。
      */
-    public void synthesize(File audioFile, File outputFile, String title, String script) throws Exception {
+    public void synthesize(File audioFile, File outputFile, String title, List<Scene> scenes) throws Exception {
         double audioDuration = probeDuration(audioFile);
-        double subtitleEnd = TITLE_DURATION + audioDuration;
-        double totalDuration = subtitleEnd + CLOSING_DURATION;
+        List<SceneTiming> timings = computeTimings(scenes, audioDuration);
 
         File assFile = File.createTempFile("cordys-video-subtitle-", ".ass");
         try {
-            Files.writeString(assFile.toPath(), buildAss(title, script, audioDuration), StandardCharsets.UTF_8);
-            runFfmpeg(audioFile, outputFile, assFile, totalDuration);
+            Files.writeString(assFile.toPath(), buildAss(title, timings, audioDuration), StandardCharsets.UTF_8);
+            runFfmpeg(audioFile, outputFile, assFile, timings);
         } finally {
             assFile.delete();
         }
@@ -67,21 +84,77 @@ public class VideoSynthesizer {
         }
     }
 
-    /** 执行 ffmpeg：背景（总时长）+ 延迟 2s 的音频 + ASS 字幕，编码 h264/aac */
-    private void runFfmpeg(File audioFile, File outputFile, File assFile, double totalDuration) throws Exception {
+    /** 每个分镜时长：按字数占比分摊整段音频 */
+    private List<SceneTiming> computeTimings(List<Scene> scenes, double audioDuration) {
+        if (scenes == null || scenes.isEmpty()) {
+            return List.of();
+        }
+        List<Scene> body = scenes.stream().filter(s -> !s.text().isBlank()).toList();
+        int totalChars = body.stream().mapToInt(s -> s.text().length()).sum();
+        List<SceneTiming> result = new ArrayList<>();
+        for (Scene s : body) {
+            double d = totalChars <= 0 ? audioDuration / body.size()
+                    : audioDuration * s.text().length() / totalChars;
+            result.add(new SceneTiming(s.text(), s.image(), Math.max(d, 0.05)));
+        }
+        return result;
+    }
+
+    /** 执行 ffmpeg：片头纯色 + 每个分镜（配图 zoompan 或纯色）+ 片尾纯色 concat，叠加 ASS 字幕与延迟音频 */
+    private void runFfmpeg(File audioFile, File outputFile, File assFile, List<SceneTiming> timings) throws Exception {
         List<String> command = new ArrayList<>();
         command.add("ffmpeg");
         command.add("-y");
-        command.add("-f");
-        command.add("lavfi");
-        command.add("-i");
-        command.add(String.format("color=c=%s:s=%dx%d:r=%d:d=%.3f",
-                BACKGROUND_COLOR, WIDTH, HEIGHT, FPS, totalDuration));
+
+        List<String> chains = new ArrayList<>();
+        List<String> concatParts = new ArrayList<>();
+        int idx = 0;
+
+        // 片头标题卡：纯色 2s
+        command.addAll(List.of("-f", "lavfi", "-i", colorSource(TITLE_DURATION)));
+        chains.add("[" + idx + ":v]format=yuv420p,setpts=PTS-STARTPTS[t" + idx + "]");
+        concatParts.add("[t" + idx + "]");
+        idx++;
+
+        // 分镜：有配图走 zoompan 推拉，无配图回退纯色
+        for (SceneTiming t : timings) {
+            if (t.image() != null && t.image().exists()) {
+                command.add("-i");
+                command.add(t.image().getAbsolutePath());
+                int frames = Math.max(1, (int) Math.round(t.duration() * FPS));
+                chains.add("[" + idx + ":v]scale=" + WIDTH + ":" + HEIGHT + ":force_original_aspect_ratio=increase,"
+                        + "crop=" + WIDTH + ":" + HEIGHT + ","
+                        + "zoompan=z='min(zoom+0.0006,1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+                        + "d=" + frames + ":s=" + WIDTH + "x" + HEIGHT + ":fps=" + FPS + ","
+                        + "format=yuv420p,setpts=PTS-STARTPTS[v" + idx + "]");
+                concatParts.add("[v" + idx + "]");
+            } else {
+                command.addAll(List.of("-f", "lavfi", "-i", colorSource(t.duration())));
+                chains.add("[" + idx + ":v]format=yuv420p,setpts=PTS-STARTPTS[v" + idx + "]");
+                concatParts.add("[v" + idx + "]");
+            }
+            idx++;
+        }
+
+        // 片尾卡：纯色 2s
+        command.addAll(List.of("-f", "lavfi", "-i", colorSource(CLOSING_DURATION)));
+        chains.add("[" + idx + ":v]format=yuv420p,setpts=PTS-STARTPTS[t" + idx + "]");
+        concatParts.add("[t" + idx + "]");
+        idx++;
+
+        // 音频
         command.add("-i");
         command.add(audioFile.getAbsolutePath());
+        int audioIdx = idx;
+
+        String filterComplex = String.join(";", chains)
+                + ";" + String.join("", concatParts) + "concat=n=" + concatParts.size() + ":v=1:a=0[bg]"
+                + ";[bg]ass=filename=" + assFile.getAbsolutePath() + "[v]"
+                + ";[" + audioIdx + ":a]adelay=" + (long) (TITLE_DURATION * 1000) + "|"
+                + (long) (TITLE_DURATION * 1000) + "[a]";
+
         command.add("-filter_complex");
-        command.add("[1:a]adelay=" + (long) (TITLE_DURATION * 1000) + "|"
-                + (long) (TITLE_DURATION * 1000) + "[a];[0:v]ass=filename=" + assFile.getAbsolutePath() + "[v]");
+        command.add(filterComplex);
         command.add("-map");
         command.add("[v]");
         command.add("-map");
@@ -113,11 +186,13 @@ public class VideoSynthesizer {
         }
     }
 
-    /**
-     * 生成 ASS 字幕：标题卡(0~2s) → 口播字幕(2s 起按字数占比分摊) → 结尾卡(末 2s)。
-     */
-    private String buildAss(String title, String script, double audioDuration) {
-        List<String> segments = splitSegments(script);
+    /** 纯色背景输入源（lavfi color） */
+    private String colorSource(double duration) {
+        return String.format("color=c=%s:s=%dx%d:r=%d:d=%.3f", BACKGROUND_COLOR, WIDTH, HEIGHT, FPS, duration);
+    }
+
+    /** 生成 ASS 字幕：标题卡(0~2s) → 分镜字幕(2s 起按字数占比分摊) → 结尾卡(末 2s) */
+    private String buildAss(String title, List<SceneTiming> timings, double audioDuration) {
         StringBuilder sb = new StringBuilder();
         sb.append("[Script Info]\nScriptType: v4.00+\nPlayResX: ").append(WIDTH)
                 .append("\nPlayResY: ").append(HEIGHT).append("\n\n");
@@ -136,24 +211,20 @@ public class VideoSynthesizer {
         // 标题卡
         sb.append(dialogue(0, TITLE_DURATION, "Title", wrap(sanitize(title), TITLE_MAX_CHARS_PER_LINE)));
 
-        // 口播字幕：按字数占比在 [2, 2+D) 内分摊
-        double subtitleStart = TITLE_DURATION;
-        double subtitleSpan = audioDuration;
-        int totalChars = segments.stream().mapToInt(String::length).sum();
-        double cursor = subtitleStart;
-        for (String seg : segments) {
-            double segDuration = subtitleSpan * seg.length() / Math.max(totalChars, 1);
-            double end = Math.min(cursor + segDuration, subtitleStart + subtitleSpan);
+        // 分镜字幕：按字数占比在 [2, 2+D) 内分摊
+        double cursor = TITLE_DURATION;
+        double spanEnd = TITLE_DURATION + audioDuration;
+        for (SceneTiming t : timings) {
+            double end = Math.min(cursor + t.duration(), spanEnd);
             if (end <= cursor) {
                 continue;
             }
-            sb.append(dialogue(cursor, end, "Sub", wrap(seg, SUBTITLE_MAX_CHARS_PER_LINE)));
+            sb.append(dialogue(cursor, end, "Sub", wrap(sanitize(t.text()), SUBTITLE_MAX_CHARS_PER_LINE)));
             cursor = end;
         }
 
         // 结尾卡
-        double closingStart = TITLE_DURATION + audioDuration;
-        sb.append(dialogue(closingStart, closingStart + CLOSING_DURATION,
+        sb.append(dialogue(spanEnd, spanEnd + CLOSING_DURATION,
                 "Title", wrap(sanitize(CLOSING_TEXT), TITLE_MAX_CHARS_PER_LINE)));
         return sb.toString();
     }
@@ -176,35 +247,6 @@ public class VideoSynthesizer {
 
     private String font() {
         return subtitleFont == null || subtitleFont.isBlank() ? "PingFang SC" : subtitleFont.trim();
-    }
-
-    /** 按句末标点切分脚本，过滤空白；短句合并避免字幕闪动 */
-    private List<String> splitSegments(String script) {
-        String text = sanitize(script);
-        if (text == null || text.isBlank()) {
-            return List.of();
-        }
-        String[] raw = text.split("(?<=[。！？!?；;])");
-        List<String> merged = new ArrayList<>();
-        StringBuilder pending = new StringBuilder();
-        for (String s : raw) {
-            String trimmed = s.trim();
-            if (trimmed.isEmpty()) {
-                continue;
-            }
-            if (pending.length() + trimmed.length() <= SUBTITLE_MAX_CHARS_PER_LINE * 2 && pending.length() < SUBTITLE_MAX_CHARS_PER_LINE) {
-                pending.append(trimmed);
-            } else {
-                if (!pending.isEmpty()) {
-                    merged.add(pending.toString());
-                }
-                pending = new StringBuilder(trimmed);
-            }
-        }
-        if (!pending.isEmpty()) {
-            merged.add(pending.toString());
-        }
-        return merged;
     }
 
     /** 超长行手动按最大字数折行，用 ASS 换行符 \N 连接 */
