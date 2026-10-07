@@ -68,7 +68,9 @@ public class VideoGenerateService {
 
     /** 文生图输出尺寸与画面风格后缀（保证竖屏高清、画面无文字，避免与字幕打架） */
     private static final String IMAGE_SIZE = "1080x1920";
-    private static final String IMAGE_PROMPT_SUFFIX = "，竖屏9:16构图，高清写实，画面中不要出现任何文字";
+    private static final String IMAGE_PROMPT_SUFFIX =
+            "，竖屏9:16构图，高清写实电影质感，画面中不要出现任何文字，不要出现人物与正面人脸"
+                    + "（可用产品特写、场景氛围、细节空镜、手部动作替代）";
 
     /** 分镜脚本：标题 + 若干分镜（每镜口播文本 + 配图提示词） */
     public record VideoScript(String title, List<VideoSegment> segments) {}
@@ -84,8 +86,9 @@ public class VideoGenerateService {
             1. 开头 3 秒有钩子，抓注意力；
             2. 口语化短句、有节奏感，像真人说话；
             3. 讲利益、讲场景，不讲空泛参数；
-            4. 全篇控制在 80~150 字左右，用中文标点断句，方便配音；
-            5. 拆成 3~5 个分镜，每个分镜是口播的一句或几句，并配一句「画面描述」（描述场景/主体/氛围，用于 AI 生成配图，不要出现文字）。
+            4. 全篇控制在 90~160 字左右，用中文标点断句，方便配音；
+            5. 拆成 4~6 个分镜，每个分镜是口播的一句或几句，并配一句「画面描述」。
+            画面描述要求：用于 AI 生成配图，必须是产品特写、场景氛围、细节空镜或手部动作（如切菜、倒茶、展示产品），像 B-roll 镜头；不要出现人物、人脸、主播，不要出现文字。
             只输出一个严格 JSON（不要任何多余文字）：
             {"title":"视频标题","segments":[{"text":"口播内容","image":"画面描述"},{"text":"口播内容","image":"画面描述"}]}
             """;
@@ -100,6 +103,14 @@ public class VideoGenerateService {
             - 微信朋友圈：软性信任感、场景代入、口语化、像朋友分享，不需要标签（hashtags 输出空数组）。
             只输出一个严格 JSON（不要任何多余文字）：
             {"douyin":{"title":"标题","copy":"正文","hashtags":["#标签"]},"xiaohongshu":{"title":"标题","copy":"正文","hashtags":["#标签"]},"moments":{"title":"标题","copy":"正文","hashtags":[]}}
+            """;
+
+    /** 画面描述 system prompt：给定已定稿的口播分镜，只补配图画面描述，不改动口播文字，输出严格 JSON 数组 */
+    private static final String IMAGE_DESC_SYSTEM_PROMPT = """
+            你是短视频画面描述专家。给定视频主题与若干段口播文案，为每一段各生成一句「画面描述」，用于 AI 文生图。
+            要求：产品特写、场景氛围、细节空镜或手部动作（如切菜、倒茶、展示产品），像 B-roll 镜头；不要出现人物、人脸、主播；不要出现文字。
+            只输出一个严格 JSON 数组（不要任何多余文字），数组长度必须与口播段落数一致：
+            ["画面描述1","画面描述2","画面描述3"]
             """;
 
     @Resource
@@ -158,7 +169,7 @@ public class VideoGenerateService {
         File videoFile = new File(workDir, "output.mp4");
         try {
             updateTask(task, STATUS_SCRIPTING, 10, null, null);
-            VideoScript script = generateScript(task.getTitle(), task.getStyle(), extraText, orgId, userId);
+            VideoScript script = buildScript(task.getTitle(), task.getStyle(), extraText, orgId, userId);
             String scriptText = fullScript(script);
             task.setScriptText(scriptText);
             // 配套文案（抖音/小红书/朋友圈）：与功能 3 打通，失败不阻断主流程
@@ -229,6 +240,65 @@ public class VideoGenerateService {
     }
 
     // ==================== 私有：脚本生成 ====================
+
+    /**
+     * 组装口播脚本：用户已提供完整口播文案时直接采用（只补配图画面描述，不重写），否则走 AI 全量生成。
+     * 避免「做成视频」跳转带入的既有文案被模型重写后丢掉钩子与卖点。
+     */
+    private VideoScript buildScript(String title, String style, String extraText, String orgId, String userId) {
+        List<String> provided = splitProvidedScript(extraText);
+        if (!provided.isEmpty()) {
+            AiQuotaRecordResult quota = aiQuotaService.checkQuota(orgId, userId);
+            if (isBlocked(quota.getStatus())) {
+                throw new GenericException(blockedMessage(quota.getStatus()));
+            }
+            List<String> imageDescs = generateImageDescriptions(title, provided, orgId, userId);
+            if (imageDescs.size() == provided.size()) {
+                List<VideoSegment> segments = new ArrayList<>(provided.size());
+                for (int i = 0; i < provided.size(); i++) {
+                    segments.add(new VideoSegment(provided.get(i), imageDescs.get(i)));
+                }
+                return new VideoScript(title, segments);
+            }
+            // 画面描述生成失败时回退全量生成，保证仍有配图
+        }
+        return generateScript(title, style, extraText, orgId, userId);
+    }
+
+    /** 把补充素材当作完整口播文案拆分：足够长且含句末标点才视为现成脚本，否则返回空（走 AI 生成） */
+    private List<String> splitProvidedScript(String extraText) {
+        if (StringUtils.isBlank(extraText)) {
+            return List.of();
+        }
+        String t = extraText.trim();
+        if (t.length() < 40 || !t.matches(".*[。！？；].*")) {
+            return List.of();
+        }
+        String[] sentences = t.split("(?<=[。！？；])");
+        List<String> parts = new ArrayList<>();
+        for (String s : sentences) {
+            String seg = s.trim();
+            if (StringUtils.isNotBlank(seg)) {
+                parts.add(seg);
+            }
+        }
+        return parts.isEmpty() ? List.of() : mergeSegments(parts, 6);
+    }
+
+    /** 分镜过多时按数量均摊合并，控制配图张数与节奏 */
+    private List<String> mergeSegments(List<String> parts, int max) {
+        if (parts.size() <= max) {
+            return parts;
+        }
+        List<String> merged = new ArrayList<>(max);
+        int n = parts.size();
+        for (int i = 0; i < max; i++) {
+            int start = i * n / max;
+            int end = (i + 1) * n / max;
+            merged.add(String.join("", parts.subList(start, Math.min(end, n))));
+        }
+        return merged;
+    }
 
     private VideoScript generateScript(String title, String style, String extraText, String orgId, String userId) {
         List<AgentModel> models = agentModelService.resolveChatModels(orgId);
@@ -413,6 +483,82 @@ public class VideoGenerateService {
     /** 分镜正文拼接为完整口播文案（配音用） */
     private String fullScript(VideoScript script) {
         return script.segments().stream().map(VideoSegment::text).collect(java.util.stream.Collectors.joining());
+    }
+
+    /** 为已定稿的口播分镜补画面描述：一次对话调用返回与分镜数一致的描述数组；失败返回空（回退全量生成） */
+    private List<String> generateImageDescriptions(String title, List<String> segments, String orgId, String userId) {
+        if (segments.isEmpty()) {
+            return List.of();
+        }
+        try {
+            List<AgentModel> models = agentModelService.resolveChatModels(orgId);
+            for (AgentModel model : models) {
+                try {
+                    aiQuotaService.checkModelDailyLimit(orgId, model, userId);
+                    LlmProvider provider = llmProviderFactory.get(model.getProvider());
+                    LlmChatRequest req = new LlmChatRequest();
+                    req.setModel(model.getModelName());
+                    req.setBaseUrl(model.getApiUrl());
+                    req.setApiKey(model.getApiKey());
+                    agentModelService.applyModelParams(req, model);
+                    req.setMessages(buildImageDescMessages(title, segments));
+
+                    StringBuilder sb = new StringBuilder();
+                    LlmUsage usage = provider.chatStream(req, sb::append);
+                    aiQuotaService.record(orgId, AiQuotaConstant.AI_VIDEO, model.getModelName(),
+                            usage.getInputTokens(), usage.getOutputTokens(), userId);
+                    List<String> descs = parseImageDescriptions(sb.toString(), segments.size());
+                    if (descs.size() == segments.size()) {
+                        return descs;
+                    }
+                } catch (Exception e) {
+                    log.warn("短视频画面描述生成失败，尝试下一个候选，provider={}, model={}",
+                            model.getProvider(), model.getModelName(), e);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("短视频画面描述生成异常，跳过", e);
+        }
+        return List.of();
+    }
+
+    private List<LlmMessage> buildImageDescMessages(String title, List<String> segments) {
+        List<LlmMessage> messages = new ArrayList<>();
+        messages.add(new LlmMessage("system", IMAGE_DESC_SYSTEM_PROMPT));
+        StringBuilder sb = new StringBuilder();
+        sb.append("视频主题：").append(StringUtils.defaultIfBlank(title, "").trim()).append('\n');
+        sb.append("口播分镜（共 ").append(segments.size()).append(" 段）：\n");
+        for (int i = 0; i < segments.size(); i++) {
+            sb.append(i + 1).append(". ").append(segments.get(i).trim()).append('\n');
+        }
+        sb.append("请为每一段各生成一句画面描述。");
+        messages.add(new LlmMessage("user", sb.toString()));
+        return messages;
+    }
+
+    /** 解析画面描述 JSON 数组；仅当为数组且条数一致时才采用 */
+    private List<String> parseImageDescriptions(String text, int expected) {
+        String json = extractJson(text);
+        if (json == null) {
+            return List.of();
+        }
+        try {
+            JsonNode root = MAPPER.readTree(json);
+            if (!root.isArray()) {
+                return List.of();
+            }
+            List<String> descs = new ArrayList<>();
+            for (JsonNode node : root) {
+                String d = node.asText(null);
+                if (StringUtils.isNotBlank(d)) {
+                    descs.add(d.trim());
+                }
+            }
+            return descs.size() == expected ? descs : List.of();
+        } catch (Exception e) {
+            log.warn("短视频画面描述 JSON 解析失败，跳过", e);
+            return List.of();
+        }
     }
 
     /**

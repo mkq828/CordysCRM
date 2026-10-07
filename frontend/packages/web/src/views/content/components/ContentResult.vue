@@ -74,9 +74,9 @@
   const Message = useMessage();
   const router = useRouter();
 
-  // 一键把这条获客内容带进「短视频生成」：主题 + 口播脚本（缺脚本回退到正文）
+  // 一键把这条获客内容带进「短视频生成」：标题 + 口播脚本（缺脚本回退到正文）
   function makeVideo(item: AiContentItem) {
-    const title = item.topic || item.title || '';
+    const title = item.title || item.topic || '';
     const extraText = item.script || item.copy || '';
     const query: Record<string, string> = {};
     if (title) {

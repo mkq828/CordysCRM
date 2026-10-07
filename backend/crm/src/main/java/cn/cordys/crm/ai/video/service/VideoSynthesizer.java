@@ -116,18 +116,19 @@ public class VideoSynthesizer {
         concatParts.add("[t" + idx + "]");
         idx++;
 
-        // 分镜：有配图走 zoompan 推拉，无配图回退纯色
+        // 分镜：有配图走 Ken Burns（三种运动交替 + 2x 放大抑制抖动），无配图回退纯色
+        int sceneNo = 0;
         for (SceneTiming t : timings) {
             if (t.image() != null && t.image().exists()) {
                 command.add("-i");
                 command.add(t.image().getAbsolutePath());
                 int frames = Math.max(1, (int) Math.round(t.duration() * FPS));
-                chains.add("[" + idx + ":v]scale=" + WIDTH + ":" + HEIGHT + ":force_original_aspect_ratio=increase,"
-                        + "crop=" + WIDTH + ":" + HEIGHT + ","
-                        + "zoompan=z='min(zoom+0.0006,1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
-                        + "d=" + frames + ":s=" + WIDTH + "x" + HEIGHT + ":fps=" + FPS + ","
-                        + "format=yuv420p,setpts=PTS-STARTPTS[v" + idx + "]");
+                chains.add("[" + idx + ":v]scale=" + (WIDTH * 2) + ":" + (HEIGHT * 2) + ":force_original_aspect_ratio=increase,"
+                        + "crop=" + (WIDTH * 2) + ":" + (HEIGHT * 2) + ","
+                        + kenBurns(sceneNo, frames)
+                        + ",format=yuv420p,setpts=PTS-STARTPTS[v" + idx + "]");
                 concatParts.add("[v" + idx + "]");
+                sceneNo++;
             } else {
                 command.addAll(List.of("-f", "lavfi", "-i", colorSource(t.duration())));
                 chains.add("[" + idx + ":v]format=yuv420p,setpts=PTS-STARTPTS[v" + idx + "]");
@@ -189,6 +190,23 @@ public class VideoSynthesizer {
     /** 纯色背景输入源（lavfi color） */
     private String colorSource(double duration) {
         return String.format("color=c=%s:s=%dx%d:r=%d:d=%.3f", BACKGROUND_COLOR, WIDTH, HEIGHT, FPS, duration);
+    }
+
+    /**
+     * 分镜 Ken Burns 运动表达式：0=中心推近，1=左→右横移，2=右→左横移。
+     * 少于 2 帧退化为中心推近，避免平移表达式的 (frames-1) 除零。
+     */
+    private String kenBurns(int sceneNo, int frames) {
+        int motion = frames < 2 ? 0 : sceneNo % 3;
+        int divisor = Math.max(1, frames - 1);
+        return switch (motion) {
+            case 1 -> "zoompan=z='1.15':x='(iw-iw/zoom)*on/" + divisor + "':y='ih/2-(ih/zoom/2)':"
+                    + "d=" + frames + ":s=" + WIDTH + "x" + HEIGHT + ":fps=" + FPS;
+            case 2 -> "zoompan=z='1.15':x='(iw-iw/zoom)*(1-on/" + divisor + ")':y='ih/2-(ih/zoom/2)':"
+                    + "d=" + frames + ":s=" + WIDTH + "x" + HEIGHT + ":fps=" + FPS;
+            default -> "zoompan=z='min(zoom+0.0018,1.20)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+                    + "d=" + frames + ":s=" + WIDTH + "x" + HEIGHT + ":fps=" + FPS;
+        };
     }
 
     /** 生成 ASS 字幕：标题卡(0~2s) → 分镜字幕(2s 起按字数占比分摊) → 结尾卡(末 2s) */
