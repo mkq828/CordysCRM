@@ -57,6 +57,16 @@
           :input-props="{ autocomplete: 'new-password', name: 'agent_model_api_key' }"
         />
       </n-form-item>
+      <n-form-item :label="t('system.business.modelSettings.description')" path="description">
+        <n-input
+          v-model:value="form.description"
+          clearable
+          type="textarea"
+          :rows="2"
+          :maxlength="500"
+          :placeholder="t('system.business.modelSettings.descriptionPlaceholder')"
+        />
+      </n-form-item>
 
       <div class="mb-[16px] mt-[8px] flex items-center gap-[8px] font-semibold">
         <span>{{ t('system.business.modelSettings.aiParams') }}</span>
@@ -114,9 +124,15 @@
     </n-form>
 
     <template #footerLeft>
-      <div class="flex items-center gap-[8px]">
-        <n-switch v-model:value="form.enable" :rubber-band="false" />
-        <span>{{ t('system.business.modelSettings.enableModel') }}</span>
+      <div class="flex items-center gap-[16px]">
+        <div class="flex items-center gap-[8px]">
+          <n-switch v-model:value="form.enable" :rubber-band="false" />
+          <span>{{ t('system.business.modelSettings.enableModel') }}</span>
+        </div>
+        <div class="flex items-center gap-[8px]">
+          <n-switch v-model:value="form.recommended" :rubber-band="false" />
+          <span>{{ t('system.business.modelSettings.recommendedModel') }}</span>
+        </div>
       </div>
     </template>
   </CrmDrawer>
@@ -190,6 +206,8 @@
     globalDailyLimit: 10000,
     userDailyLimit: 500,
     modelParams: undefined,
+    description: '',
+    recommended: false,
     ...defaultModelParams,
   };
 
@@ -211,6 +229,8 @@
       globalDailyLimit: model.globalDailyLimit ?? defaultForm.globalDailyLimit,
       userDailyLimit: model.userDailyLimit ?? defaultForm.userDailyLimit,
       modelParams: model.modelParams,
+      description: model.description ?? '',
+      recommended: model.recommended ?? false,
       ...modelParams,
     };
   }

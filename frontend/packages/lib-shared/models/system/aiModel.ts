@@ -15,6 +15,10 @@ export interface AiModelSaveParams {
   globalDailyLimit?: number;
   userDailyLimit?: number;
   modelParams?: string;
+  /** 模型描述（短视频风格页展示） */
+  description?: string;
+  /** 是否推荐模型（短视频风格页「推荐」标识） */
+  recommended?: boolean;
 }
 
 export interface AiModelItem extends AiModelSaveParams {

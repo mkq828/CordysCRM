@@ -39,6 +39,12 @@ public class AgentModelResponse {
     @Schema(description = "模型参数（JSON）")
     private String modelParams;
 
+    @Schema(description = "模型描述（短视频风格页展示）")
+    private String description;
+
+    @Schema(description = "是否推荐模型")
+    private Boolean recommended;
+
     @Schema(description = "今日调用量（tokens）")
     private Long dailyTotal;
 

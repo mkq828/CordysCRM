@@ -14,6 +14,8 @@
             m.user_daily_limit,
             m.global_daily_limit,
             m.model_params,
+            m.description,
+            m.recommended,
             m.create_user,
             m.create_time,
             m.update_user,

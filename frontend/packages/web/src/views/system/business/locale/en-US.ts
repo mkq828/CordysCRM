@@ -29,6 +29,9 @@ export default {
   'system.business.modelSettings.userDailyLimit': 'Per-user Daily Limit',
   'system.business.modelSettings.timesTip': ' (tokens)',
   'system.business.modelSettings.enableModel': 'Enable this model',
+  'system.business.modelSettings.description': 'Model description',
+  'system.business.modelSettings.descriptionPlaceholder': 'e.g. Text-to-image model for short-video visuals',
+  'system.business.modelSettings.recommendedModel': 'Recommended',
   'system.business.modelSettings.deleteConfirmTitle': 'Delete {name}?',
   'system.business.modelSettings.deleteConfirmContent':
     'After deletion, the model will be unavailable, please proceed with caution!',

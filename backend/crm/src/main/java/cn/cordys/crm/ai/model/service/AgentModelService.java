@@ -155,14 +155,40 @@ public class AgentModelService {
         AgentModel criteria = new AgentModel();
         criteria.setOrganizationId(orgId);
         criteria.setEnable(true);
+        List<AgentModel> result = new ArrayList<>();
         for (AgentModel model : agentModelMapper.select(criteria)) {
             if ("豆包".equals(model.getProvider())
                     && StringUtils.defaultString(model.getModelName()).toLowerCase().contains("seedream")
                     && StringUtils.isNotBlank(model.getApiKey())) {
-                return List.of(model);
+                result.add(model);
             }
         }
-        return List.of();
+        return result;
+    }
+
+    /**
+     * 解析「图生视频」模型（功能 7 短视频成片，成片方式为「AI 视频」时使用）。识别两类：豆包方舟 seedance 系列，
+     * 以及 MiniMax H 系列（经 OpenAI 兼容口接入、供应商记为「阿里云」，modelName 含 minimax）。
+     * 未配置时返回空列表，风格页「视频模型」区块展示「暂未开放」。
+     */
+    public List<AgentModel> resolveVideoModels(String orgId) {
+        AgentModel criteria = new AgentModel();
+        criteria.setOrganizationId(orgId);
+        criteria.setEnable(true);
+        List<AgentModel> result = new ArrayList<>();
+        for (AgentModel model : agentModelMapper.select(criteria)) {
+            if (isVideoModel(model) && StringUtils.isNotBlank(model.getApiKey())) {
+                result.add(model);
+            }
+        }
+        return result;
+    }
+
+    /** 识别「图生视频」模型：豆包 seedance 系列，或 MiniMax H 系列。 */
+    private boolean isVideoModel(AgentModel model) {
+        String provider = model.getProvider();
+        String name = StringUtils.defaultString(model.getModelName()).toLowerCase();
+        return ("豆包".equals(provider) && name.contains("seedance")) || name.contains("minimax");
     }
 
     private List<AgentModel> resolveByIds(String orgId, List<String> modelIds) {
@@ -232,6 +258,8 @@ public class AgentModelService {
         model.setUserDailyLimit(request.getUserDailyLimit());
         model.setGlobalDailyLimit(request.getGlobalDailyLimit());
         model.setModelParams(request.getModelParams());
+        model.setDescription(request.getDescription());
+        model.setRecommended(Boolean.TRUE.equals(request.getRecommended()));
         model.setCreateUser(userId);
         model.setUpdateUser(userId);
         model.setCreateTime(now);
@@ -253,6 +281,8 @@ public class AgentModelService {
         model.setUserDailyLimit(request.getUserDailyLimit());
         model.setGlobalDailyLimit(request.getGlobalDailyLimit());
         model.setModelParams(request.getModelParams());
+        model.setDescription(request.getDescription());
+        model.setRecommended(Boolean.TRUE.equals(request.getRecommended()));
         model.setUpdateUser(userId);
         model.setUpdateTime(System.currentTimeMillis());
         agentModelMapper.updateById(model);
