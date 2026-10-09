@@ -188,6 +188,57 @@
           />
         </div>
       </n-tab-pane>
+
+      <!-- 额度包 -->
+      <n-tab-pane name="pack" :tab="t('platformAiQuota.packTab')">
+        <div class="flex flex-col gap-[12px]">
+          <div class="flex justify-end">
+            <n-button type="primary" size="small" @click="openPackEdit()">
+              {{ t('platformAiQuota.packAdd') }}
+            </n-button>
+          </div>
+          <div class="text-xs text-orange-500">{{ t('platformAiQuota.packHint') }}</div>
+          <n-data-table :columns="packColumns" :data="packs" :bordered="false" :loading="packLoading" size="small" />
+        </div>
+      </n-tab-pane>
+
+      <!-- 额度包订单 -->
+      <n-tab-pane name="packOrder" :tab="t('platformAiQuota.packOrderTab')">
+        <div class="flex flex-col gap-[12px]">
+          <div class="flex items-center gap-[8px]">
+            <n-input
+              v-model:value="packOrderKeyword"
+              class="!w-[280px]"
+              :placeholder="t('platformAiQuota.packOrderKeywordPh')"
+              clearable
+              @keydown.enter="loadPackOrders"
+            />
+            <n-select
+              v-model:value="packOrderStatus"
+              class="!w-[160px]"
+              clearable
+              :placeholder="t('platformAiQuota.packOrderStatus')"
+              :options="packOrderStatusOptions"
+              @update:value="loadPackOrders"
+            />
+            <n-button type="primary" size="small" @click="loadPackOrders">
+              {{ t('platformAiQuota.search') }}
+            </n-button>
+            <div class="flex-1" />
+            <n-button quaternary size="small" @click="loadPackOrders">
+              {{ t('platformAiQuota.refresh') }}
+            </n-button>
+          </div>
+          <n-data-table
+            :columns="packOrderColumns"
+            :data="packOrders"
+            :bordered="false"
+            :loading="packOrderLoading"
+            :scroll-x="1000"
+            size="small"
+          />
+        </div>
+      </n-tab-pane>
     </n-tabs>
 
     <!-- 模型单价编辑弹窗 -->
@@ -244,6 +295,73 @@
         </div>
       </template>
     </n-modal>
+
+    <!-- 额度包编辑弹窗 -->
+    <n-modal v-model:show="packModal.show" preset="card" :title="packModal.title" class="!w-[520px]">
+      <div class="flex flex-col gap-[12px]">
+        <div class="config-row">
+          <span class="config-label">{{ t('platformAiQuota.packName') }}</span>
+          <n-input v-model:value="packModal.form.name" class="!w-[320px]" />
+        </div>
+        <div class="config-row">
+          <span class="config-label">{{ t('platformAiQuota.packFeature') }}</span>
+          <n-select v-model:value="packModal.form.featureCode" class="!w-[320px]" :options="packFeatureOptions" />
+        </div>
+        <div class="config-row">
+          <span class="config-label">{{ t('platformAiQuota.packCalls') }}</span>
+          <n-input-number v-model:value="packModal.form.calls" :min="1" :precision="0" class="!w-[320px]" />
+        </div>
+        <div class="config-row">
+          <span class="config-label">{{ t('platformAiQuota.packPriceFen') }}</span>
+          <n-input-number v-model:value="packModal.form.priceFen" :min="1" :precision="0" class="!w-[320px]" />
+        </div>
+        <div class="config-row">
+          <span class="config-label">{{ t('platformAiQuota.packStatus') }}</span>
+          <n-switch v-model:value="packModal.form.status" :checked-value="1" :unchecked-value="0">
+            <template #checked>{{ t('platformAiQuota.packStatusOn') }}</template>
+            <template #unchecked>{{ t('platformAiQuota.packStatusOff') }}</template>
+          </n-switch>
+        </div>
+        <div class="config-row">
+          <span class="config-label">{{ t('platformAiQuota.packSort') }}</span>
+          <n-input-number v-model:value="packModal.form.sort" :min="0" :precision="0" class="!w-[320px]" />
+        </div>
+        <div class="config-row">
+          <span class="config-label">{{ t('platformAiQuota.packRemark') }}</span>
+          <n-input v-model:value="packModal.form.remark" type="textarea" class="!w-[320px]" />
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-[8px]">
+          <n-button @click="packModal.show = false">{{ t('platformAiQuota.cancel') }}</n-button>
+          <n-button type="primary" :loading="packModal.loading" @click="submitPack">
+            {{ t('platformAiQuota.save') }}
+          </n-button>
+        </div>
+      </template>
+    </n-modal>
+
+    <!-- 额度包订单取消弹窗 -->
+    <n-modal
+      v-model:show="packCancelModal.show"
+      preset="card"
+      :title="t('platformAiQuota.packOrderCancel')"
+      class="!w-[480px]"
+    >
+      <n-input
+        v-model:value="packCancelModal.remark"
+        type="textarea"
+        :placeholder="t('platformAiQuota.packOrderCancelReasonPh')"
+      />
+      <template #footer>
+        <div class="flex justify-end gap-[8px]">
+          <n-button @click="packCancelModal.show = false">{{ t('platformAiQuota.cancel') }}</n-button>
+          <n-button type="primary" :loading="packCancelModal.loading" @click="submitPackCancel">
+            {{ t('platformAiQuota.save') }}
+          </n-button>
+        </div>
+      </template>
+    </n-modal>
   </div>
 </template>
 
@@ -259,8 +377,10 @@
     NRadioGroup,
     NSelect,
     NSpin,
+    NSwitch,
     NTabPane,
     NTabs,
+    useDialog,
     useMessage,
   } from 'naive-ui';
   import type { EChartsOption } from 'echarts';
@@ -276,6 +396,8 @@
     AdminAiCostTenantRow,
     AiModelPrice,
     AiQuotaConfig,
+    AiQuotaPack,
+    AiQuotaPackOrder,
     AiQuotaRecordResult,
     AiTenantQuotaRow,
   } from '@lib/shared/models/system/platformAiQuota';
@@ -288,6 +410,12 @@
     platformAiQuotaMockRecord,
     platformAiQuotaModelPriceList,
     platformAiQuotaModelPriceSave,
+    platformAiQuotaPackDelete,
+    platformAiQuotaPackList,
+    platformAiQuotaPackOrderCancel,
+    platformAiQuotaPackOrderConfirm,
+    platformAiQuotaPackOrderList,
+    platformAiQuotaPackSave,
     platformAiQuotaTenantList,
     platformAiQuotaTenantQuotaReset,
     platformAiQuotaTenantQuotaSave,
@@ -300,6 +428,7 @@
 
   const { t } = useI18n();
   const Message = useMessage();
+  const dialog = useDialog();
 
   const activeTab = ref('cost');
 
@@ -324,6 +453,11 @@
 
   function fmtTokens(value?: number | string) {
     return Number(value ?? 0).toLocaleString('zh-CN');
+  }
+
+  function fmtTime(time?: number) {
+    if (!time) return '-';
+    return new Date(time).toLocaleString('zh-CN', { hour12: false });
   }
 
   // ==================== 成本看板 ====================
@@ -660,12 +794,242 @@
     },
   ]);
 
+  // ==================== 额度包 ====================
+  const packLoading = ref(false);
+  const packs = ref<AiQuotaPack[]>([]);
+
+  const packModal = reactive<{
+    show: boolean;
+    loading: boolean;
+    title: string;
+    form: {
+      id?: string;
+      featureCode: string;
+      name: string;
+      calls: number;
+      priceFen: number;
+      status: number;
+      sort: number;
+      remark: string;
+    };
+  }>({
+    show: false,
+    loading: false,
+    title: '',
+    form: { featureCode: '', name: '', calls: 100, priceFen: 5000, status: 1, sort: 0, remark: '' },
+  });
+
+  const packFeatureOptions = computed(() => [
+    { label: t('platformAiQuota.packFeatureAll'), value: '' },
+    ...featureCodeOptions,
+  ]);
+
+  async function loadPacks() {
+    packLoading.value = true;
+    try {
+      packs.value = await platformAiQuotaPackList();
+    } finally {
+      packLoading.value = false;
+    }
+  }
+
+  function openPackEdit(row?: AiQuotaPack) {
+    packModal.title = row ? t('platformAiQuota.packEdit') : t('platformAiQuota.packAdd');
+    packModal.form = row
+      ? {
+          id: row.id,
+          featureCode: row.featureCode ?? '',
+          name: row.name,
+          calls: row.calls,
+          priceFen: row.priceFen,
+          status: row.status ?? 1,
+          sort: row.sort ?? 0,
+          remark: row.remark ?? '',
+        }
+      : { featureCode: '', name: '', calls: 100, priceFen: 5000, status: 1, sort: 0, remark: '' };
+    packModal.show = true;
+  }
+
+  async function submitPack() {
+    const { form } = packModal;
+    if (!form.name || !form.calls || !form.priceFen) {
+      Message.warning(t('platformAiQuota.packRequired'));
+      return;
+    }
+    packModal.loading = true;
+    try {
+      await platformAiQuotaPackSave({ ...form });
+      Message.success(t('platformAiQuota.saveSuccess'));
+      packModal.show = false;
+      await loadPacks();
+    } finally {
+      packModal.loading = false;
+    }
+  }
+
+  function deletePack(row: AiQuotaPack) {
+    dialog.warning({
+      title: t('platformAiQuota.packDelete'),
+      content: t('platformAiQuota.packDeleteConfirm'),
+      positiveText: t('platformAiQuota.delete'),
+      negativeText: t('platformAiQuota.cancel'),
+      onPositiveClick: async () => {
+        await platformAiQuotaPackDelete(row.id);
+        Message.success(t('platformAiQuota.deleteSuccess'));
+        await loadPacks();
+      },
+    });
+  }
+
+  const packColumns = computed<DataTableColumns<AiQuotaPack>>(() => [
+    { title: t('platformAiQuota.packName'), key: 'name' },
+    {
+      title: t('platformAiQuota.packFeature'),
+      key: 'featureCode',
+      render: (row) =>
+        row.featureCode ? t(`platformAiQuota.feature.${row.featureCode}`) : t('platformAiQuota.packFeatureAll'),
+    },
+    { title: t('platformAiQuota.packCalls'), key: 'calls', render: (row) => fmtCalls(row.calls) },
+    {
+      title: t('platformAiQuota.packPriceYuan'),
+      key: 'priceFen',
+      render: (row) => `¥ ${(Number(row.priceFen) / 100).toFixed(2)}`,
+    },
+    {
+      title: t('platformAiQuota.packStatus'),
+      key: 'status',
+      render: (row) => (row.status === 1 ? t('platformAiQuota.packStatusOn') : t('platformAiQuota.packStatusOff')),
+    },
+    { title: t('platformAiQuota.packSort'), key: 'sort' },
+    {
+      title: t('platformAiQuota.action'),
+      key: 'action',
+      width: 140,
+      render: (row) =>
+        h('div', { style: 'display:flex;gap:8px;align-items:center;' }, [
+          h(
+            NButton,
+            { size: 'tiny', quaternary: true, type: 'primary', onClick: () => openPackEdit(row) },
+            { default: () => t('platformAiQuota.edit') }
+          ),
+          h(
+            NButton,
+            { size: 'tiny', quaternary: true, type: 'error', onClick: () => deletePack(row) },
+            { default: () => t('platformAiQuota.packDelete') }
+          ),
+        ]),
+    },
+  ]);
+
+  // ==================== 额度包订单 ====================
+  const packOrderLoading = ref(false);
+  const packOrderKeyword = ref('');
+  const packOrderStatus = ref<string | null>(null);
+  const packOrders = ref<AiQuotaPackOrder[]>([]);
+
+  const packOrderStatusOptions = [
+    { label: t('platformAiQuota.packOrder.PENDING'), value: 'PENDING' },
+    { label: t('platformAiQuota.packOrder.CONFIRMED'), value: 'CONFIRMED' },
+    { label: t('platformAiQuota.packOrder.CANCELLED'), value: 'CANCELLED' },
+  ];
+
+  async function loadPackOrders() {
+    packOrderLoading.value = true;
+    try {
+      packOrders.value = await platformAiQuotaPackOrderList({
+        keyword: packOrderKeyword.value || undefined,
+        status: packOrderStatus.value || undefined,
+      });
+    } finally {
+      packOrderLoading.value = false;
+    }
+  }
+
+  async function confirmPackOrder(row: AiQuotaPackOrder) {
+    await platformAiQuotaPackOrderConfirm({ orderId: row.id });
+    Message.success(t('platformAiQuota.packOrderConfirmSuccess'));
+    await loadPackOrders();
+  }
+
+  const packCancelModal = reactive<{ show: boolean; loading: boolean; orderId: string; remark: string }>({
+    show: false,
+    loading: false,
+    orderId: '',
+    remark: '',
+  });
+
+  function openPackCancel(row: AiQuotaPackOrder) {
+    packCancelModal.orderId = row.id;
+    packCancelModal.remark = '';
+    packCancelModal.show = true;
+  }
+
+  async function submitPackCancel() {
+    packCancelModal.loading = true;
+    try {
+      await platformAiQuotaPackOrderCancel({
+        orderId: packCancelModal.orderId,
+        remark: packCancelModal.remark || undefined,
+      });
+      Message.success(t('platformAiQuota.packOrderCancelSuccess'));
+      packCancelModal.show = false;
+      await loadPackOrders();
+    } finally {
+      packCancelModal.loading = false;
+    }
+  }
+
+  const packOrderColumns = computed<DataTableColumns<AiQuotaPackOrder>>(() => [
+    { title: t('platformAiQuota.orgName'), key: 'organizationName', width: 160, fixed: 'left' },
+    { title: t('platformAiQuota.packName'), key: 'packName' },
+    {
+      title: t('platformAiQuota.packFeature'),
+      key: 'featureName',
+      render: (row) => row.featureName || row.featureCode,
+    },
+    { title: t('platformAiQuota.packCalls'), key: 'calls', render: (row) => fmtCalls(row.calls) },
+    {
+      title: t('platformAiQuota.packOrderAmount'),
+      key: 'amountFen',
+      render: (row) => `¥ ${(Number(row.amountFen) / 100).toFixed(2)}`,
+    },
+    { title: t('platformAiQuota.packOrderApplyTime'), key: 'applyTime', render: (row) => fmtTime(row.applyTime) },
+    {
+      title: t('platformAiQuota.packOrderStatus'),
+      key: 'status',
+      render: (row) => t(`platformAiQuota.packOrder.${row.status}`),
+    },
+    {
+      title: t('platformAiQuota.action'),
+      key: 'action',
+      width: 180,
+      fixed: 'right',
+      render: (row) =>
+        row.status === 'PENDING'
+          ? h('div', { style: 'display:flex;gap:8px;align-items:center;' }, [
+              h(
+                NButton,
+                { size: 'tiny', quaternary: true, type: 'primary', onClick: () => confirmPackOrder(row) },
+                { default: () => t('platformAiQuota.packOrderConfirm') }
+              ),
+              h(
+                NButton,
+                { size: 'tiny', quaternary: true, type: 'error', onClick: () => openPackCancel(row) },
+                { default: () => t('platformAiQuota.packOrderCancel') }
+              ),
+            ])
+          : null,
+    },
+  ]);
+
   onMounted(() => {
     window.addEventListener('resize', onResize);
     loadCost();
     loadPrices();
     loadConfig();
     loadTenantQuotas();
+    loadPacks();
+    loadPackOrders();
   });
 
   onBeforeUnmount(() => {

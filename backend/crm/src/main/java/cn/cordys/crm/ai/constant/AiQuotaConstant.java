@@ -36,6 +36,14 @@ public final class AiQuotaConstant {
     public static final String STATUS_RATE_LIMITED = "RATE_LIMITED";
     public static final String STATUS_CIRCUIT_BROKEN = "CIRCUIT_BROKEN";
 
+    // ==================== 额度包订单状态 ====================
+    public static final String PACK_ORDER_PENDING = "PENDING";
+    public static final String PACK_ORDER_CONFIRMED = "CONFIRMED";
+    public static final String PACK_ORDER_CANCELLED = "CANCELLED";
+
+    /** 额度包 feature_code 通用占位（空串 = 全功能通用包） */
+    public static final String PACK_FEATURE_ALL = "";
+
     // ==================== 用量明细状态 ====================
     public static final String RECORD_SUCCESS = "SUCCESS";
 
@@ -80,9 +88,16 @@ public final class AiQuotaConstant {
     /** 短视频生成（功能 7，生成型：脚本走 LLM 挂 G2 额度 + G3 权限，专业版+） */
     public static final String AI_VIDEO = "ai_video";
 
+    /** AI 工具中心（文生图/文案改写/爆款标题/口播脚本/视频转格式，G2 额度 + G3 权限） */
+    public static final String AI_TOOL = "ai_tool";
+
+    /** AI 问数 BI（功能 12，生成型：大白话查数，语义层编译 SQL，G2 额度 + G3 版本开关，企业版） */
+    public static final String AI_ASK_BI = "ai_ask_bi";
+
     public static final List<String> AI_FEATURE_CODES = List.of(
             "ai_advisor", "ai_acquire", "ai_sales_rag", "ai_video", "wecom_auto_analysis",
-            "ai_ppt", "lead_crawl", "dm_profile", "ai_employee", "ai_kb", "digital_human", "ai_call_review");
+            "ai_ppt", "lead_crawl", "dm_profile", "ai_employee", "ai_kb", "digital_human", "ai_call_review",
+            "ai_tool", "ai_ask_bi");
 
     private AiQuotaConstant() {
     }

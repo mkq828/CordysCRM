@@ -5,6 +5,12 @@ import {
   platformAiQuotaMockRecordUrl,
   platformAiQuotaModelPriceListUrl,
   platformAiQuotaModelPriceSaveUrl,
+  platformAiQuotaPackDeleteUrl,
+  platformAiQuotaPackListUrl,
+  platformAiQuotaPackOrderCancelUrl,
+  platformAiQuotaPackOrderConfirmUrl,
+  platformAiQuotaPackOrderListUrl,
+  platformAiQuotaPackSaveUrl,
   platformAiQuotaTenantListUrl,
   platformAiQuotaTenantQuotaResetUrl,
   platformAiQuotaTenantQuotaSaveUrl,
@@ -17,6 +23,11 @@ import type {
   AiQuotaConfig,
   AiQuotaConfigParams,
   AiMockRecordParams,
+  AiQuotaPack,
+  AiQuotaPackOrder,
+  AiQuotaPackOrderHandleParams,
+  AiQuotaPackOrderListParams,
+  AiQuotaPackSaveParams,
   AiQuotaRecordResult,
   AiTenantQuotaListParams,
   AiTenantQuotaResetParams,
@@ -62,6 +73,28 @@ export default function usePlatformAiQuotaApi(CDR: CordysAxios) {
     return CDR.post({ url: platformAiQuotaTenantQuotaResetUrl, data });
   }
 
+  // 额度包商品
+  function packList() {
+    return CDR.get<AiQuotaPack[]>({ url: platformAiQuotaPackListUrl });
+  }
+  function packSave(data: AiQuotaPackSaveParams) {
+    return CDR.post({ url: platformAiQuotaPackSaveUrl, data });
+  }
+  function packDelete(id: string) {
+    return CDR.post({ url: platformAiQuotaPackDeleteUrl, params: { id } });
+  }
+
+  // 额度包订单
+  function packOrderList(data: AiQuotaPackOrderListParams) {
+    return CDR.post<AiQuotaPackOrder[]>({ url: platformAiQuotaPackOrderListUrl, data });
+  }
+  function packOrderConfirm(data: AiQuotaPackOrderHandleParams) {
+    return CDR.post({ url: platformAiQuotaPackOrderConfirmUrl, data });
+  }
+  function packOrderCancel(data: AiQuotaPackOrderHandleParams) {
+    return CDR.post({ url: platformAiQuotaPackOrderCancelUrl, data });
+  }
+
   return {
     cost,
     modelPriceList,
@@ -72,5 +105,11 @@ export default function usePlatformAiQuotaApi(CDR: CordysAxios) {
     tenantList,
     tenantQuotaSave,
     tenantQuotaReset,
+    packList,
+    packSave,
+    packDelete,
+    packOrderList,
+    packOrderConfirm,
+    packOrderCancel,
   };
 }

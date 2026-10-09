@@ -120,3 +120,59 @@ export interface AiTenantQuotaSaveParams {
 export interface AiTenantQuotaResetParams {
   organizationId: string;
 }
+
+// ==================== AI 额度包（平台端） ====================
+
+// 额度包商品
+export interface AiQuotaPack {
+  id: string;
+  featureCode: string;
+  name: string;
+  calls: number;
+  priceFen: number;
+  status: number;
+  sort: number;
+  remark?: string;
+  createTime?: number;
+}
+
+// 额度包商品保存参数
+export interface AiQuotaPackSaveParams {
+  id?: string;
+  featureCode?: string;
+  name: string;
+  calls: number;
+  priceFen: number;
+  status?: number;
+  sort?: number;
+  remark?: string;
+}
+
+// 额度包订单
+export interface AiQuotaPackOrder {
+  id: string;
+  organizationId: string;
+  organizationName: string;
+  packName: string;
+  featureCode: string;
+  featureName: string;
+  calls: number;
+  amountFen: number;
+  status: string;
+  applyTime?: number;
+  confirmTime?: number;
+  remark?: string;
+  createTime?: number;
+}
+
+// 额度包订单列表参数
+export interface AiQuotaPackOrderListParams {
+  keyword?: string;
+  status?: string;
+}
+
+// 额度包订单处理参数（确认/取消）
+export interface AiQuotaPackOrderHandleParams {
+  orderId: string;
+  remark?: string;
+}

@@ -56,28 +56,104 @@
         </div>
       </n-spin>
     </CrmCard>
+
+    <!-- 额度包 -->
+    <CrmCard hide-footer>
+      <template #title>{{ t('aiQuota.packTitle') }}</template>
+      <div class="flex flex-col gap-[20px]">
+        <div>
+          <div class="mb-[8px] flex items-center gap-[8px]">
+            <span class="text-[14px] font-medium text-[#1f2329]">{{ t('aiQuota.packBalanceTitle') }}</span>
+            <span class="text-[12px] text-orange-500">{{ t('aiQuota.packBalanceHint') }}</span>
+          </div>
+          <n-spin :show="packLoading">
+            <n-empty
+              v-if="!packLoading && packBalances.length === 0"
+              :description="t('aiQuota.packNoBalance')"
+              size="small"
+            />
+            <div v-else class="pack-balance-grid">
+              <div v-for="b in packBalances" :key="b.featureCode" class="pack-balance-item">
+                <span class="pack-balance-name">{{ b.featureName }}</span>
+                <span class="pack-balance-value">{{ fmtCalls(b.remainingCalls) }}</span>
+              </div>
+            </div>
+          </n-spin>
+        </div>
+
+        <div>
+          <div class="mb-[8px] flex items-center gap-[8px]">
+            <span class="text-[14px] font-medium text-[#1f2329]">{{ t('aiQuota.packBuyTitle') }}</span>
+            <span class="text-[12px] text-orange-500">{{ t('aiQuota.packBuyHint') }}</span>
+          </div>
+          <n-spin :show="packLoading">
+            <n-empty v-if="!packLoading && packs.length === 0" :description="t('aiQuota.packNoPacks')" size="small" />
+            <div v-else class="pack-grid">
+              <div v-for="p in packs" :key="p.id" class="pack-card">
+                <div class="pack-card-name">{{ p.name }}</div>
+                <div class="pack-card-meta">{{ t('aiQuota.packCalls') }}：{{ fmtCalls(p.calls) }}</div>
+                <div class="pack-card-price">{{ fmtPrice(p.priceFen) }}</div>
+                <n-button size="small" type="primary" :loading="applying === p.id" @click="applyPack(p)">
+                  {{ t('aiQuota.packApply') }}
+                </n-button>
+              </div>
+            </div>
+          </n-spin>
+        </div>
+
+        <div>
+          <div class="mb-[8px] text-[14px] font-medium text-[#1f2329]">{{ t('aiQuota.packMyOrders') }}</div>
+          <n-spin :show="packLoading">
+            <n-empty
+              v-if="!packLoading && packOrders.length === 0"
+              :description="t('aiQuota.packNoOrders')"
+              size="small"
+            />
+            <n-data-table v-else :columns="packOrderColumns" :data="packOrders" :bordered="false" size="small" />
+          </n-spin>
+        </div>
+      </div>
+    </CrmCard>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { NEmpty, NProgress, NRadioButton, NRadioGroup, NSpin, NTag } from 'naive-ui';
+  import { NButton, NDataTable, NEmpty, NProgress, NRadioButton, NRadioGroup, NSpin, NTag, useMessage } from 'naive-ui';
   import type { EChartsOption } from 'echarts';
   import { LineChart } from 'echarts/charts';
   import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components';
   import * as echarts from 'echarts/core';
   import { CanvasRenderer } from 'echarts/renderers';
 
-  import type { AiFeatureUsagePoint, AiQuotaTrendPoint, TenantQuotaOverview } from '@lib/shared/api/modules/aiQuota';
+  import type {
+    AiFeatureUsagePoint,
+    AiQuotaPackBalance,
+    AiQuotaPackItem,
+    AiQuotaPackOrder,
+    AiQuotaTrendPoint,
+    TenantQuotaOverview,
+  } from '@lib/shared/api/modules/aiQuota';
   import { AiQuotaGroupByEnum, AiQuotaStatusEnum } from '@lib/shared/enums/aiQuotaEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
 
-  import { aiQuotaFeatureUsage, aiQuotaOverview, aiQuotaTrend } from '@/api/modules';
+  import {
+    aiQuotaFeatureUsage,
+    aiQuotaOverview,
+    aiQuotaPackApply,
+    aiQuotaPackBalance,
+    aiQuotaPackList,
+    aiQuotaPackOrders,
+    aiQuotaTrend,
+  } from '@/api/modules';
+
+  import type { DataTableColumns } from 'naive-ui';
 
   echarts.use([LineChart, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer]);
 
   const { t } = useI18n();
+  const Message = useMessage();
 
   const loading = ref(false);
   const overview = ref<TenantQuotaOverview | null>(null);
@@ -95,6 +171,16 @@
   function fmtCalls(value?: number | string) {
     const n = Number(value ?? 0);
     return n.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+  }
+
+  function fmtPrice(priceFen?: number | string) {
+    const yuan = Number(priceFen ?? 0) / 100;
+    return `¥ ${yuan.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}`;
+  }
+
+  function fmtTime(time?: number) {
+    if (!time) return '-';
+    return new Date(time).toLocaleString('zh-CN', { hour12: false });
   }
 
   const usagePercent = computed(() => {
@@ -207,11 +293,58 @@
     }
   }
 
+  // ==================== 额度包 ====================
+  const packLoading = ref(false);
+  const packBalances = ref<AiQuotaPackBalance[]>([]);
+  const packs = ref<AiQuotaPackItem[]>([]);
+  const packOrders = ref<AiQuotaPackOrder[]>([]);
+  const applying = ref('');
+
+  async function loadPackData() {
+    packLoading.value = true;
+    try {
+      const [balances, list, orders] = await Promise.all([
+        aiQuotaPackBalance(),
+        aiQuotaPackList(),
+        aiQuotaPackOrders(),
+      ]);
+      packBalances.value = balances;
+      packs.value = list;
+      packOrders.value = orders;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    } finally {
+      packLoading.value = false;
+    }
+  }
+
+  async function applyPack(pack: AiQuotaPackItem) {
+    applying.value = pack.id;
+    try {
+      await aiQuotaPackApply(pack.id);
+      Message.success(t('aiQuota.packApplied'));
+      await loadPackData();
+    } finally {
+      applying.value = '';
+    }
+  }
+
+  const packOrderColumns = computed<DataTableColumns<AiQuotaPackOrder>>(() => [
+    { title: t('aiQuota.packTitle'), key: 'packName' },
+    { title: t('aiQuota.packCalls'), key: 'calls', render: (row) => fmtCalls(row.calls) },
+    { title: t('aiQuota.packPrice'), key: 'amountFen', render: (row) => fmtPrice(row.amountFen) },
+    { title: t('aiQuota.packOrderTime'), key: 'applyTime', render: (row) => fmtTime(row.applyTime) },
+    { title: t('aiQuota.packOrderStatus'), key: 'status', render: (row) => t(`aiQuota.packOrder.${row.status}`) },
+    { title: t('aiQuota.packOrderRemark'), key: 'remark', render: (row) => row.remark || '-' },
+  ]);
+
   onMounted(() => {
     window.addEventListener('resize', onResize);
     loadOverview();
     loadFeatureUsage();
     loadTrend();
+    loadPackData();
   });
 
   onBeforeUnmount(() => {
@@ -269,6 +402,60 @@
       }
       span:last-child {
         text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+    }
+  }
+  .pack-balance-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    .pack-balance-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #f9fafb;
+      .pack-balance-name {
+        font-size: 13px;
+        color: #4b5563;
+      }
+      .pack-balance-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1f2329;
+        font-variant-numeric: tabular-nums;
+      }
+    }
+  }
+  .pack-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    .pack-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      background: #ffffff;
+      .pack-card-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1f2329;
+      }
+      .pack-card-meta {
+        font-size: 12px;
+        color: #8a94a6;
+      }
+      .pack-card-price {
+        margin-bottom: 4px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #f97316;
         font-variant-numeric: tabular-nums;
       }
     }

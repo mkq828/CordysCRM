@@ -105,6 +105,8 @@ public class AiQuotaService {
     @Resource
     private CommonNoticeSendService commonNoticeSendService;
     @Resource
+    private AiQuotaPackService aiQuotaPackService;
+    @Resource
     private StringRedisTemplate stringRedisTemplate;
 
     // ==================== 计量入口（联网后模型层调用） ====================
@@ -158,13 +160,19 @@ public class AiQuotaService {
 
         BigDecimal costCalls = calcCostCalls(inputTokens, outputTokens);
         result.setCostCalls(costCalls);
-        String status = resolveStatus(organizationId, costCalls);
-        if (isPlatformInternalUser(userId)) {
+        boolean internal = isPlatformInternalUser(userId);
+        String status = resolveStatus(organizationId, featureCode, costCalls);
+        if (internal) {
             status = STATUS_NORMAL;
         }
         if (STATUS_HARD_LIMITED.equals(status)) {
             result.setStatus(status);
             return result;
+        }
+
+        // 月配额用完的部分从已购包扣（内部账号豁免，不计量不扣包）
+        if (!internal) {
+            consumePackOverflow(organizationId, featureCode, costCalls);
         }
 
         persistUsage(organizationId, featureCode, modelCode, inputTokens, outputTokens, costCalls, status, userId);
@@ -173,6 +181,24 @@ public class AiQuotaService {
         result.setStatus(status);
         result.setUsedCalls(getUsedCalls(organizationId));
         return result;
+    }
+
+    /**
+     * 只扣本次调用落在「月配额之外」的增量：已购包余额逐次递减，避免把历史已扣部分重复扣账。
+     * 计算公式：增量溢出 = max(0, 已用+本次-月配额) - max(0, 已用-月配额)。
+     */
+    private void consumePackOverflow(String organizationId, String featureCode, BigDecimal costCalls) {
+        if (StringUtils.isBlank(featureCode)) {
+            return;
+        }
+        BigDecimal used = getUsedCalls(organizationId);
+        BigDecimal monthly = BigDecimal.valueOf(getMonthlyQuota(organizationId));
+        BigDecimal overflowAfter = used.add(costCalls).subtract(monthly).max(BigDecimal.ZERO);
+        BigDecimal overflowBefore = used.subtract(monthly).max(BigDecimal.ZERO);
+        BigDecimal incremental = overflowAfter.subtract(overflowBefore);
+        if (incremental.signum() > 0) {
+            aiQuotaPackService.consumePack(organizationId, featureCode, incremental);
+        }
     }
 
     /**
@@ -228,14 +254,17 @@ public class AiQuotaService {
         response.setPeriod(currentPeriod());
         int quota = getMonthlyQuota(organizationId);
         BigDecimal used = getUsedCalls(organizationId);
-        BigDecimal remaining = BigDecimal.valueOf(quota).subtract(used);
+        BigDecimal packBalance = aiQuotaPackService.getPackBalance(organizationId, null);
+        BigDecimal effectiveQuota = BigDecimal.valueOf(quota).add(packBalance);
+        BigDecimal remaining = effectiveQuota.subtract(used);
         if (remaining.signum() < 0) {
             remaining = BigDecimal.ZERO;
         }
-        BigDecimal percent = quota > 0
-                ? used.multiply(BigDecimal.valueOf(100)).divide(BigDecimal.valueOf(quota), 2, RoundingMode.HALF_UP)
+        BigDecimal percent = effectiveQuota.signum() > 0
+                ? used.multiply(BigDecimal.valueOf(100)).divide(effectiveQuota, 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
         response.setQuota(quota);
+        response.setPackBalance(packBalance);
         response.setUsedCalls(used);
         response.setRemainingCalls(remaining);
         response.setUsedPercent(percent);
@@ -576,11 +605,20 @@ public class AiQuotaService {
     /**
      * 根据「已用 + 本次增量」判定额度状态。
      * 软超（100%–softLimitPercent%）：SOFT_LIMITED；硬超（&gt;softLimitPercent%）：HARD_LIMITED。
+     * 调用前预检（featureCode 未知）按该租户全部已购包合计作为兜底，避免误拦截。
      */
     private String resolveStatus(String organizationId, BigDecimal additionalCalls) {
+        return resolveStatus(organizationId, null, additionalCalls);
+    }
+
+    /**
+     * 特征感知的额度判定：有效额度 = 套餐内月配额 + 该功能已购包剩余（featureCode 为空时按全部已购包合计）。
+     * 记账时按 featureCode 精确判定，预检时按合计兜底。
+     */
+    private String resolveStatus(String organizationId, String featureCode, BigDecimal additionalCalls) {
         BigDecimal used = getUsedCalls(organizationId);
         BigDecimal projected = used.add(additionalCalls);
-        BigDecimal quota = BigDecimal.valueOf(getMonthlyQuota(organizationId));
+        BigDecimal quota = effectiveQuota(organizationId, featureCode);
         BigDecimal softLimit = quota.multiply(BigDecimal.valueOf(getSoftLimitPercent()))
                 .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
         if (projected.compareTo(softLimit) > 0) {
@@ -590,6 +628,13 @@ public class AiQuotaService {
             return STATUS_SOFT_LIMITED;
         }
         return STATUS_NORMAL;
+    }
+
+    /** 有效额度 = 套餐内月配额 + 已购额度包剩余（featureCode 为空时取全部已购包合计）。 */
+    private BigDecimal effectiveQuota(String organizationId, String featureCode) {
+        BigDecimal monthly = BigDecimal.valueOf(getMonthlyQuota(organizationId));
+        BigDecimal pack = aiQuotaPackService.getPackBalance(organizationId, featureCode);
+        return monthly.add(pack);
     }
 
     private BigDecimal calcCostCalls(long inputTokens, long outputTokens) {

@@ -17,10 +17,13 @@ public class TenantQuotaOverviewResponse {
     @Schema(description = "本月已用标准次数")
     private BigDecimal usedCalls;
 
-    @Schema(description = "本月配额(标准次数)")
+    @Schema(description = "本月套餐内配额(标准次数)")
     private Integer quota;
 
-    @Schema(description = "剩余次数(配额-已用，下限0)")
+    @Schema(description = "已购额度包剩余(标准次数，各功能包合计)")
+    private BigDecimal packBalance;
+
+    @Schema(description = "剩余次数(套餐内配额+已购包-已用，下限0)")
     private BigDecimal remainingCalls;
 
     @Schema(description = "已用占比(%)")
