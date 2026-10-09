@@ -129,7 +129,8 @@ public class AttachmentService {
                 size = attachment.getSize();
             }
             MediaType contentType = resolveContentType(fileName);
-            boolean inline = preview && (MediaType.APPLICATION_PDF.equals(contentType) || "image".equals(contentType.getType()));
+            boolean inline = preview && (MediaType.APPLICATION_PDF.equals(contentType) || "image".equals(contentType.getType())
+                    || "video".equals(contentType.getType()));
             responseBuilder.header(HttpHeaders.CONTENT_DISPOSITION,
                             (inline ? "inline" : "attachment") + "; filename*=UTF-8''" + encodeName(fileName))
                     .contentLength(size)
@@ -167,6 +168,15 @@ public class AttachmentService {
         }
         if (lower.endsWith(".bmp")) {
             return MediaType.parseMediaType("image/bmp");
+        }
+        if (lower.endsWith(".mp4")) {
+            return MediaType.parseMediaType("video/mp4");
+        }
+        if (lower.endsWith(".webm")) {
+            return MediaType.parseMediaType("video/webm");
+        }
+        if (lower.endsWith(".mov")) {
+            return MediaType.parseMediaType("video/quicktime");
         }
         return MediaType.APPLICATION_OCTET_STREAM;
     }

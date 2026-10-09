@@ -46,10 +46,10 @@ public class AliyunCosyVoiceTtsProvider implements TtsProvider {
     @Override
     public List<TtsVoice> voices() {
         return List.of(
-                new TtsVoice("Cherry", "芊悦（女声·亲切自然）"),
-                new TtsVoice("Serena", "苏瑶（女声·温柔）"),
-                new TtsVoice("Chelsie", "活力女声（甜美）"),
-                new TtsVoice("Ethan", "晨煦（男声·阳光）"));
+                new TtsVoice("Cherry", "芊悦（女声·亲切自然）", "female"),
+                new TtsVoice("Serena", "苏瑶（女声·温柔）", "female"),
+                new TtsVoice("Chelsie", "活力女声（甜美）", "female"),
+                new TtsVoice("Ethan", "晨煦（男声·阳光）", "male"));
     }
 
     @Override

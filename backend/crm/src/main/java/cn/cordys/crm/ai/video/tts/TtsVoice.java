@@ -15,4 +15,7 @@ public class TtsVoice {
     private String value;
 
     private String label;
+
+    /** 音色性别：female/male，前端卡片「女声/男声」标识用；可空 */
+    private String gender;
 }

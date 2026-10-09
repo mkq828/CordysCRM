@@ -610,28 +610,206 @@ export interface DmProfileSnapshot {
 /** 短视频生成-提交参数（功能 7） */
 export interface AiVideoGenerateParams {
   title: string;
+  /** 原始输入（一句话主题或完整文案），脚本生成与分镜台大纲展示用 */
+  sourceText?: string;
+  /** 额外要求/卖点/补充素材（也兼容「做成视频」带入的现成脚本） */
   extraText?: string;
+  /** 风格提示词（可选覆盖，空则随模板） */
+  stylePrompt?: string;
+  /** 角色提示词（可选，空则 AI 按模板与主题决定） */
+  characterPrompt?: string;
+  /** 成片方式：video / image_text（暂都走 Ken Burns） */
+  mode?: string;
+  /** 成片类型：talk / product / scenario / comic（默认 talk 口播科普） */
+  videoType?: string;
+  /** 所选图片模型ID（空则取推荐） */
+  imageModelId?: string;
+  /** 所选视频模型ID（预留） */
+  videoModelId?: string;
   voice?: string;
-  style?: string;
+  templateKey?: string;
+  /** 成片比例：9:16 / 16:9 / 1:1，默认 9:16 */
+  ratio?: string;
 }
 
 /** 短视频生成-任务（列表与详情复用，生成进度由前端轮询感知） */
 export interface AiVideoTask {
   id: string;
   title: string;
+  /** 原始输入（一句话主题或完整文案），分镜台大纲展示用 */
+  sourceText?: string;
   voice?: string;
   style?: string;
-  status: 'PENDING' | 'SCRIPTING' | 'TTS' | 'SYNTH' | 'DONE' | 'FAILED' | string;
+  templateKey?: string;
+  /** 成片方式 video / image_text */
+  mode?: string;
+  /** 成片类型 talk / product / scenario / comic */
+  videoType?: string;
+  /** 所选图片模型ID */
+  imageModelId?: string;
+  /** 所选视频模型ID（预留） */
+  videoModelId?: string;
+  /** 风格提示词 */
+  stylePrompt?: string;
+  /** 角色提示词 */
+  characterPrompt?: string;
+  /** 额外要求 */
+  extraPrompt?: string;
+  status:
+    | 'PENDING'
+    | 'SCRIPTING'
+    | 'SCRIPT_READY'
+    | 'IMAGING'
+    | 'TTS'
+    | 'ASSETS_READY'
+    | 'SYNTH'
+    | 'DONE'
+    | 'FAILED'
+    | string;
   progress?: number;
   attachmentId?: string;
+  /** 封面附件ID（更换/用首镜后回填，空则回退模板封面） */
+  coverAttachmentId?: string;
   /** 配套文案（抖音/小红书/朋友圈 JSON，生成失败为 null） */
   copyJson?: string;
+  /** 分镜 JSON 数组 [{text,image,imageAttachmentId}]，供分镜台展示 */
+  storyboardJson?: string;
   errorMsg?: string;
   createTime?: number;
+}
+
+/** 短视频生成-单个分镜（口播 + 画面描述 + 配图附件ID + 视频提示词 + 镜头视频附件ID） */
+export interface AiVideoStoryboardSegment {
+  text?: string;
+  image?: string;
+  imageAttachmentId?: string;
+  videoPrompt?: string;
+  videoAttachmentId?: string;
+}
+
+/** 短视频生成-编辑单个分镜请求（旁白/画面描述/视频提示词任一为空则保持不变） */
+export interface AiVideoShotUpdateParams {
+  text?: string;
+  image?: string;
+  videoPrompt?: string;
+}
+
+/** 短视频生成-编辑内置提示词请求（风格/角色/额外，null 不变，空串清空） */
+export interface AiVideoPromptUpdateParams {
+  stylePrompt?: string;
+  characterPrompt?: string;
+  extraPrompt?: string;
 }
 
 /** 短视频生成-配音音色选项（跟随已配置的配音模型） */
 export interface AiVideoVoice {
   value: string;
   label: string;
+  /** 音色性别：female/male，卡片「女声/男声」标识用 */
+  gender?: string;
+}
+
+/** 短视频生成-视频模板库选项（模板选择卡片） */
+export interface AiVideoTemplate {
+  templateKey: string;
+  name: string;
+  description?: string;
+  color?: string;
+  softColor?: string;
+  /** 片头/片尾底色，封面预览用（#RRGGBB） */
+  background?: string;
+  /** 片尾引导文案，封面预览用 */
+  closingText?: string;
+}
+
+/** 短视频生成-主题/文案 AI 扩写请求（AI 生成主题 / AI 扩写文案 / AI 生成风格提示词 / 生成内置提示词） */
+export interface AiVideoExpandParams {
+  topic: string;
+  mode?: 'theme' | 'script' | 'style' | 'prompts';
+}
+
+/** 短视频生成-主题/文案 AI 扩写结果（title 用于项目名称，content 用于输入框，prompts 模式返回三条提示词） */
+export interface AiVideoExpandResult {
+  title?: string;
+  content?: string;
+  stylePrompt?: string;
+  characterPrompt?: string;
+  extraPrompt?: string;
+}
+
+/** 短视频生成-音色试听结果（audio 为 base64 WAV） */
+export interface AiVideoVoicePreviewResult {
+  audio?: string;
+}
+
+/** 短视频生成-风格页「模型」区块的单个模型选项 */
+export interface AiVideoModelOption {
+  id: string;
+  label: string;
+  description?: string;
+  recommended?: boolean;
+}
+
+/** 短视频生成-风格页图片/视频模型列表（图片模型跟随已启用的豆包 Seedream，视频模型当前为空） */
+export interface AiVideoModelsResult {
+  imageModels: AiVideoModelOption[];
+  videoModels: AiVideoModelOption[];
+}
+
+/** AI 工具中心-文案类工具流式生成参数 */
+export interface AiToolTextParams {
+  type: 'REWRITE' | 'TITLE' | 'SCRIPT' | string;
+  content: string;
+  option?: string;
+}
+
+/** AI 工具中心-文生图提交参数 */
+export interface AiToolImageParams {
+  prompt: string;
+  size?: string;
+}
+
+/** AI 工具中心-视频转格式提交参数 */
+export interface AiToolTranscodeParams {
+  sourceAttachmentId: string;
+  sourceName?: string;
+  format?: string;
+}
+
+/** AI 工具中心-异步任务（文生图/视频转格式，进度由前端轮询感知） */
+export interface AiToolTask {
+  id: string;
+  type: 'IMAGE' | 'TRANSCODE' | string;
+  name?: string;
+  status: 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED' | string;
+  progress?: number;
+  attachmentId?: string;
+  errorMsg?: string;
+  createTime?: number;
+}
+
+/** AI 问数 BI（功能 12）- 大白话查数请求 */
+export interface AskBiQueryParams {
+  question: string;
+}
+
+/** AI 问数 BI（功能 12）- 查询结果（标题 + 图表类型 + 列名 + 数据行） */
+export interface AskBiQueryResult {
+  title?: string;
+  chartType?: 'number' | 'bar' | 'line' | 'pie' | 'table' | string;
+  columns?: string[];
+  rows?: (string | number)[][];
+}
+
+/** AI 问数 BI（功能 12）- 目录项（指标 key + 中文名） */
+export interface AskBiCatalogItem {
+  key: string;
+  name: string;
+}
+
+/** AI 问数 BI（功能 12）- 目录（可查指标 + 示例问题 + 可查范围提示） */
+export interface AskBiCatalogResult {
+  metrics?: AskBiCatalogItem[];
+  sampleQuestions?: string[];
+  scopeHint?: string;
 }

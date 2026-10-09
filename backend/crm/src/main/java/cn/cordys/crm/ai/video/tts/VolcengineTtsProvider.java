@@ -47,12 +47,18 @@ public class VolcengineTtsProvider implements TtsProvider {
 
     @Override
     public List<TtsVoice> voices() {
-        // seed-tts-2.0 官方音色（示例）；完整音色可在控制台「音色库」查看，如需扩充在模型设置的扩展参数里覆盖
+        // 对齐 printfilm 音色库（seed-tts-2.0 openspeech 预置音色），6 女声 + 4 男声
         return List.of(
-                new TtsVoice("zh_female_vv_uranus_bigtts", "温暖女声"),
-                new TtsVoice("zh_female_wenrouxiaoya_uranus_bigtts", "温柔小雅（女声）"),
-                new TtsVoice("zh_male_liufei_uranus_bigtts", "沉稳男声"),
-                new TtsVoice("zh_male_xuanyijieshuo_uranus_bigtts", "解说男声"));
+                new TtsVoice("zh_female_cancan_uranus_bigtts", "灿灿 · 女声旁白", "female"),
+                new TtsVoice("zh_female_tianmeixiaoyuan_uranus_bigtts", "甜美女声 · 故事", "female"),
+                new TtsVoice("zh_female_shuangkuaisisi_uranus_bigtts", "爽快女声 · 都市", "female"),
+                new TtsVoice("zh_female_vv_uranus_bigtts", "Vivi · 国风女声", "female"),
+                new TtsVoice("zh_female_xiaohe_uranus_bigtts", "小何 · 通用女声", "female"),
+                new TtsVoice("zh_male_shaonianzixin_uranus_bigtts", "少年梓辛 · 男声", "male"),
+                new TtsVoice("zh_male_m191_uranus_bigtts", "云舟 · 稳重男声", "male"),
+                new TtsVoice("zh_male_taocheng_uranus_bigtts", "小天 · 年轻男声", "male"),
+                new TtsVoice("zh_male_ruyayichen_uranus_bigtts", "儒雅逸辰 · 男声", "male"),
+                new TtsVoice("zh_male_baqiqingshu_uranus_bigtts", "霸气青叔 · 男声", "male"));
     }
 
     @Override

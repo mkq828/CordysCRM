@@ -928,7 +928,33 @@ export const {
   getAiVideoTasks,
   getAiVideoTask,
   getAiVideoVoices,
+  previewAiVideoVoice,
+  getAiVideoTemplates,
+  expandAiVideoContent,
+  getAiVideoModels,
+  getAiBiAvailable,
+  getAiBiCatalog,
+  askBiQuery,
   deleteAiVideoTask,
+  setAiVideoCover,
+  setAiVideoFirstShotCover,
+  confirmAiVideoAssets,
+  composeAiVideo,
+  regenerateAiVideoCopy,
+  updateAiVideoShot,
+  updateAiVideoPrompts,
+  regenAiVideoShotImage,
+  previewAiVideoShotVoice,
+  generateAiVideoShots,
+  regenAiVideoShotVideo,
+  uploadAiVideoShotImage,
+  getAiToolAvailable,
+  streamAiToolText,
+  createAiToolImage,
+  createAiToolTranscode,
+  getAiToolTasks,
+  getAiToolTasksPage,
+  deleteAiToolTask,
   downloadAiSalesScriptTemplate,
   preCheckImportAiSalesScript,
   importAiSalesScript,
@@ -1120,7 +1146,15 @@ export const {
   performanceOverview: cityManagerPerformanceOverview,
 } = cityManagerApi;
 
-export const { overview: aiQuotaOverview, trend: aiQuotaTrend, featureUsage: aiQuotaFeatureUsage } = aiQuotaApi;
+export const {
+  overview: aiQuotaOverview,
+  trend: aiQuotaTrend,
+  featureUsage: aiQuotaFeatureUsage,
+  packList: aiQuotaPackList,
+  packBalance: aiQuotaPackBalance,
+  packApply: aiQuotaPackApply,
+  packOrders: aiQuotaPackOrders,
+} = aiQuotaApi;
 
 export const {
   cost: platformAiQuotaCost,
@@ -1132,6 +1166,12 @@ export const {
   tenantList: platformAiQuotaTenantList,
   tenantQuotaSave: platformAiQuotaTenantQuotaSave,
   tenantQuotaReset: platformAiQuotaTenantQuotaReset,
+  packList: platformAiQuotaPackList,
+  packSave: platformAiQuotaPackSave,
+  packDelete: platformAiQuotaPackDelete,
+  packOrderList: platformAiQuotaPackOrderList,
+  packOrderConfirm: platformAiQuotaPackOrderConfirm,
+  packOrderCancel: platformAiQuotaPackOrderCancel,
 } = platformAiQuotaApi;
 
 export const {

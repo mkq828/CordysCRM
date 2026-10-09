@@ -60,7 +60,20 @@ import {
   DmProfileImportUrl,
   AiVideoAvailableUrl,
   AiVideoTasksUrl,
+  AiVideoTemplatesUrl,
   AiVideoVoicesUrl,
+  AiVideoVoicePreviewUrl,
+  AiVideoExpandUrl,
+  AiVideoModelsUrl,
+  AiBiAvailableUrl,
+  AiBiCatalogUrl,
+  AiBiQueryUrl,
+  AiToolAvailableUrl,
+  AiToolTextStreamUrl,
+  AiToolImageUrl,
+  AiToolTranscodeUrl,
+  AiToolTasksUrl,
+  AiToolTasksPageUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -120,7 +133,21 @@ import type {
   DmProfileImportResult,
   AiVideoGenerateParams,
   AiVideoTask,
+  AiVideoShotUpdateParams,
+  AiVideoPromptUpdateParams,
+  AiVideoTemplate,
   AiVideoVoice,
+  AiVideoVoicePreviewResult,
+  AiVideoExpandParams,
+  AiVideoExpandResult,
+  AiVideoModelsResult,
+  AiToolTextParams,
+  AiToolImageParams,
+  AiToolTranscodeParams,
+  AiToolTask,
+  AskBiQueryParams,
+  AskBiQueryResult,
+  AskBiCatalogResult,
 } from '../../models/ai';
 
 interface SseBlock {
@@ -689,8 +716,112 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.delete({ url: `${AiVideoTasksUrl}/${id}` });
   }
 
+  function setAiVideoCover(id: string, params: ImportUploadParams) {
+    return CDR.uploadFile<{ data: AiVideoTask }>({ url: `${AiVideoTasksUrl}/${id}/cover` }, params, 'file');
+  }
+
+  function setAiVideoFirstShotCover(id: string) {
+    return CDR.post<AiVideoTask>({ url: `${AiVideoTasksUrl}/${id}/cover/first-shot` });
+  }
+
+  function confirmAiVideoAssets(id: string) {
+    return CDR.post<AiVideoTask>({ url: `${AiVideoTasksUrl}/${id}/assets` });
+  }
+
+  function composeAiVideo(id: string) {
+    return CDR.post<AiVideoTask>({ url: `${AiVideoTasksUrl}/${id}/compose` });
+  }
+
+  function regenerateAiVideoCopy(id: string) {
+    return CDR.post<AiVideoTask>({ url: `${AiVideoTasksUrl}/${id}/copy` });
+  }
+
+  function updateAiVideoShot(id: string, index: number, data: AiVideoShotUpdateParams) {
+    return CDR.post<AiVideoTask>({ url: `${AiVideoTasksUrl}/${id}/shots/${index}`, data });
+  }
+
+  function updateAiVideoPrompts(id: string, data: AiVideoPromptUpdateParams) {
+    return CDR.post<AiVideoTask>({ url: `${AiVideoTasksUrl}/${id}/prompts`, data });
+  }
+
+  function regenAiVideoShotImage(id: string, index: number, data: AiVideoShotUpdateParams) {
+    return CDR.post<AiVideoTask>({ url: `${AiVideoTasksUrl}/${id}/shots/${index}/regen-image`, data });
+  }
+
+  function previewAiVideoShotVoice(id: string, index: number) {
+    return CDR.post<AiVideoVoicePreviewResult>({ url: `${AiVideoTasksUrl}/${id}/shots/${index}/preview-voice` });
+  }
+
+  function generateAiVideoShots(id: string) {
+    return CDR.post<AiVideoTask>({ url: `${AiVideoTasksUrl}/${id}/videos` });
+  }
+
+  function regenAiVideoShotVideo(id: string, index: number, data: AiVideoShotUpdateParams) {
+    return CDR.post<AiVideoTask>({ url: `${AiVideoTasksUrl}/${id}/shots/${index}/regen-video`, data });
+  }
+
+  function uploadAiVideoShotImage(id: string, index: number, params: ImportUploadParams) {
+    return CDR.uploadFile<{ data: AiVideoTask }>({ url: `${AiVideoTasksUrl}/${id}/shots/${index}/image` }, params, 'file');
+  }
+
   function getAiVideoVoices() {
     return CDR.get<AiVideoVoice[]>({ url: AiVideoVoicesUrl });
+  }
+
+  function previewAiVideoVoice(voice: string) {
+    return CDR.post<AiVideoVoicePreviewResult>({ url: AiVideoVoicePreviewUrl, data: { voice } });
+  }
+
+  function getAiVideoTemplates() {
+    return CDR.get<AiVideoTemplate[]>({ url: AiVideoTemplatesUrl });
+  }
+
+  function expandAiVideoContent(data: AiVideoExpandParams) {
+    return CDR.post<AiVideoExpandResult>({ url: AiVideoExpandUrl, data });
+  }
+
+  function getAiVideoModels() {
+    return CDR.get<AiVideoModelsResult>({ url: AiVideoModelsUrl });
+  }
+
+  function getAiBiAvailable() {
+    return CDR.get<boolean>({ url: AiBiAvailableUrl });
+  }
+
+  function getAiBiCatalog() {
+    return CDR.get<AskBiCatalogResult>({ url: AiBiCatalogUrl });
+  }
+
+  function askBiQuery(data: AskBiQueryParams) {
+    return CDR.post<AskBiQueryResult>({ url: AiBiQueryUrl, data });
+  }
+
+  function getAiToolAvailable() {
+    return CDR.get<boolean>({ url: AiToolAvailableUrl });
+  }
+
+  function streamAiToolText(data: AiToolTextParams, options: AgentChatStreamOptions = {}) {
+    return streamSse(AiToolTextStreamUrl, data, options);
+  }
+
+  function createAiToolImage(data: AiToolImageParams) {
+    return CDR.post<AiToolTask>({ url: AiToolImageUrl, data });
+  }
+
+  function createAiToolTranscode(data: AiToolTranscodeParams) {
+    return CDR.post<AiToolTask>({ url: AiToolTranscodeUrl, data });
+  }
+
+  function getAiToolTasks() {
+    return CDR.get<AiToolTask[]>({ url: AiToolTasksUrl });
+  }
+
+  function getAiToolTasksPage(data: TableQueryParams) {
+    return CDR.post<CommonList<AiToolTask>>({ url: AiToolTasksPageUrl, data });
+  }
+
+  function deleteAiToolTask(id: string) {
+    return CDR.delete({ url: `${AiToolTasksUrl}/${id}` });
   }
 
   function downloadAiSalesScriptTemplate() {
@@ -782,7 +913,33 @@ export default function useAiApi(CDR: CordysAxios) {
     getAiVideoTasks,
     getAiVideoTask,
     getAiVideoVoices,
+    previewAiVideoVoice,
+    getAiVideoTemplates,
+    expandAiVideoContent,
+    getAiVideoModels,
+    getAiBiAvailable,
+    getAiBiCatalog,
+    askBiQuery,
     deleteAiVideoTask,
+    setAiVideoCover,
+    setAiVideoFirstShotCover,
+    confirmAiVideoAssets,
+    composeAiVideo,
+    regenerateAiVideoCopy,
+    updateAiVideoShot,
+    updateAiVideoPrompts,
+    regenAiVideoShotImage,
+    previewAiVideoShotVoice,
+    generateAiVideoShots,
+    regenAiVideoShotVideo,
+    uploadAiVideoShotImage,
+    getAiToolAvailable,
+    streamAiToolText,
+    createAiToolImage,
+    createAiToolTranscode,
+    getAiToolTasks,
+    getAiToolTasksPage,
+    deleteAiToolTask,
     downloadAiSalesScriptTemplate,
     preCheckImportAiSalesScript,
     importAiSalesScript,
