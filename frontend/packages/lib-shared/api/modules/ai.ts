@@ -19,6 +19,7 @@ import {
   AgentMcpConfigListUrl,
   SalesAdvisorAnalyzeUrl,
   SalesAdvisorAnalyzeStreamUrl,
+  SalesAdvisorQueryUrl,
   AiSalesScriptPageUrl,
   AiSalesScriptCategoriesUrl,
   AiSalesScriptAddUrl,
@@ -100,6 +101,8 @@ import type {
   AgentActionSuggestionItem,
   SalesAdvisorAnalyzeParams,
   SalesAdvisorAnalyzeResult,
+  SalesAdvisorQueryParams,
+  SalesAdvisorQueryResult,
   AiSalesScript,
   AiSalesScriptPageParams,
   AiSalesScriptSaveParams,
@@ -544,6 +547,10 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post<SalesAdvisorAnalyzeResult>({ url: SalesAdvisorAnalyzeUrl, data });
   }
 
+  function querySalesAdvisor(data: SalesAdvisorQueryParams) {
+    return CDR.post<SalesAdvisorQueryResult>({ url: SalesAdvisorQueryUrl, data });
+  }
+
   function getAiSalesScriptPage(data: AiSalesScriptPageParams) {
     return CDR.post<CommonList<AiSalesScript>>({ url: AiSalesScriptPageUrl, data });
   }
@@ -870,6 +877,7 @@ export default function useAiApi(CDR: CordysAxios) {
     ignoreAgentActionApprove,
     confirmAgentActionApprove,
     analyzeSalesAdvisor,
+    querySalesAdvisor,
     getAiSalesScriptPage,
     getAiSalesScriptCategories,
     addAiSalesScript,

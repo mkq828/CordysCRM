@@ -3,6 +3,9 @@ package cn.cordys.crm.ai.controller;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.JSON;
 import cn.cordys.context.OrganizationContext;
+import cn.cordys.crm.ai.advisor.dto.request.AdvisorQueryRequest;
+import cn.cordys.crm.ai.advisor.dto.response.AdvisorQueryResponse;
+import cn.cordys.crm.ai.advisor.service.AdvisorDataService;
 import cn.cordys.crm.ai.constant.AiQuotaConstant;
 import cn.cordys.crm.ai.conversation.service.AgentConversationService;
 import cn.cordys.crm.ai.dto.request.SalesAdvisorAnalyzeRequest;
@@ -36,6 +39,8 @@ import java.util.Map;
 public class SalesAdvisorController extends BaseAiStreamController {
 
     @Resource
+    private AdvisorDataService advisorDataService;
+    @Resource
     private SalesAdvisorService salesAdvisorService;
     @Resource
     private AgentConversationService agentConversationService;
@@ -44,6 +49,12 @@ public class SalesAdvisorController extends BaseAiStreamController {
     @Operation(summary = "分析销售会话（粘贴文本 / 截图），返回结构化分析结果")
     public SalesAdvisorAnalyzeResponse analyze(@RequestBody SalesAdvisorAnalyzeRequest request) {
         return salesAdvisorService.analyze(OrganizationContext.getOrganizationId(), request);
+    }
+
+    @PostMapping("/query")
+    @Operation(summary = "军师查数问答（查本人及下属名下的客户/跟进数据，自然语言回答）")
+    public AdvisorQueryResponse query(@RequestBody AdvisorQueryRequest request) {
+        return advisorDataService.query(OrganizationContext.getOrganizationId(), request);
     }
 
     @PostMapping(value = "/analyze/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

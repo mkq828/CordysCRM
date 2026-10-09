@@ -885,6 +885,7 @@ export const {
   ignoreAgentActionApprove,
   confirmAgentActionApprove,
   analyzeSalesAdvisor,
+  querySalesAdvisor,
   getAiSalesScriptPage,
   getAiSalesScriptCategories,
   addAiSalesScript,

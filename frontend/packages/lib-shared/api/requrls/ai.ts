@@ -22,6 +22,7 @@ export const AgentActionApproveIgnoreUrl = '/agent-action-approve/ignore'; // �
 export const AgentActionApproveConfirmUrl = '/agent-action-approve/confirm'; // 确认审核并异步提交执行
 export const SalesAdvisorAnalyzeUrl = '/agent/advisor/analyze'; // AI 销售会话军师-结构化分析
 export const SalesAdvisorAnalyzeStreamUrl = '/agent/advisor/analyze/stream'; // AI 销售会话军师-流式分析
+export const SalesAdvisorQueryUrl = '/agent/advisor/query'; // AI 销售会话军师-查数问答（查本人及下属名下的客户/跟进）
 export const AiSalesScriptPageUrl = '/agent/script/page'; // 销售话术库-分页列表
 export const AiSalesScriptCategoriesUrl = '/agent/script/categories'; // 销售话术库-分类选项
 export const AiSalesScriptAddUrl = '/agent/script/add'; // 销售话术库-新增话术

@@ -1,16 +1,6 @@
 <template>
   <n-scrollbar class="h-full">
     <div class="smart-workbench flex min-h-full flex-col gap-[16px]">
-      <AiChatProvider :runtime="composerRuntime">
-        <AiComposer
-          class="rounded-[4px] !shadow-none"
-          :mcp-options="mcpOptions"
-          submit-mode="emit"
-          :placeholder="t('workbench.smart.composerPlaceholder')"
-          @mcp-updated="loadMcpOptions"
-          @submit="handleComposerSubmit"
-        />
-      </AiChatProvider>
       <SalesAdvisor />
       <n-spin
         v-if="dataOverviewAIRenderString || dataOverviewLoading"
@@ -185,7 +175,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+  import { computed, nextTick, onMounted, ref } from 'vue';
   import { NButton, NEmpty, NScrollbar, NSpin, NTooltip, useMessage } from 'naive-ui';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -195,13 +185,6 @@
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmTag from '@/components/pure/crm-tag/index.vue';
-  import {
-    type AiChatMcp,
-    AiChatProvider,
-    AiComposer,
-    type AiComposerSubmitPayload,
-    createAiChatRuntime,
-  } from '@/components/business/ai-chat';
   import AiMarkdownBlock from '@/components/business/ai-chat/blocks/AiMarkdownBlock.vue';
   import SalesAdvisor from './components/salesAdvisor.vue';
 
@@ -209,7 +192,6 @@
     confirmAgentActionApprove,
     getAgentActionApprovePage,
     getAgentActionSuggestionPage,
-    getAgentMcpConfigList,
     getSmartAiSummary,
     getSmartDataOverview,
     ignoreAgentActionApprove,
@@ -220,21 +202,6 @@
 
   const { t } = useI18n();
   const Message = useMessage();
-
-  const composerRuntime = createAiChatRuntime();
-
-  function handleComposerSubmit(payload: AiComposerSubmitPayload): void {
-    composerRuntime.clear();
-    window.dispatchEvent(
-      new CustomEvent('crm-ai-chat-floating-open', {
-        detail: {
-          content: payload.content,
-          attachments: payload.attachments,
-          mcps: payload.options?.mcps ?? [],
-        },
-      })
-    );
-  }
 
   function decodeContent(content?: string): string {
     if (!content) {
@@ -379,16 +346,6 @@
     }
   }
 
-  const mcpOptions = ref<AiChatMcp[]>([]);
-  async function loadMcpOptions() {
-    try {
-      mcpOptions.value = await getAgentMcpConfigList();
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.log(error);
-    }
-  }
-
   function createActionPager<T>(
     list: Ref<T[]>,
     loading: Ref<boolean>,
@@ -500,15 +457,10 @@
   }
 
   onMounted(async () => {
-    loadMcpOptions();
     await loadDataOverview();
     loadAiSummary();
     suggestionPager.load();
     approvePager.load();
-  });
-
-  onBeforeUnmount(() => {
-    composerRuntime.clear();
   });
 </script>
 

@@ -21,11 +21,17 @@
         </template>
 
         <template #2>
-          <div class="flex h-full flex-col overflow-y-auto px-[24px] pb-[24px]">
-            <div class="text-[13px] text-orange-500">{{ t('workbench.smart.advisorDesc') }}</div>
+          <div class="flex h-full flex-col px-[24px] pb-[16px]">
+            <div class="shrink-0 pt-[16px] text-[13px] text-orange-500">{{ t('workbench.smart.advisorDesc') }}</div>
 
-            <div class="mt-[16px] flex flex-col gap-[16px]">
+            <div class="order-3 flex shrink-0 flex-col gap-[12px] border-t border-[var(--text-n9)] py-[12px]">
+              <n-radio-group v-model:value="queryMode" size="small">
+                <n-radio-button value="analyze">{{ t('workbench.smart.advisorModeAnalyze') }}</n-radio-button>
+                <n-radio-button value="query">{{ t('workbench.smart.advisorModeQuery') }}</n-radio-button>
+              </n-radio-group>
+
               <n-select
+                v-if="queryMode === 'analyze'"
                 v-model:value="customerId"
                 clearable
                 filterable
@@ -36,22 +42,7 @@
                 @search="handleSearchCustomer"
               />
 
-              <n-input
-                v-model:value="message"
-                type="textarea"
-                :placeholder="t('workbench.smart.advisorPlaceholder')"
-                :autosize="{ minRows: 3, maxRows: 10 }"
-              />
-
-              <div class="flex flex-wrap items-center gap-[8px]">
-                <n-upload :custom-request="customUpload" :show-file-list="false" accept="image/*" multiple>
-                  <n-button size="small" :disabled="analyzing">
-                    <template #icon>
-                      <CrmIcon type="iconicon_link1" :size="16" />
-                    </template>
-                    {{ t('workbench.smart.advisorUploadTip') }}
-                  </n-button>
-                </n-upload>
+              <div v-if="queryMode === 'analyze' && pics.length" class="flex flex-wrap items-center gap-[8px]">
                 <n-tag
                   v-for="(pic, index) in pics"
                   :key="pic.id"
@@ -64,14 +55,59 @@
                 </n-tag>
               </div>
 
-              <div>
-                <AiActionButton :loading="analyzing" :disabled="!canAnalyze" @click="handleAnalyze">
-                  {{ analyzing ? t('workbench.smart.advisorAnalyzing') : t('workbench.smart.advisorAnalyze') }}
-                </AiActionButton>
+              <div class="advisor-composer relative">
+                <n-input
+                  v-model:value="message"
+                  type="textarea"
+                  :placeholder="
+                    queryMode === 'query'
+                      ? t('workbench.smart.advisorQueryPlaceholder')
+                      : t('workbench.smart.advisorPlaceholder')
+                  "
+                  :autosize="{ minRows: 3, maxRows: 10 }"
+                />
+
+                <div class="absolute bottom-[8px] left-[8px] right-[8px] flex items-center justify-between">
+                  <n-upload
+                    v-if="queryMode === 'analyze'"
+                    :custom-request="customUpload"
+                    :show-file-list="false"
+                    accept="image/*"
+                    multiple
+                  >
+                    <n-button
+                      text
+                      class="advisor-tool-button"
+                      :title="t('workbench.smart.advisorUploadTip')"
+                      :disabled="analyzing"
+                    >
+                      <template #icon>
+                        <CrmIcon type="iconicon_link1" :size="16" color="var(--text-n4)" />
+                      </template>
+                    </n-button>
+                  </n-upload>
+                  <span v-else />
+
+                  <n-button
+                    circle
+                    size="small"
+                    type="primary"
+                    :loading="analyzing"
+                    :disabled="!canAnalyze"
+                    @click="handleAnalyze"
+                  >
+                    <template #icon>
+                      <CrmIcon type="iconicon_send" :size="14" color="var(--text-n10)" />
+                    </template>
+                  </n-button>
+                </div>
               </div>
             </div>
 
-            <div class="mt-[20px] flex flex-col gap-[16px]">
+            <div
+              ref="scrollContainerRef"
+              class="order-2 mt-[12px] flex flex-1 flex-col gap-[16px] overflow-y-auto rounded-[8px] border border-[var(--text-n8)] p-[16px]"
+            >
               <n-empty
                 v-if="!thread.length && !streaming"
                 :description="t('workbench.smart.advisorNoResult')"
@@ -108,6 +144,21 @@
                     >
                       {{ item.content }}
                     </div>
+                    <template v-if="item.queryResult?.queried && item.queryResult.rows?.length">
+                      <n-collapse>
+                        <n-collapse-item
+                          :title="`${t('workbench.smart.advisorDataSource')}（${item.queryResult.rows.length} 条）`"
+                          name="data"
+                        >
+                          <n-data-table
+                            :columns="toQueryColumns(item.queryResult.columns)"
+                            :data="toQueryRows(item.queryResult)"
+                            size="small"
+                            :max-height="320"
+                          />
+                        </n-collapse-item>
+                      </n-collapse>
+                    </template>
                     <AdvisorResult v-if="item.payload" :result="item.payload" />
                     <div v-if="item.payload" class="flex justify-end">
                       <n-button size="small" type="primary" @click="handleToFollow(item.payload)">
@@ -119,14 +170,14 @@
               </template>
 
               <div v-if="streaming" class="flex flex-col gap-[8px]">
-                <div class="flex items-center gap-[8px]">
+                <div v-if="!streamingText" class="flex items-center gap-[8px]">
                   <CrmIcon
                     type="iconicon_loading"
                     :size="16"
                     color="linear-gradient(90deg, #f97316, #ec4899, #8b5cf6, #22d3ee)"
                     class="ai-loading-spin"
                   />
-                  <ShimmerText size="16px">{{ t('workbench.smart.advisorAnalyzing') }}</ShimmerText>
+                  <ShimmerText size="16px">{{ t('workbench.smart.advisorThinking') }}</ShimmerText>
                 </div>
                 <div v-if="streamingText" class="whitespace-pre-wrap text-[13px] leading-[1.6] text-[var(--text-n2)]">
                   {{ streamingText }}
@@ -148,11 +199,16 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, ref } from 'vue';
+  import { computed, nextTick, onMounted, ref, watch } from 'vue';
   import {
     NButton,
+    NCollapse,
+    NCollapseItem,
+    NDataTable,
     NEmpty,
     NInput,
+    NRadioButton,
+    NRadioGroup,
     NSelect,
     NTag,
     NUpload,
@@ -167,18 +223,18 @@
     AgentConversationDetail,
     AgentConversationMessage,
     SalesAdvisorAnalyzeResult,
+    SalesAdvisorQueryResult,
   } from '@lib/shared/models/ai';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmSplitPanel from '@/components/pure/crm-split-panel/index.vue';
   import ShimmerText from '@/components/pure/effects/ShimmerText.vue';
-  import AiActionButton from '@/components/business/ai-action-button/index.vue';
   import AiConversationPanel from '@/components/business/ai-conversation-panel/index.vue';
   import CrmFormCreateDrawer from '@/components/business/crm-form-create-drawer/index.vue';
   import AdvisorResult from './AdvisorResult.vue';
 
-  import { getCustomerOptions, streamSalesAdvisor, uploadTempAttachment } from '@/api/modules';
+  import { getCustomerOptions, querySalesAdvisor, streamSalesAdvisor, uploadTempAttachment } from '@/api/modules';
   import useTypewriter from '@/hooks/useTypewriter';
   import useUserStore from '@/store/modules/user';
 
@@ -191,6 +247,10 @@
   const message = ref('');
   const analyzing = ref(false);
   const streaming = ref(false);
+
+  // 输入类型：分析对话（默认，保持原有能力） / 查客户数据（自然语言查本人及下级名下客户与跟进）
+  type AdvisorMode = 'analyze' | 'query';
+  const queryMode = ref<AdvisorMode>('analyze');
   const { text: streamingText, feed: feedStreaming, finish: finishStreaming, reset: resetStreaming } = useTypewriter();
 
   interface Pic {
@@ -236,6 +296,7 @@
     time?: number;
     userName?: string;
     payload?: SalesAdvisorAnalyzeResult | null;
+    queryResult?: SalesAdvisorQueryResult | null;
     status?: string;
   }
 
@@ -243,7 +304,52 @@
   const activeConversationId = ref('');
   const conversationPanelRef = ref<InstanceType<typeof AiConversationPanel>>();
 
-  const canAnalyze = computed(() => !analyzing.value && (message.value.trim() !== '' || pics.value.length > 0));
+  // 对话滚动区（DeepSeek 式：输入框固定底部，中间对话记录可滚动，新消息自动滚到底）
+  const scrollContainerRef = ref<HTMLElement | null>(null);
+
+  function isNearBottom(): boolean {
+    const el = scrollContainerRef.value;
+    if (!el) {
+      return true;
+    }
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  }
+
+  async function scrollToBottom(force = false) {
+    const el = scrollContainerRef.value;
+    if (!el) {
+      return;
+    }
+    if (!force && !isNearBottom()) {
+      return;
+    }
+    await nextTick();
+    el.scrollTop = el.scrollHeight;
+  }
+
+  // 新增消息（用户发送 / AI 回复）时强制滚到底；流式打字时仅在接近底部才跟随
+  watch(
+    () => thread.value.length,
+    () => {
+      scrollToBottom(true);
+    }
+  );
+  watch(
+    () => streamingText.value,
+    () => {
+      scrollToBottom(false);
+    }
+  );
+
+  const canAnalyze = computed(() => {
+    if (analyzing.value) {
+      return false;
+    }
+    if (queryMode.value === 'query') {
+      return message.value.trim() !== '';
+    }
+    return message.value.trim() !== '' || pics.value.length > 0;
+  });
   const currentUserName = computed(() => userStore.userInfo.name || '');
 
   function formatTime(ts?: number): string {
@@ -261,16 +367,47 @@
     }
   }
 
+  // 查数消息的 payload 是 { columns, rows }；据此与结构化分析结果区分开
+  function parseQueryPayload(payload?: string | null): SalesAdvisorQueryResult | null {
+    if (!payload) {
+      return null;
+    }
+    try {
+      const parsed = JSON.parse(payload) as { columns?: string[]; rows?: unknown[][] };
+      if (Array.isArray(parsed.columns)) {
+        return {
+          answer: '',
+          queried: true,
+          columns: parsed.columns,
+          rows: (parsed.rows || []) as (string | number | boolean | null)[][],
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   function toThreadItems(messages: AgentConversationMessage[]): ThreadItem[] {
-    return (messages || []).map((msg) => ({
-      id: msg.id,
-      role: msg.role,
-      content: msg.content || '',
-      time: msg.createTime,
-      userName: msg.role === 'USER' ? currentUserName.value : undefined,
-      payload: msg.role === 'ASSISTANT' ? parsePayload(msg.payload) : null,
-      status: msg.status,
-    }));
+    return (messages || []).map((msg) => {
+      const item: ThreadItem = {
+        id: msg.id,
+        role: msg.role,
+        content: msg.content || '',
+        time: msg.createTime,
+        userName: msg.role === 'USER' ? currentUserName.value : undefined,
+        payload: null,
+        queryResult: null,
+        status: msg.status,
+      };
+      if (msg.role === 'ASSISTANT') {
+        item.queryResult = parseQueryPayload(msg.payload);
+        if (!item.queryResult) {
+          item.payload = parsePayload(msg.payload);
+        }
+      }
+      return item;
+    });
   }
 
   function handleSelectHistory(detail: AgentConversationDetail): void {
@@ -304,10 +441,7 @@
     pics.value.splice(index, 1);
   }
 
-  async function handleAnalyze() {
-    if (!canAnalyze.value) {
-      return;
-    }
+  async function handleAnalyzeStream() {
     analyzing.value = true;
     streaming.value = true;
     resetStreaming();
@@ -374,6 +508,71 @@
     }
   }
 
+  async function handleQuery() {
+    const question = message.value.trim();
+    if (!question) {
+      return;
+    }
+    analyzing.value = true;
+    streaming.value = true;
+    resetStreaming();
+
+    thread.value.push({
+      id: `u_${Date.now()}`,
+      role: 'USER',
+      content: question,
+      time: Date.now(),
+      userName: currentUserName.value,
+    });
+
+    try {
+      const result = await querySalesAdvisor({
+        question,
+        conversationId: activeConversationId.value || undefined,
+      });
+      activeConversationId.value = result.conversationId || activeConversationId.value;
+
+      // 查数回答也走打字机逐字输出，避免一次性刷出一大段
+      feedStreaming(result.answer || '');
+      await finishStreaming();
+
+      thread.value.push({
+        id: `a_${Date.now()}`,
+        role: 'ASSISTANT',
+        content: streamingText.value,
+        time: Date.now(),
+        queryResult: result,
+        status: 'done',
+      });
+      message.value = '';
+      // 刷新左侧历史，让本次查数会话实时出现在列表里
+      conversationPanelRef.value?.reload();
+    } catch (error) {
+      thread.value.push({
+        id: `a_${Date.now()}`,
+        role: 'ASSISTANT',
+        content: (error as Error)?.message || t('common.operationFailed'),
+        time: Date.now(),
+        status: 'error',
+      });
+    } finally {
+      streaming.value = false;
+      resetStreaming();
+      analyzing.value = false;
+    }
+  }
+
+  async function handleAnalyze() {
+    if (!canAnalyze.value) {
+      return;
+    }
+    if (queryMode.value === 'query') {
+      await handleQuery();
+      return;
+    }
+    await handleAnalyzeStream();
+  }
+
   const followDrawerVisible = ref(false);
   const followInitialValues = ref<Record<string, any>>({});
 
@@ -418,6 +617,33 @@
     Message.success(t('common.operationSuccess'));
     followDrawerVisible.value = false;
   }
+
+  function toQueryColumns(cols: string[] = []) {
+    return cols.map((col) => ({ title: col, key: col, ellipsis: { tooltip: true } }));
+  }
+
+  function toQueryRows(result: SalesAdvisorQueryResult) {
+    const cols = result.columns || [];
+    return (result.rows || []).map((row) => {
+      const obj: Record<string, unknown> = {};
+      cols.forEach((col, i) => {
+        obj[col] = row[i];
+      });
+      return obj;
+    });
+  }
 </script>
 
-<style scoped></style>
+<style scoped lang="scss">
+  .advisor-composer :deep(textarea) {
+    padding-bottom: 36px;
+  }
+  .advisor-tool-button {
+    padding: 2px 4px;
+    height: 26px !important;
+    border-radius: 4px;
+    &:hover {
+      background: var(--text-n9);
+    }
+  }
+</style>

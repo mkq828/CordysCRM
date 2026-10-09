@@ -203,6 +203,21 @@ export interface SalesAdvisorAnalyzeResult {
   rawAnalysis?: string;
 }
 
+/** AI 销售会话军师查数请求：一句大白话（例如「张三最近跟进到哪了」） */
+export interface SalesAdvisorQueryParams {
+  question: string;
+  conversationId?: string;
+}
+
+/** AI 销售会话军师查数响应：自然语言回答 + 可折叠数据来源 */
+export interface SalesAdvisorQueryResult {
+  answer: string;
+  queried: boolean;
+  columns: string[];
+  rows: (string | number | boolean | null)[][];
+  conversationId?: string;
+}
+
 /** 销售话术库-话术条目 */
 export interface AiSalesScript {
   id?: string;
