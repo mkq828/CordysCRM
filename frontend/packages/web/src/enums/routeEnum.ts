@@ -164,6 +164,16 @@ export enum VideoRouteEnum {
   VIDEO_INDEX = 'aiVideoIndex',
 }
 
+export enum AiCreationRouteEnum {
+  AI_CREATION = 'aiCreation',
+  AI_CREATION_INDEX = 'aiCreationIndex',
+}
+
+export enum AskBiRouteEnum {
+  ASK_BI = 'aiAskBi',
+  ASK_BI_INDEX = 'aiAskBiIndex',
+}
+
 export enum AiEmployeeRouteEnum {
   AI_EMPLOYEE = 'aiEmployee',
   AI_EMPLOYEE_INDEX = 'aiEmployeeIndex',
@@ -208,6 +218,8 @@ export const AppRouteEnum = {
   ...PptRouteEnum,
   ...LeadCrawlRouteEnum,
   ...VideoRouteEnum,
+  ...AiCreationRouteEnum,
+  ...AskBiRouteEnum,
   ...AiEmployeeRouteEnum,
   ...EffectsRouteEnum,
   ...PlatformAiQuotaRouteEnum,

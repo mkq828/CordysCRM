@@ -58,6 +58,8 @@ export default {
     'menu.aiPpt': 'Proposal & PPT',
     'menu.aiLeadCrawl': 'Lead Crawl',
     'menu.aiVideo': 'Short Video',
+    'menu.aiCreation': 'AI Studio',
+    'menu.askBi': 'Ask BI',
     'menu.aiEmployee': 'AI Employees',
     'menu.effects': 'Effects Library',
     'menu.platformAiQuota': 'AI Quota Mgmt',

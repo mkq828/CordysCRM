@@ -125,6 +125,8 @@
 - **来源**：MoneyPrinterTurbo（纯 AI 文本成片，首选）/ ZJU-REAL/Easel（图文转视频 slideshow-video + AI 视频生成 ai-video-gen）/ LongCat、avatar-forge、hypit、OpenMontage、FFmpeg。
 - **依赖**：G1、G2、G3；走增值包加购。
 - **验收**：上传素材产出可下载视频 + 各平台配套文案。
+- **进度**：`[x]` 口播短视频第一版已上线（LLM 分镜 → Seedream 配图 → TTS 配音 → FFmpeg 合成 → 附件 + 抖音/小红书/朋友圈配套文案，featureCode=`ai_video`）。
+- **升级**：升级为一级「**AI 创作中心**」（短视频模板库 / 漫剧 / 工具中心 / 资产库 / 定价钱包），详见 [AI创作中心-融合方案.md](./AI创作中心-融合方案.md)。
 
 ### 功能 8 — 私信获客画像（抖音/快手/小红书，Beta）
 - **做什么**：租户绑定自己账号（登录态迁移：Cookie 为主、扫码为备）→ 读私信 → AI 画像（性别/年龄/品类/话术）→ 进 CRM 客户池。
@@ -224,6 +226,7 @@
 3. **二期（功能 4→…→12 + 13）**：先 4（知识库 RAG 基座，低本高复用），再按「中成本→高成本」做方案/PPT(5)、AI 员工(6)、线索(10)、短视频(7)、私信(8)、外呼(9)、声音(11)，高成本生成类走增值包；12（问数 BI）成本低可提前；13（客户画像）依赖 `ai_analysis_result` 表地基，可随二期排。
 4. **最后（功能 14 数据大屏）**：吃前 12 个功能的沉淀数据，接 2D 数字人。
 5. 每个功能开工前，单独展开一份该功能的详细 PRD + 数据模型 + 接口清单，再动手。
+6. **AI 创作中心（功能 7 升级）**：按 [AI创作中心-融合方案.md](./AI创作中心-融合方案.md) 分四阶段——Phase 0 计费地基（余额钱包 + 分档额度包）→ Phase 1 模板库 + 工具中心 → Phase 2 漫剧轻量版 + 资产库 → Phase 3 Seedance 图生视频 + 商业化闭环。
 
 ---
 
@@ -245,6 +248,8 @@
 **ZJU-REAL/Easel 单独说明**（Apache-2.0，Python + OpenClaw，113 个 skill，759M）：它是「获客 + 传播」线的**整合参考底座**，五段式覆盖 发现 → 策划 → 创作 → 发布 → 复盘。对应功能 3（获客内容）、功能 7（短视频）、功能 8（私信获客）三处，可复用其 skill prompt + 脚本思路。两个边界：① 它是独立 Python 系统（含 Web UI），只能「抄思路 + prompt + 脚本」，不能整搬进 Java/Vue CRM；② 它的「一键自动发布」有封号风险，与本清单「内容生成 + 手动下载发布」口径一致——只参考创作侧，不接自动发布侧。
 
 **未纳入本清单的下载项**（非 AI 功能，留作产品/安全参考）：四类借鉴系统（skyeye/metasfresh/t3rik-erp/wimoor/OmniTradeERP/mall/litemall/newbee-mall/lobe-chat/dify/open-webui）是 ERP/电商/AI 超市的产品与架构参考；security-audit-skill（供应链安全）、openbao（密钥托管）属安全基建，均不与 AI 功能一一对应。
+
+**printfilm（MIT，AI 漫剧 + AI 短视频平台）单独说明**：它是「AI 创作中心」的**产品形态与商业化参考底座**（漫剧角色/场景资产库、20+ 短视频模板、工具中心、余额钱包 + 分档额度包），已本地部署 mock 版对照 UI。边界：它是独立 SaaS（FastAPI + React + 自带账号/计费/admin），只「抄形态 + UI + 计费思路」，不整搬；其文字/图/视频统一走 TokenFree New API（kimi-k2.6 / seedream-5-0-pro / seedance-2-5）。详见 [AI创作中心-融合方案.md](./AI创作中心-融合方案.md)。
 
 ---
 
