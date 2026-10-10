@@ -661,7 +661,6 @@ public class VideoGenerateService {
                 throw new GenericException("暂无分镜，无法生成镜头视频");
             }
             List<File> images = rebuildSceneImages(segments, workDir);
-            String ratio = normalizeRatio(task.getRatio());
             List<VideoSegment> updated = new ArrayList<>(segments);
             List<Integer> indexes = new ArrayList<>();
             for (int i = 0; i < segments.size(); i++) {
@@ -683,7 +682,7 @@ public class VideoGenerateService {
                             File shot = new File(workDir, "shot-" + index + ".mp4");
                             String prompt = effectiveVideoPrompt(seg, task);
                             seedanceVideoProvider.generate(videoModel.getApiUrl(), videoModel.getApiKey(),
-                                    videoModel.getModelName(), prompt, images.get(index), ratio, shot);
+                                    videoModel.getModelName(), prompt, images.get(index), shot);
                             return index;
                         });
                     }
@@ -741,7 +740,7 @@ public class VideoGenerateService {
             }
             File shot = new File(workDir, "shot-" + index + ".mp4");
             seedanceVideoProvider.generate(videoModel.getApiUrl(), videoModel.getApiKey(),
-                    videoModel.getModelName(), prompt, img, normalizeRatio(task.getRatio()), shot);
+                    videoModel.getModelName(), prompt, img, shot);
             String videoAttachmentId = saveVideoAttachment(shot, task, index, orgId, userId);
             String oldVideoAttachmentId = seg.videoAttachmentId();
             segments.set(index, new VideoSegment(seg.text(), seg.image(), seg.imageAttachmentId(), prompt,
@@ -1463,37 +1462,98 @@ public class VideoGenerateService {
         return messages;
     }
 
-    /** 解析模型返回 JSON 的分镜字段；无合法分镜时回退整段原文作为单分镜（无配图） */
+    /**
+     * 解析模型返回 JSON 的分镜字段。模型流式输出偶尔在末尾被截断（少一个 } 或 ]），
+     * 先直接解析，失败再补齐缺失括号后解析；仍失败则抛出，交由上层降级重试下一个候选模型，
+     * 避免把半截 JSON 当成单条分镜回显。仅当模型返回纯文本口播（无 JSON）时才回退整段原文。
+     */
     private VideoScript parseVideoScript(String text, String fallbackTitle) {
         String json = extractJson(text);
-        if (json != null) {
-            try {
-                JsonNode root = MAPPER.readTree(json);
-                String title = StringUtils.defaultIfBlank(root.path("title").asText(null), fallbackTitle);
-                JsonNode segs = root.path("segments");
-                if (segs.isArray() && !segs.isEmpty()) {
-                    List<VideoSegment> list = new ArrayList<>();
-                    for (JsonNode seg : segs) {
-                        String segText = seg.path("text").asText(null);
-                        if (StringUtils.isNotBlank(segText)) {
-                            list.add(new VideoSegment(segText.trim(),
-                                    StringUtils.defaultString(seg.path("image").asText(null)).trim(), "", "", ""));
-                        }
-                    }
-                    if (!list.isEmpty()) {
-                        return new VideoScript(title, list);
-                    }
+        if (json == null) {
+            return new VideoScript(fallbackTitle, List.of(new VideoSegment(text.trim(), "", "", "", "")));
+        }
+        JsonNode root = tryParseJson(json);
+        if (root == null) {
+            root = tryParseJson(repairTruncatedJson(json));
+        }
+        if (root == null) {
+            log.warn("短视频分镜 JSON 解析失败，交由上层降级重试下一个候选模型，json 前缀={}", StringUtils.left(json, 120));
+            throw new IllegalStateException("AI 返回的分镜脚本不完整，请稍后重试");
+        }
+        String title = StringUtils.defaultIfBlank(root.path("title").asText(null), fallbackTitle);
+        JsonNode segs = root.path("segments");
+        if (segs.isArray() && !segs.isEmpty()) {
+            List<VideoSegment> list = new ArrayList<>();
+            for (JsonNode seg : segs) {
+                String segText = seg.path("text").asText(null);
+                if (StringUtils.isNotBlank(segText)) {
+                    list.add(new VideoSegment(segText.trim(),
+                            StringUtils.defaultString(seg.path("image").asText(null)).trim(), "", "", ""));
                 }
-                // 兼容旧格式：只有 script 字段
-                String script = root.path("script").asText(null);
-                if (StringUtils.isNotBlank(script)) {
-                    return new VideoScript(title, List.of(new VideoSegment(script.trim(), "", "", "", "")));
-                }
-            } catch (Exception e) {
-                log.warn("短视频分镜 JSON 解析失败，回退原文", e);
+            }
+            if (!list.isEmpty()) {
+                return new VideoScript(title, list);
             }
         }
-        return new VideoScript(fallbackTitle, List.of(new VideoSegment(text.trim(), "", "", "", "")));
+        // 兼容旧格式：只有 script 字段
+        String script = root.path("script").asText(null);
+        if (StringUtils.isNotBlank(script)) {
+            return new VideoScript(title, List.of(new VideoSegment(script.trim(), "", "", "", "")));
+        }
+        log.warn("短视频分镜 JSON 缺少 segments/script 字段，交由上层降级重试下一个候选模型，json 前缀={}", StringUtils.left(json, 120));
+        throw new IllegalStateException("AI 返回的分镜脚本格式不正确，请稍后重试");
+    }
+
+    /** 尝试解析 JSON，失败返回 null（不抛异常，交由调用方决定降级或补齐后重试） */
+    private JsonNode tryParseJson(String json) {
+        try {
+            return MAPPER.readTree(json);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 补齐被截断 JSON 缺失的右括号。模型流式输出在末尾被截断时，段数组或外层对象常少一个 ] 或 }；
+     * 按括号配平规则从内到外补全（忽略字符串内部字符与转义），补后交回 tryParseJson 重新解析。
+     */
+    private String repairTruncatedJson(String json) {
+        int brace = 0;
+        int bracket = 0;
+        boolean inString = false;
+        boolean escape = false;
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (inString) {
+                if (escape) {
+                    escape = false;
+                } else if (c == '\\') {
+                    escape = true;
+                } else if (c == '"') {
+                    inString = false;
+                }
+                continue;
+            }
+            if (c == '"') {
+                inString = true;
+            } else if (c == '{') {
+                brace++;
+            } else if (c == '}') {
+                brace--;
+            } else if (c == '[') {
+                bracket++;
+            } else if (c == ']') {
+                bracket--;
+            }
+        }
+        StringBuilder suffix = new StringBuilder();
+        for (int i = 0; i < bracket; i++) {
+            suffix.append(']');
+        }
+        for (int i = 0; i < brace; i++) {
+            suffix.append('}');
+        }
+        return suffix.isEmpty() ? json : json + suffix;
     }
 
     /** 剥 ```json ... ``` 包裹，取首个 { 到末个 } 的 JSON 片段；无合法片段返回 null */
@@ -1821,7 +1881,9 @@ public class VideoGenerateService {
             return;
         }
         try {
-            synthesizeAudio(closingText, task.getVoice(), orgId, closingFile);
+            // 片尾文案里的「·」是视觉分隔符，TTS 会把它读成「点」（如「关注主页·了解更多」被读成「点点了解更多」），
+            // 配音前替换成逗号停顿；片尾卡的视觉文字仍保留原文案，不受影响。
+            synthesizeAudio(closingText.replaceAll("\\s*[·・•]\\s*", "，"), task.getVoice(), orgId, closingFile);
         } catch (Exception e) {
             log.warn("短视频片尾口播配音失败，片尾卡保持静音，closingText={}", closingText, e);
             deleteQuietly(closingFile);

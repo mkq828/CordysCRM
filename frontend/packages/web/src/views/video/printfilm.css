@@ -745,6 +745,16 @@
 .pf-meta-list span:first-child {
   color: var(--pf-muted);
 }
+.pf-structure-col {
+  display: flex;
+  flex-direction: column;
+}
+.pf-structure-empty {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+}
 
 /* 项目信息左对齐（主题/口播内容较长，靠左更易读） */
 .pf-meta-left li {
@@ -828,6 +838,19 @@
 }
 .pf-shot-table tbody tr:hover {
   background: #f4fbe0;
+}
+
+/* 分镜行逐个渐入：确认分镜时逐行出现（animation-delay 由模板按行号设置），避免一秒全出 */
+.pf-shot-table tbody tr.pf-shot-row-enter {
+  animation: pf-shot-row-in 0.4s ease both;
+}
+@keyframes pf-shot-row-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .pf-shot-table td {
   padding: 0.75rem 0.45rem;
@@ -1086,6 +1109,32 @@ button.pf-shot-editable:disabled {
 .pf-shot-thumb-btn:hover {
   outline: 2px solid rgb(182 255 0 / 65%);
   outline-offset: 1px;
+}
+
+/* 分镜台：缩略图悬浮出灰色遮罩 + 眼睛图标，点击预览（取代原操作列「预览」按钮） */
+.pf-shot-thumb-wrap {
+  position: relative;
+  display: block;
+  width: 96px;
+  height: 54px;
+}
+.pf-shot-thumb-overlay {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  background: rgb(15 23 42 / 45%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  inset: 0;
+  cursor: pointer;
+}
+.pf-shot-thumb-wrap:hover .pf-shot-thumb-overlay {
+  opacity: 1;
 }
 
 /* 分镜台：内置提示词面板 */

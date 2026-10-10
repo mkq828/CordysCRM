@@ -47,10 +47,10 @@ public class SeedanceVideoProvider {
      * 异常直接抛出，由调用方决定回退 Ken Burns 静图成片。
      */
     public File generate(String apiUrl, String apiKey, String model, String prompt, File imageFile,
-                         String ratio, File outFile) throws Exception {
+                         File outFile) throws Exception {
         String base = apiUrl == null || apiUrl.isBlank()
                 ? DEFAULT_BASE : apiUrl.replaceAll("/+$", "");
-        String taskId = createTask(base, apiKey, model, prompt, imageFile, ratio);
+        String taskId = createTask(base, apiKey, model, prompt, imageFile);
         String videoUrl = poll(base, apiKey, taskId);
         download(videoUrl, outFile);
         return outFile;
@@ -58,7 +58,7 @@ public class SeedanceVideoProvider {
 
     /** 创建异步生成任务，返回任务 id（cgt-...） */
     private String createTask(String base, String apiKey, String model, String prompt,
-                              File imageFile, String ratio) throws Exception {
+                              File imageFile) throws Exception {
         Map<String, Object> textPart = new LinkedHashMap<>();
         textPart.put("type", "text");
         textPart.put("text", prompt);
@@ -74,7 +74,7 @@ public class SeedanceVideoProvider {
         body.put("content", List.of(textPart, imagePart));
         body.put("duration", CLIP_DURATION);
         body.put("resolution", "720p");
-        body.put("ratio", ratio);
+        // 首帧图生视频：输出比例锁定为首帧图比例，显式传 ratio 会被 Seedance 拒绝（InvalidParameter.TaskTypeConstraint）
         body.put("watermark", false);
         body.put("generate_audio", false);
 

@@ -148,6 +148,8 @@ export default {
   'video.aiGenStyle': 'AI generate',
   'video.aiRegenStyle': 'Regenerate',
   'video.stylePromptHint': 'AI generates the scene style prompt from your narration; you can edit it',
+  'video.stylePromptConsultHint':
+    'Not sure what to write? Screenshot your reference and ask Doubao to generate a style prompt, then paste it here',
   'video.stylePromptPlaceholder': 'e.g. bright city shots, light tones (optional; AI generates from your narration)',
   'video.characterPromptPlaceholder': 'e.g. a confident 30-year-old female founder (optional)',
   'video.extraPromptPlaceholder': 'e.g. add brand slogan at the end, avoid text in frames (optional)',
@@ -205,6 +207,7 @@ export default {
   'video.sourceTheme': 'One-line topic',
   'video.waitStoryboard': 'Waiting for shots',
   'video.storyboardListCount': 'Shot list ({count} scenes)',
+  'video.structureGenerating': 'Generating, hang tight…',
   'video.storyboardConsultHint':
     "If you're not sure how to adjust the narration or scene-by-scene script, screenshot the full screen and ask Doubao",
   'video.noStoryboardHint': 'No shots yet. Start from the style page, review, then manually start imaging.',

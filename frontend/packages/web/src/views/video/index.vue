@@ -325,7 +325,10 @@
             </div>
             <div class="pf-field" style="margin-top: 0.75rem">
               <div class="pf-field-label" style="display: flex; justify-content: space-between; align-items: center">
-                <span>{{ t('video.stylePromptLabel') }}</span>
+                <span style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap">
+                  {{ t('video.stylePromptLabel') }}
+                  <span style="font-size: 0.75rem; color: #f97316"> 💡 {{ t('video.stylePromptConsultHint') }} </span>
+                </span>
                 <button
                   type="button"
                   class="pf-btn pf-btn-ai pf-btn-sm pf-btn-icon"
@@ -449,7 +452,8 @@
                 :key="m.id"
                 type="button"
                 class="pf-model-opt"
-                :class="{ selected: selectedVideoModelId === m.id }"
+                :class="{ selected: mode === 'video' && selectedVideoModelId === m.id }"
+                :disabled="mode !== 'video'"
                 @click="selectedVideoModelId = m.id"
               >
                 <div class="pf-model-opt-title">
@@ -681,18 +685,18 @@
                 <span>{{ inputMode === 'script' ? t('video.sourceScript') : t('video.sourceTheme') }}</span>
               </div>
             </article>
-            <article class="pf-create-col">
+            <article class="pf-create-col pf-structure-col">
               <h3>{{ t('video.structureSummary') }}</h3>
-              <ul class="pf-meta-list">
+              <ul v-if="structure.length" class="pf-meta-list">
                 <li v-for="s in structure" :key="s.label">
                   <span>{{ s.label }}</span>
                   <span style="max-width: 60%; text-align: right">{{ s.text.slice(0, 36) }}</span>
                 </li>
-                <li v-if="!structure.length">
-                  <span>{{ t('video.waitStoryboard') }}</span>
-                  <span>—</span>
-                </li>
               </ul>
+              <div v-else class="pf-structure-empty">
+                <ShimmerText v-if="boardGenerating" size="15px">{{ t('video.structureGenerating') }}</ShimmerText>
+                <span v-else class="pf-muted">{{ t('video.waitStoryboard') }}</span>
+              </div>
             </article>
           </div>
 
@@ -719,13 +723,14 @@
               <span style="flex-shrink: 0">💡</span>
               <span>{{ t('video.storyboardConsultHint') }}</span>
             </div>
-            <p v-if="!storyboard.length" class="pf-muted" style="margin: 1.5rem 0; text-align: center">
-              {{
-                activeTask && IN_PROGRESS.includes(activeTask.status)
-                  ? t('video.splitting')
-                  : t('video.noStoryboardHint')
-              }}
-            </p>
+            <template v-if="!storyboard.length">
+              <p v-if="boardGenerating" style="margin: 1.5rem 0; text-align: center">
+                <ShimmerText size="14px">{{ t('video.splitting') }}</ShimmerText>
+              </p>
+              <p v-else class="pf-muted" style="margin: 1.5rem 0; text-align: center">
+                {{ t('video.noStoryboardHint') }}
+              </p>
+            </template>
             <div v-else class="pf-shot-table-wrap">
               <table class="pf-shot-table">
                 <thead>
@@ -740,32 +745,60 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(seg, i) in storyboard" :key="i">
+                  <tr
+                    v-for="(seg, i) in storyboard"
+                    :key="i"
+                    class="pf-shot-row-enter"
+                    :style="{ animationDelay: `${i * 0.15}s` }"
+                  >
                     <td class="col-no">{{ String(i + 1).padStart(2, '0') }}</td>
                     <td class="col-thumb">
-                      <button
-                        type="button"
-                        class="pf-shot-thumb-btn"
-                        :disabled="!shotEditable"
-                        :title="shotEditable ? t('video.editShotTip') : ''"
-                        @click="shotEditable && openShotEdit(i)"
-                      >
-                        <video
-                          v-if="seg.videoAttachmentId"
-                          class="pf-shot-thumb"
-                          :src="previewUrl(seg.videoAttachmentId)"
-                          muted
-                          loop
-                          playsinline
-                        />
-                        <img
-                          v-else-if="seg.imageAttachmentId"
-                          class="pf-shot-thumb"
-                          :src="previewUrl(seg.imageAttachmentId)"
-                          :alt="`scene-${i + 1}`"
-                        />
-                        <div v-else class="pf-shot-thumb empty">{{ shotStatusLabel(seg) }}</div>
-                      </button>
+                      <div class="pf-shot-thumb-wrap">
+                        <button
+                          type="button"
+                          class="pf-shot-thumb-btn"
+                          :disabled="!shotEditable"
+                          :title="shotEditable ? t('video.editShotTip') : ''"
+                          @click="shotEditable && openShotEdit(i)"
+                        >
+                          <video
+                            v-if="seg.videoAttachmentId"
+                            class="pf-shot-thumb"
+                            :src="previewUrl(seg.videoAttachmentId)"
+                            muted
+                            loop
+                            playsinline
+                          />
+                          <img
+                            v-else-if="seg.imageAttachmentId"
+                            class="pf-shot-thumb"
+                            :src="previewUrl(seg.imageAttachmentId)"
+                            :alt="`scene-${i + 1}`"
+                          />
+                          <div v-else class="pf-shot-thumb empty">{{ shotStatusLabel(seg) }}</div>
+                        </button>
+                        <button
+                          v-if="seg.imageAttachmentId || seg.videoAttachmentId"
+                          type="button"
+                          class="pf-shot-thumb-overlay"
+                          :title="t('video.preview')"
+                          @click="openShotPreview(i)"
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            width="18"
+                            height="18"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                     <td class="col-narr">
                       <button
@@ -802,14 +835,6 @@
                     </td>
                     <td class="col-ops">
                       <div class="pf-shot-ops">
-                        <button
-                          v-if="seg.imageAttachmentId || seg.videoAttachmentId"
-                          type="button"
-                          class="op"
-                          @click="openShotPreview(i)"
-                        >
-                          {{ t('video.preview') }}
-                        </button>
                         <button
                           type="button"
                           class="op"
@@ -1448,6 +1473,12 @@
       label: labels[i] || `段落 ${i + 1}`,
       text: seg.text || '—',
     }));
+  });
+
+  // 分镜脚本生成中（尚无结构摘要内容），用于结构摘要空白态展示流光「正在努力生成中」
+  const boardGenerating = computed(() => {
+    const task = activeTask.value;
+    return !!task && IN_PROGRESS.includes(task.status);
   });
 
   // 整片配音完成后算 1 段（我们后端是整片 TTS，非逐镜音频）
