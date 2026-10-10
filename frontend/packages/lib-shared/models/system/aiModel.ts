@@ -11,10 +11,18 @@ export interface AiModelSaveParams {
   provider: string;
   apiUrl?: string;
   apiKey?: string;
+  /** 火山语音 AppID（豆包语音三件套鉴权） */
+  appId?: string;
+  /** 火山语音 AccessToken（豆包语音三件套鉴权） */
+  accessToken?: string;
+  /** 火山语音 SecretKey（豆包语音三件套鉴权） */
+  secretKey?: string;
   enable: boolean;
   globalDailyLimit?: number;
   userDailyLimit?: number;
   modelParams?: string;
+  /** 声音克隆模型名（阿里云声音复刻 target_model，如 qwen-audio-3.1-tts-flash） */
+  voiceCloneModel?: string;
   /** 模型描述（短视频风格页展示） */
   description?: string;
   /** 是否推荐模型（短视频风格页「推荐」标识） */

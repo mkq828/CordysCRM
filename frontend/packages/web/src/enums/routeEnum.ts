@@ -174,6 +174,11 @@ export enum AskBiRouteEnum {
   ASK_BI_INDEX = 'aiAskBiIndex',
 }
 
+export enum VoiceCloneRouteEnum {
+  VOICE_CLONE = 'aiVoiceClone',
+  VOICE_CLONE_INDEX = 'aiVoiceCloneIndex',
+}
+
 export enum AiEmployeeRouteEnum {
   AI_EMPLOYEE = 'aiEmployee',
   AI_EMPLOYEE_INDEX = 'aiEmployeeIndex',
@@ -220,6 +225,7 @@ export const AppRouteEnum = {
   ...VideoRouteEnum,
   ...AiCreationRouteEnum,
   ...AskBiRouteEnum,
+  ...VoiceCloneRouteEnum,
   ...AiEmployeeRouteEnum,
   ...EffectsRouteEnum,
   ...PlatformAiQuotaRouteEnum,

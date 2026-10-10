@@ -1,6 +1,8 @@
 package cn.cordys.crm.ai.video.tts;
 
 import cn.cordys.common.util.JSON;
+import cn.cordys.crm.ai.volcengine.VolcengineAuthUtils;
+import cn.cordys.crm.ai.volcengine.VolcengineVoiceCredential;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -18,12 +20,11 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * 火山引擎豆包语音 TTS（seed-tts-2.0，功能 7 配音）。
- * 新版控制台鉴权用单头 {@code X-Api-Key}（旧版 AppID/Access Token 已废弃），
- * {@code X-Api-Resource-Id} 指定模型版本（seed-tts-2.0），{@code X-Api-Request-Id} 为客户端请求 ID。
+ * 旧版豆包语音应用走三件套鉴权（AppID + AccessToken + SecretKey，见 {@link VolcengineAuthUtils}），
+ * {@code X-Api-Resource-Id} 指定模型版本（seed-tts-2.0）。
  * 协议：POST https://openspeech.bytedance.com/api/v3/tts/unidirectional/sse，SSE 逐块返回 base64 音频。
  * 相比阿里云 qwen3-tts-flash，seed-tts-2.0 情感表现力更强，并支持音色克隆（后续数字人复用）。
  */
@@ -64,7 +65,7 @@ public class VolcengineTtsProvider implements TtsProvider {
     @Override
     public byte[] synthesize(String text, String voice, TtsConfig config) throws Exception {
         String model = StringUtils.defaultIfBlank(config.getModel(), DEFAULT_MODEL);
-        String apiKey = config.getApiKey();
+        VolcengineVoiceCredential credential = config.getVolcCredential();
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("user", Map.of("uid", "cordys-crm"));
@@ -79,13 +80,13 @@ public class VolcengineTtsProvider implements TtsProvider {
         reqParams.put("additions", "{\"disable_markdown_filter\":true}");
         body.put("req_params", reqParams);
 
-        HttpRequest request = HttpRequest.newBuilder(URI.create(BASE_URL + "/tts/unidirectional/sse"))
-                .timeout(Duration.ofMinutes(2))
-                .header("X-Api-Key", apiKey)
-                .header("X-Api-Resource-Id", model)
-                .header("X-Api-Request-Id", UUID.randomUUID().toString())
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(JSON.toJSONString(body), StandardCharsets.UTF_8))
+        String bodyJson = JSON.toJSONString(body);
+        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(BASE_URL + "/tts/unidirectional/sse"))
+                .timeout(Duration.ofMinutes(2));
+        VolcengineAuthUtils.applyThreePartAuth(builder, credential, "POST",
+                "/api/v3/tts/unidirectional/sse", "", bodyJson, model);
+        HttpRequest request = builder
+                .POST(HttpRequest.BodyPublishers.ofString(bodyJson, StandardCharsets.UTF_8))
                 .build();
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (response.statusCode() < 200 || response.statusCode() >= 300) {

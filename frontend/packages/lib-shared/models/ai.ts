@@ -828,3 +828,27 @@ export interface AskBiCatalogResult {
   sampleQuestions?: string[];
   scopeHint?: string;
 }
+
+/** 声音克隆（功能 11）- 音色任务（提交/列表/详情复用，进度由前端轮询感知） */
+export interface AiCloneVoice {
+  id: string;
+  name: string;
+  provider?: string;
+  /** 火山引擎 custom_speaker_id，成功后可作为配音音色 */
+  speakerId?: string;
+  status: 'TRAINING' | 'SUCCESS' | 'FAILED' | string;
+  sampleAttachmentId?: string;
+  errorMsg?: string;
+  createTime?: number;
+}
+
+/** 声音克隆（功能 11）- 提交复刻请求 */
+export interface AiCloneVoiceSubmitParams {
+  name: string;
+  sampleAttachmentId: string;
+}
+
+/** 声音克隆（功能 11）- 试听结果（audio 为 base64 WAV） */
+export interface AiCloneVoicePreviewResult {
+  audio?: string;
+}

@@ -78,3 +78,5 @@ export const AiToolImageUrl = '/agent/tool/image'; // AI 工具中心-文生图�
 export const AiToolTranscodeUrl = '/agent/tool/transcode'; // AI 工具中心-视频转格式（POST 提交）
 export const AiToolTasksUrl = '/agent/tool/tasks'; // AI 工具中心-任务（GET 列表 / 拼 /{id} 详情与删除）
 export const AiToolTasksPageUrl = '/agent/tool/tasks/page'; // AI 工具中心-生成记录分页列表
+export const AiVoiceCloneAvailableUrl = '/agent/voice-clone/available'; // 声音克隆-版本开关查询
+export const AiVoiceCloneTasksUrl = '/agent/voice-clone/tasks'; // 声音克隆-音色任务（POST 提交 / GET 列表 / 拼 /{id} 详情、删除与试听）

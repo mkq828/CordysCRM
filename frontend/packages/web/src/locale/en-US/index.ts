@@ -60,6 +60,7 @@ export default {
     'menu.aiVideo': 'Short Video',
     'menu.aiCreation': 'AI Studio',
     'menu.askBi': 'Ask BI',
+    'menu.voiceClone': 'Voice Clone',
     'menu.aiEmployee': 'AI Employees',
     'menu.effects': 'Effects Library',
     'menu.platformAiQuota': 'AI Quota Mgmt',

@@ -5,6 +5,7 @@ import cn.cordys.common.pager.PageUtils;
 import cn.cordys.common.pager.Pager;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.JSON;
+import cn.cordys.crm.ai.constant.AliyunVoiceCloneConstant;
 import cn.cordys.crm.ai.llm.LlmChatRequest;
 import cn.cordys.crm.ai.model.domain.AgentModel;
 import cn.cordys.crm.ai.model.dto.request.AgentModelPageRequest;
@@ -139,11 +140,30 @@ public class AgentModelService {
         criteria.setOrganizationId(orgId);
         criteria.setEnable(true);
         for (AgentModel model : agentModelMapper.select(criteria)) {
-            if (TTS_PROVIDERS.contains(model.getProvider()) && StringUtils.isNotBlank(model.getApiKey())) {
+            if (TTS_PROVIDERS.contains(model.getProvider()) && hasTtsCredential(model)) {
                 return List.of(model);
             }
         }
         return List.of();
+    }
+
+    /**
+     * 解析「声音克隆音色试听」用的阿里云配音模型。克隆 voice_id 只能由阿里云合成（不能回退到豆包语音），
+     * 故不复用 {@link #resolveTtsModels}（其回退在策略未配置时只返回首个 TTS 模型，可能是豆包语音），
+     * 直接取所有启用且含 apiKey 的阿里云模型，供逐个降级试听。
+     */
+    public List<AgentModel> resolveAliyunTtsModels(String orgId) {
+        AgentModel criteria = new AgentModel();
+        criteria.setOrganizationId(orgId);
+        criteria.setProvider("阿里云");
+        criteria.setEnable(true);
+        List<AgentModel> result = new ArrayList<>();
+        for (AgentModel model : agentModelMapper.select(criteria)) {
+            if (hasTtsCredential(model)) {
+                result.add(model);
+            }
+        }
+        return result;
     }
 
     /**
@@ -229,6 +249,40 @@ public class AgentModelService {
         throw new GenericException("请先在「模型设置」中配置并启用「" + provider + "」模型，用于" + purpose);
     }
 
+    /**
+     * 解析「声音克隆」目标模型名：阿里云 provider 下第一条已配置 voiceCloneModel 的启用模型；
+     * 未配置时回退默认 {@link AliyunVoiceCloneConstant#QWEN_TTS_VC_MODEL}。
+     * 阿里复刻模型会随版本下线，admin 在「模型设置」改声音克隆模型名即可，无需改代码重发版。
+     */
+    public String resolveVoiceCloneModel(String orgId) {
+        AgentModel criteria = new AgentModel();
+        criteria.setOrganizationId(orgId);
+        criteria.setProvider("阿里云");
+        criteria.setEnable(true);
+        for (AgentModel model : agentModelMapper.select(criteria)) {
+            if (StringUtils.isNotBlank(model.getVoiceCloneModel())) {
+                return model.getVoiceCloneModel();
+            }
+        }
+        return AliyunVoiceCloneConstant.QWEN_TTS_VC_MODEL;
+    }
+
+    /**
+     * 判断配音模型是否具备可用凭证：豆包语音用三件套（AppID/AccessToken/SecretKey），其余 provider 用 apiKey。
+     * 供配音/试听模型筛选与降级共用，避免误用空凭据的模型。
+     */
+    public boolean hasTtsCredential(AgentModel model) {
+        if (model == null) {
+            return false;
+        }
+        if ("豆包语音".equals(model.getProvider())) {
+            return StringUtils.isNotBlank(model.getAppId())
+                    && StringUtils.isNotBlank(model.getAccessToken())
+                    && StringUtils.isNotBlank(model.getSecretKey());
+        }
+        return StringUtils.isNotBlank(model.getApiKey());
+    }
+
     public List<AgentModelOptionResponse> options(String orgId) {
         AgentModel criteria = new AgentModel();
         criteria.setOrganizationId(orgId);
@@ -254,10 +308,14 @@ public class AgentModelService {
         model.setProvider(request.getProvider());
         model.setApiUrl(resolveApiUrl(request.getProvider(), request.getApiUrl()));
         model.setApiKey(request.getApiKey());
+        model.setAppId(request.getAppId());
+        model.setAccessToken(request.getAccessToken());
+        model.setSecretKey(request.getSecretKey());
         model.setEnable(request.getEnable() == null ? Boolean.TRUE : request.getEnable());
         model.setUserDailyLimit(request.getUserDailyLimit());
         model.setGlobalDailyLimit(request.getGlobalDailyLimit());
         model.setModelParams(request.getModelParams());
+        model.setVoiceCloneModel(request.getVoiceCloneModel());
         model.setDescription(request.getDescription());
         model.setRecommended(Boolean.TRUE.equals(request.getRecommended()));
         model.setCreateUser(userId);
@@ -277,10 +335,14 @@ public class AgentModelService {
         model.setProvider(request.getProvider());
         model.setApiUrl(resolveApiUrl(request.getProvider(), request.getApiUrl()));
         model.setApiKey(request.getApiKey());
+        model.setAppId(request.getAppId());
+        model.setAccessToken(request.getAccessToken());
+        model.setSecretKey(request.getSecretKey());
         model.setEnable(request.getEnable() == null ? Boolean.TRUE : request.getEnable());
         model.setUserDailyLimit(request.getUserDailyLimit());
         model.setGlobalDailyLimit(request.getGlobalDailyLimit());
         model.setModelParams(request.getModelParams());
+        model.setVoiceCloneModel(request.getVoiceCloneModel());
         model.setDescription(request.getDescription());
         model.setRecommended(Boolean.TRUE.equals(request.getRecommended()));
         model.setUpdateUser(userId);

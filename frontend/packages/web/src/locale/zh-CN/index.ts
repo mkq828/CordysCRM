@@ -59,6 +59,7 @@ export default {
     'menu.aiVideo': '短视频生成',
     'menu.aiCreation': 'AI 创作中心',
     'menu.askBi': '问数 BI',
+    'menu.voiceClone': '声音克隆',
     'menu.aiEmployee': 'AI 员工',
     'menu.effects': '视觉特效库',
     'menu.platformAiQuota': 'AI 额度管理',

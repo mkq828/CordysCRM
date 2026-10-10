@@ -31,6 +31,8 @@ import cn.cordys.crm.ai.video.tts.TtsConfig;
 import cn.cordys.crm.ai.video.tts.TtsProvider;
 import cn.cordys.crm.ai.video.tts.TtsProviderFactory;
 import cn.cordys.crm.ai.video.tts.TtsVoice;
+import cn.cordys.crm.ai.volcengine.VolcengineVoiceCredential;
+import cn.cordys.crm.ai.voiceclone.domain.AiCloneVoice;
 import cn.cordys.crm.system.domain.Attachment;
 import cn.cordys.crm.system.service.AttachmentService;
 import cn.cordys.crm.system.service.FileCommonService;
@@ -282,6 +284,8 @@ public class VideoGenerateService {
     private BaseMapper<AiVideoTask> aiVideoTaskMapper;
     @Resource
     private BaseMapper<Attachment> attachmentMapper;
+    @Resource
+    private BaseMapper<AiCloneVoice> aiCloneVoiceMapper;
     @Resource
     private AiQuotaService aiQuotaService;
     @Resource
@@ -990,7 +994,19 @@ public class VideoGenerateService {
                 // 该模型非 TTS provider 或异常，尝试下一个候选
             }
         }
+        // 追加本租户已复刻成功的克隆音色（功能 11）：speakerId 即 custom_speaker_id，可直接作为 TTS speaker 合成
+        for (AiCloneVoice clone : listSuccessCloneVoices(orgId)) {
+            byValue.putIfAbsent(clone.getSpeakerId(), new TtsVoice(clone.getSpeakerId(), clone.getName(), null));
+        }
         return new ArrayList<>(byValue.values());
+    }
+
+    /** 查本租户复刻成功、由阿里云产出的克隆音色（供短视频配音下拉） */
+    private List<AiCloneVoice> listSuccessCloneVoices(String orgId) {
+        return aiCloneVoiceMapper.selectListByLambda(new LambdaQueryWrapper<AiCloneVoice>()
+                .eq(AiCloneVoice::getOrganizationId, orgId)
+                .eq(AiCloneVoice::getProvider, "阿里云")
+                .eq(AiCloneVoice::getStatus, "SUCCESS"));
     }
 
     /**
@@ -1050,19 +1066,29 @@ public class VideoGenerateService {
         return synthesizeVoicePreview(orgId, task.getVoice(), text);
     }
 
+    /** 按音色类型选配音模型：克隆音色（阿里 voice_id）只能由阿里云合成，系统音色走通用配音模型降级链 */
+    private List<AgentModel> resolveTtsModelsForVoice(String orgId, String voice) {
+        String cloneModel = agentModelService.resolveVoiceCloneModel(orgId);
+        boolean cloneVoice = voice != null && voice.startsWith(cloneModel + "-");
+        return cloneVoice ? agentModelService.resolveAliyunTtsModels(orgId) : agentModelService.resolveTtsModels(orgId);
+    }
+
     /** 用给定音色合成任意文案（约样例或某镜台词），返回 base64 WAV；逐模型降级 */
     private VideoVoicePreviewResponse synthesizeVoicePreview(String orgId, String voice, String text) {
-        List<AgentModel> ttsModels = agentModelService.resolveTtsModels(orgId);
+        List<AgentModel> ttsModels = resolveTtsModelsForVoice(orgId, voice);
         Exception lastError = null;
         for (AgentModel model : ttsModels) {
-            if (StringUtils.isBlank(model.getApiKey())) {
+            if (!agentModelService.hasTtsCredential(model)) {
                 continue;
             }
             try {
                 TtsConfig config = new TtsConfig();
                 config.setModel(model.getModelName());
                 config.setApiKey(model.getApiKey());
+                config.setVolcCredential(VolcengineVoiceCredential.of(
+                        model.getAppId(), model.getAccessToken(), model.getSecretKey()));
                 config.setModelParams(model.getModelParams());
+                config.setVoiceCloneModel(agentModelService.resolveVoiceCloneModel(orgId));
                 TtsProvider tts = ttsProviderFactory.get(model.getProvider());
                 byte[] audio = tts.synthesize(text, voice, config);
                 VideoVoicePreviewResponse response = new VideoVoicePreviewResponse();
@@ -1759,17 +1785,20 @@ public class VideoGenerateService {
     // ==================== 私有：TTS / 合成 / 附件 ====================
 
     private void synthesizeAudio(String script, String voice, String orgId, File audioFile) throws Exception {
-        List<AgentModel> ttsModels = agentModelService.resolveTtsModels(orgId);
+        List<AgentModel> ttsModels = resolveTtsModelsForVoice(orgId, voice);
         Exception lastError = null;
         for (AgentModel model : ttsModels) {
-            if (StringUtils.isBlank(model.getApiKey())) {
+            if (!agentModelService.hasTtsCredential(model)) {
                 continue;
             }
             try {
                 TtsConfig config = new TtsConfig();
                 config.setModel(model.getModelName());
                 config.setApiKey(model.getApiKey());
+                config.setVolcCredential(VolcengineVoiceCredential.of(
+                        model.getAppId(), model.getAccessToken(), model.getSecretKey()));
                 config.setModelParams(model.getModelParams());
+                config.setVoiceCloneModel(agentModelService.resolveVoiceCloneModel(orgId));
                 TtsProvider tts = ttsProviderFactory.get(model.getProvider());
                 byte[] audio = tts.synthesize(script, voice, config);
                 Files.write(audioFile.toPath(), audio);

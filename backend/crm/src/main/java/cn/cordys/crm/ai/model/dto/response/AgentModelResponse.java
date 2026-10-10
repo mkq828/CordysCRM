@@ -27,6 +27,15 @@ public class AgentModelResponse {
     @Schema(description = "API Key（列表脱敏，详情完整）")
     private String apiKey;
 
+    @Schema(description = "火山语音 AppID（列表脱敏，详情完整）")
+    private String appId;
+
+    @Schema(description = "火山语音 AccessToken（列表脱敏，详情完整）")
+    private String accessToken;
+
+    @Schema(description = "火山语音 SecretKey（列表脱敏，详情完整）")
+    private String secretKey;
+
     @Schema(description = "启用状态")
     private Boolean enable;
 
@@ -38,6 +47,9 @@ public class AgentModelResponse {
 
     @Schema(description = "模型参数（JSON）")
     private String modelParams;
+
+    @Schema(description = "声音克隆模型名（阿里云声音复刻 target_model，留空回退默认）")
+    private String voiceCloneModel;
 
     @Schema(description = "模型描述（短视频风格页展示）")
     private String description;

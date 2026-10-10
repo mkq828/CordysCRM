@@ -94,10 +94,13 @@ public final class AiQuotaConstant {
     /** AI 问数 BI（功能 12，生成型：大白话查数，语义层编译 SQL，G2 额度 + G3 版本开关，企业版） */
     public static final String AI_ASK_BI = "ai_ask_bi";
 
+    /** 声音克隆（功能 11，能力组件：克隆指定音色供短视频/数字人/外呼复用，只挂 G3 版本开关，企业版） */
+    public static final String AI_VOICE_CLONE = "ai_voice_clone";
+
     public static final List<String> AI_FEATURE_CODES = List.of(
             "ai_advisor", "ai_acquire", "ai_sales_rag", "ai_video", "wecom_auto_analysis",
             "ai_ppt", "lead_crawl", "dm_profile", "ai_employee", "ai_kb", "digital_human", "ai_call_review",
-            "ai_tool", "ai_ask_bi");
+            "ai_tool", "ai_ask_bi", "ai_voice_clone");
 
     private AiQuotaConstant() {
     }

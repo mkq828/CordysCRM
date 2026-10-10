@@ -23,6 +23,13 @@ export default {
   'system.business.modelSettings.apiBaseUrl': 'API Base URL',
   'system.business.modelSettings.apiBaseUrlPlaceholder': 'Example: https://api.openai.com/v1',
   'system.business.modelSettings.apiKey': 'API Key',
+  'system.business.modelSettings.appId': 'App ID',
+  'system.business.modelSettings.accessToken': 'Access Token',
+  'system.business.modelSettings.secretKey': 'Secret Key',
+  'system.business.modelSettings.voiceCloneModel': 'Voice clone model',
+  'system.business.modelSettings.voiceCloneModelPlaceholder': 'Example: qwen-audio-3.1-tts-flash',
+  'system.business.modelSettings.voiceCloneModelTip':
+    'Update here when Aliyun retires the clone model; leave empty for default',
   'system.business.modelSettings.aiParams': 'AI Parameters',
   'system.business.modelSettings.callLimit': 'Call Limits',
   'system.business.modelSettings.globalDailyLimit': 'Global Daily Limit',

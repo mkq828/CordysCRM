@@ -46,7 +46,7 @@
           :maxlength="255"
         />
       </n-form-item>
-      <n-form-item :label="t('system.business.modelSettings.apiKey')" path="apiKey">
+      <n-form-item v-if="!isVolcVoice" :label="t('system.business.modelSettings.apiKey')" path="apiKey">
         <n-input
           v-model:value="form.apiKey"
           clearable
@@ -57,6 +57,50 @@
           :input-props="{ autocomplete: 'new-password', name: 'agent_model_api_key' }"
         />
       </n-form-item>
+      <n-form-item v-if="isAliyun" path="voiceCloneModel">
+        <template #label>
+          {{ t('system.business.modelSettings.voiceCloneModel') }}
+          <span class="text-xs text-orange-500">{{ t('system.business.modelSettings.voiceCloneModelTip') }}</span>
+        </template>
+        <n-input
+          v-model:value="form.voiceCloneModel"
+          clearable
+          :maxlength="255"
+          :placeholder="t('system.business.modelSettings.voiceCloneModelPlaceholder')"
+        />
+      </n-form-item>
+      <template v-if="isVolcVoice">
+        <n-form-item :label="t('system.business.modelSettings.appId')" path="appId">
+          <n-input
+            v-model:value="form.appId"
+            clearable
+            show-password-on="click"
+            type="password"
+            :maxlength="100"
+            :input-props="{ autocomplete: 'new-password', name: 'agent_model_app_id' }"
+          />
+        </n-form-item>
+        <n-form-item :label="t('system.business.modelSettings.accessToken')" path="accessToken">
+          <n-input
+            v-model:value="form.accessToken"
+            clearable
+            show-password-on="click"
+            type="password"
+            :maxlength="1000"
+            :input-props="{ autocomplete: 'new-password', name: 'agent_model_access_token' }"
+          />
+        </n-form-item>
+        <n-form-item :label="t('system.business.modelSettings.secretKey')" path="secretKey">
+          <n-input
+            v-model:value="form.secretKey"
+            clearable
+            show-password-on="click"
+            type="password"
+            :maxlength="1000"
+            :input-props="{ autocomplete: 'new-password', name: 'agent_model_secret_key' }"
+          />
+        </n-form-item>
+      </template>
       <n-form-item :label="t('system.business.modelSettings.description')" path="description">
         <n-input
           v-model:value="form.description"
@@ -202,10 +246,14 @@
     modelName: '',
     apiUrl: '',
     apiKey: '',
+    appId: '',
+    accessToken: '',
+    secretKey: '',
     enable: true,
     globalDailyLimit: 10000,
     userDailyLimit: 500,
     modelParams: undefined,
+    voiceCloneModel: '',
     description: '',
     recommended: false,
     ...defaultModelParams,
@@ -225,10 +273,14 @@
       modelName: model.modelName ?? '',
       apiUrl: model.apiUrl ?? '',
       apiKey: model.apiKey ?? '',
+      appId: model.appId ?? '',
+      accessToken: model.accessToken ?? '',
+      secretKey: model.secretKey ?? '',
       enable: model.enable ?? defaultForm.enable,
       globalDailyLimit: model.globalDailyLimit ?? defaultForm.globalDailyLimit,
       userDailyLimit: model.userDailyLimit ?? defaultForm.userDailyLimit,
       modelParams: model.modelParams,
+      voiceCloneModel: model.voiceCloneModel ?? '',
       description: model.description ?? '',
       recommended: model.recommended ?? false,
       ...modelParams,
@@ -241,7 +293,12 @@
 
   const form = reactive(createForm());
 
-  const rules: FormRules = {
+  // 豆包语音旧版应用走三件套鉴权，其余 provider 仍用单串 apiKey
+  const isVolcVoice = computed(() => form.provider === '豆包语音');
+  // 阿里云需额外配置声音克隆模型名（复刻模型下线时 admin 改这里即可，无需改代码）
+  const isAliyun = computed(() => form.provider === '阿里云');
+
+  const rules = computed<FormRules>(() => ({
     displayName: [
       {
         required: true,
@@ -249,14 +306,43 @@
         trigger: ['blur', 'input'],
       },
     ],
-    apiKey: [
-      {
-        required: true,
-        message: t('common.notNull', { value: t('system.business.modelSettings.apiKey') }),
-        trigger: ['blur', 'input'],
-      },
-    ],
-  };
+    apiKey: isVolcVoice.value
+      ? []
+      : [
+          {
+            required: true,
+            message: t('common.notNull', { value: t('system.business.modelSettings.apiKey') }),
+            trigger: ['blur', 'input'],
+          },
+        ],
+    appId: isVolcVoice.value
+      ? [
+          {
+            required: true,
+            message: t('common.notNull', { value: t('system.business.modelSettings.appId') }),
+            trigger: ['blur', 'input'],
+          },
+        ]
+      : [],
+    accessToken: isVolcVoice.value
+      ? [
+          {
+            required: true,
+            message: t('common.notNull', { value: t('system.business.modelSettings.accessToken') }),
+            trigger: ['blur', 'input'],
+          },
+        ]
+      : [],
+    secretKey: isVolcVoice.value
+      ? [
+          {
+            required: true,
+            message: t('common.notNull', { value: t('system.business.modelSettings.secretKey') }),
+            trigger: ['blur', 'input'],
+          },
+        ]
+      : [],
+  }));
 
   function resetFormState(model?: Partial<AiModelItem>) {
     Object.assign(form, createForm(model));

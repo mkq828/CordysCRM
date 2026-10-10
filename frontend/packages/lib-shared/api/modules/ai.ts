@@ -75,6 +75,8 @@ import {
   AiToolTranscodeUrl,
   AiToolTasksUrl,
   AiToolTasksPageUrl,
+  AiVoiceCloneAvailableUrl,
+  AiVoiceCloneTasksUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -151,6 +153,9 @@ import type {
   AskBiQueryParams,
   AskBiQueryResult,
   AskBiCatalogResult,
+  AiCloneVoice,
+  AiCloneVoiceSubmitParams,
+  AiCloneVoicePreviewResult,
 } from '../../models/ai';
 
 interface SseBlock {
@@ -831,6 +836,30 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.delete({ url: `${AiToolTasksUrl}/${id}` });
   }
 
+  function getAiVoiceCloneAvailable() {
+    return CDR.get<boolean>({ url: AiVoiceCloneAvailableUrl });
+  }
+
+  function submitAiVoiceClone(data: AiCloneVoiceSubmitParams) {
+    return CDR.post<AiCloneVoice>({ url: AiVoiceCloneTasksUrl, data });
+  }
+
+  function getAiVoiceCloneTasks() {
+    return CDR.get<AiCloneVoice[]>({ url: AiVoiceCloneTasksUrl });
+  }
+
+  function getAiVoiceCloneTask(id: string) {
+    return CDR.get<AiCloneVoice>({ url: `${AiVoiceCloneTasksUrl}/${id}` });
+  }
+
+  function deleteAiVoiceCloneTask(id: string) {
+    return CDR.delete({ url: `${AiVoiceCloneTasksUrl}/${id}` });
+  }
+
+  function previewAiVoiceClone(id: string, data?: { text?: string }) {
+    return CDR.post<AiCloneVoicePreviewResult>({ url: `${AiVoiceCloneTasksUrl}/${id}/preview`, data });
+  }
+
   function downloadAiSalesScriptTemplate() {
     return CDR.get(
       { url: AiSalesScriptImportTemplateUrl, responseType: 'blob' },
@@ -948,6 +977,12 @@ export default function useAiApi(CDR: CordysAxios) {
     getAiToolTasks,
     getAiToolTasksPage,
     deleteAiToolTask,
+    getAiVoiceCloneAvailable,
+    submitAiVoiceClone,
+    getAiVoiceCloneTasks,
+    getAiVoiceCloneTask,
+    deleteAiVoiceCloneTask,
+    previewAiVoiceClone,
     downloadAiSalesScriptTemplate,
     preCheckImportAiSalesScript,
     importAiSalesScript,
