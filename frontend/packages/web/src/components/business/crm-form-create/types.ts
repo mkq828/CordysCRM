@@ -104,6 +104,8 @@ export interface FormCreateField {
   dividerClass?: string;
   dividerColor?: string;
   titleColor?: string;
+  collapsible?: boolean; // 分组是否可折叠
+  defaultCollapsed?: boolean; // 分组是否默认收起
   // 图片上传属性
   pictureShowType?: 'card' | 'list';
   uploadLimit?: number | null;

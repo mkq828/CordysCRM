@@ -158,6 +158,7 @@
     showTabSetting?: boolean;
     formViewSize?: FormViewSize;
     otherSaveParams?: Record<string, any>;
+    defaultLayout?: 'horizontal' | 'vertical';
   }>();
 
   const emit = defineEmits<{
@@ -234,7 +235,9 @@
 
   onMounted(async () => {
     layout.value =
-      (await getItem<'horizontal' | 'vertical'>(`active-overview-layout-${props.formKey}`)) ?? 'horizontal';
+      props.defaultLayout ??
+      (await getItem<'horizontal' | 'vertical'>(`active-overview-layout-${props.formKey}`)) ??
+      'horizontal';
   });
 
   watch(

@@ -80,6 +80,25 @@
       "fieldWidth": 1
     },
     {
+      "name": "地址",
+      "internalKey": "customerArea",
+      "type": "LOCATION",
+      "locationType": "PCD",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
+    },
+    {
+      "name": "详细地址",
+      "internalKey": "customerDetailAddress",
+      "type": "INPUT",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
+    },
+    {
       "name": "客户标签",
       "internalKey": "customerTag",
       "type": "INPUT_MULTIPLE",
@@ -87,38 +106,6 @@
       "readable": true,
       "editable": true,
       "fieldWidth": 1
-    },
-    {
-      "name": "地址信息",
-      "internalKey": "customerAddressInfo",
-      "type": "DIVIDER",
-      "showLabel": true,
-      "readable": true,
-      "fieldWidth": 1,
-      "dividerClass": "divider--normal",
-      "dividerColor": "#edf0f1",
-      "titleColor": "#323535"
-    },
-    {
-      "name": "地区",
-      "internalKey": "customerArea",
-      "type": "LOCATION",
-      "locationType": "detail",
-      "showLabel": true,
-      "readable": true,
-      "editable": true,
-      "fieldWidth": 1
-    },
-    {
-      "name": "负责人信息",
-      "internalKey": "customerOwnerInfo",
-      "type": "DIVIDER",
-      "showLabel": true,
-      "readable": true,
-      "fieldWidth": 1,
-      "dividerClass": "divider--normal",
-      "dividerColor": "#edf0f1",
-      "titleColor": "#323535"
     },
     {
       "name": "负责人",
@@ -134,6 +121,218 @@
           "key": "required"
         }
       ]
+    },
+    {
+      "name": "工商信息",
+      "internalKey": "customerBusinessInfo",
+      "type": "DIVIDER",
+      "showLabel": true,
+      "readable": true,
+      "fieldWidth": 1,
+      "dividerClass": "divider--normal",
+      "dividerColor": "#edf0f1",
+      "titleColor": "#323535"
+    },
+    {
+      "name": "企业经营状态",
+      "internalKey": "customerBusinessStatus",
+      "type": "SELECT",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1,
+      "options": [
+        {
+          "label": "在营/存续",
+          "value": "1"
+        },
+        {
+          "label": "注销",
+          "value": "2"
+        },
+        {
+          "label": "吊销",
+          "value": "3"
+        },
+        {
+          "label": "迁出",
+          "value": "4"
+        },
+        {
+          "label": "停业",
+          "value": "5"
+        },
+        {
+          "label": "清算",
+          "value": "6"
+        }
+      ]
+    },
+    {
+      "name": "统一社会信用代码",
+      "internalKey": "customerCreditCode",
+      "type": "INPUT",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
+    },
+    {
+      "name": "成立日期",
+      "internalKey": "customerEstablishDate",
+      "type": "DATE_TIME",
+      "dateType": "date",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
+    },
+    {
+      "name": "法定代表人",
+      "internalKey": "customerLegalPerson",
+      "type": "INPUT",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
+    },
+    {
+      "name": "联系电话",
+      "internalKey": "customerContactPhone",
+      "type": "PHONE",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1,
+      "format": "255"
+    },
+    {
+      "name": "邮箱",
+      "internalKey": "customerEmail",
+      "type": "INPUT",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
+    },
+    {
+      "name": "注册资本",
+      "internalKey": "customerRegisteredCapital",
+      "type": "INPUT",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
+    },
+    {
+      "name": "实缴资本",
+      "internalKey": "customerPaidInCapital",
+      "type": "INPUT",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
+    },
+    {
+      "name": "纳税人识别号",
+      "internalKey": "customerTaxNo",
+      "type": "INPUT",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
+    },
+    {
+      "name": "企业类型",
+      "internalKey": "customerCompanyType",
+      "type": "SELECT",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1,
+      "options": [
+        {
+          "label": "有限责任公司",
+          "value": "1"
+        },
+        {
+          "label": "股份有限公司",
+          "value": "2"
+        },
+        {
+          "label": "合伙企业",
+          "value": "3"
+        },
+        {
+          "label": "个人独资企业",
+          "value": "4"
+        },
+        {
+          "label": "个体工商户",
+          "value": "5"
+        },
+        {
+          "label": "外商投资企业",
+          "value": "6"
+        },
+        {
+          "label": "国有企业",
+          "value": "7"
+        },
+        {
+          "label": "集体企业",
+          "value": "8"
+        },
+        {
+          "label": "其他",
+          "value": "9"
+        }
+      ]
+    },
+    {
+      "name": "营业期限",
+      "internalKey": "customerBusinessTerm",
+      "type": "INPUT",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
+    },
+    {
+      "name": "登记机关",
+      "internalKey": "customerRegAuthority",
+      "type": "INPUT",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
+    },
+    {
+      "name": "注册地址",
+      "internalKey": "customerRegAddress",
+      "type": "INPUT",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
+    },
+    {
+      "name": "通信地址",
+      "internalKey": "customerMailAddress",
+      "type": "INPUT",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
+    },
+    {
+      "name": "经营业务范围",
+      "internalKey": "customerBusinessScope",
+      "type": "TEXTAREA",
+      "showLabel": true,
+      "readable": true,
+      "editable": true,
+      "fieldWidth": 1
     }
   ],
   "clue": [

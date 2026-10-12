@@ -111,6 +111,12 @@ public class DataInitService {
 			initOneTime(moduleFormMigrationService::backfillSourceFieldConfig, "backfill.source.field.config");
 			// 回填合同回款记录：删除写死的收款银行/账号，新增收款账户数据源与付款凭证附件
 			initOneTime(moduleFormMigrationService::backfillContractPaymentRecordFields, "backfill.contract.payment.record.fields");
+			// 回填客户表单的企业工商字段（经营状态/成立日期/法定代表人/注册资本等，用户手动填写）
+			initOneTime(moduleFormMigrationService::backfillCustomerBusinessFields, "backfill.customer.business.fields");
+			// 删除客户表单的「地址信息」「负责人信息」分组分隔符，并入「基本信息」
+			initOneTime(moduleFormMigrationService::removeCustomerSubDividers, "remove.customer.sub.dividers");
+			// 客户「地区」字段拆分为「地址」+「详细地址」，并把「客户标签」移到其后
+			initOneTime(moduleFormMigrationService::splitCustomerAreaField, "split.customer.area.field");
 			// 回填合同表单的金额/累计金额公式（金额=产品单价×数量，累计金额=SUM(合同报价信息.金额)）
 			initOneTime(moduleFieldService::initContractFields, "init.contract.fields");
 		} finally {

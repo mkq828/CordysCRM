@@ -7,14 +7,14 @@
     label-width="auto"
     class="crm-form-create"
   >
-    <n-scrollbar>
+    <component
+      :is="props.embedded ? 'div' : NScrollbar"
+      class="h-full w-full"
+      :class="{ 'overflow-y-auto': props.embedded }"
+    >
       <div class="flex h-full w-full flex-wrap content-start">
         <template v-for="item in fieldList" :key="item.id">
-          <div
-            v-if="item.show !== false && item.readable"
-            class="crm-form-create-item"
-            :style="{ width: item.type === FieldTypeEnum.ATTACHMENT ? '100%' : `${item.fieldWidth * 100}%` }"
-          >
+          <div v-if="isFieldVisible(item)" class="crm-form-create-item" :style="{ width: getItemWidth(item) }">
             <component
               :is="getItemComponent(item)"
               :id="item.id"
@@ -25,13 +25,16 @@
               :path="item.id"
               :need-init-detail="needInitDetail"
               :form-config="formConfig"
+              :disabled="item.type === FieldTypeEnum.DIVIDER ? undefined : props.readonly"
+              :collapsed="item.type === FieldTypeEnum.DIVIDER ? isDividerCollapsed(item) : undefined"
               @change="(value: any, source: Record<string, any>[], dataSourceFormFields?: FormCreateField[]) => handleFieldChange(value, source, item, dataSourceFormFields)"
+              @toggle="() => toggleDivider(item)"
             />
           </div>
         </template>
       </div>
-    </n-scrollbar>
-    <div class="crm-form-create-footer" :class="formConfig.optBtnPos">
+    </component>
+    <div v-if="!props.embedded" class="crm-form-create-footer" :class="formConfig.optBtnPos">
       <n-button v-if="props.isEdit" type="primary" @click="handleSave(false)">
         {{ t('common.update') }}
       </n-button>
@@ -79,6 +82,7 @@
     transformData,
     transformFieldValue,
   } from '@lib/shared/method/formCreate';
+  import { CollaborationType } from '@lib/shared/models/customer';
   import { FormViewSize } from '@lib/shared/models/system/module';
 
   import CrmFormCreateComponents from '@/components/business/crm-form-create/components';
@@ -108,12 +112,16 @@
     linkFormKey?: FormDesignKeyEnum;
     linkScenario?: FormLinkScenarioEnum; // 关联表单场景
     customFormId?: string;
+    embedded?: boolean; // 嵌入模式：隐藏 footer 与滚动容器，由外部触发保存
+    columns?: number; // 多列布局：非占满字段按列均分宽度
+    readonly?: boolean; // 只读模式：禁用所有输入
   }>();
   const emit = defineEmits<{
     (e: 'cancel'): void;
     (e: 'init', title: string, formViewSize?: FormViewSize): void;
     (e: 'saved', isContinue: boolean, res: any, isUpdateReview?: boolean): void;
     (e: 'review', res: any): void;
+    (e: 'ready', sourceName?: string, collaborationType?: CollaborationType): void;
   }>();
 
   const { t } = useI18n();
@@ -149,6 +157,8 @@
     unsaved,
     loading,
     formCreateTitle,
+    sourceName,
+    collaborationType,
     initFormConfig,
     initFormDetail,
     saveForm,
@@ -175,6 +185,79 @@
     approvalStatus: computed(() => detail.value?.approvalStatus),
     detail,
   });
+
+  // DIVIDER 分组折叠
+  const collapsedDividers = ref<Set<string>>(new Set());
+
+  function dividerKey(item: FormCreateField) {
+    return item.internalKey || item.id;
+  }
+
+  function initCollapsedDividers() {
+    const next = new Set<string>();
+    fieldList.value.forEach((item) => {
+      if (
+        item.type === FieldTypeEnum.DIVIDER &&
+        (item.defaultCollapsed || item.internalKey === 'customerBusinessInfo')
+      ) {
+        next.add(dividerKey(item));
+      }
+    });
+    collapsedDividers.value = next;
+  }
+
+  function isDividerCollapsed(item: FormCreateField) {
+    return collapsedDividers.value.has(dividerKey(item));
+  }
+
+  function toggleDivider(item: FormCreateField) {
+    const key = dividerKey(item);
+    const next = new Set(collapsedDividers.value);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    collapsedDividers.value = next;
+  }
+
+  // 折叠分组内的字段隐藏（DIVIDER 本身始终渲染）
+  const hiddenByCollapse = computed(() => {
+    const hidden = new Set<string>();
+    let collapsedKey: string | null = null;
+    fieldList.value.forEach((item) => {
+      if (item.type === FieldTypeEnum.DIVIDER) {
+        const key = dividerKey(item);
+        collapsedKey = collapsedDividers.value.has(key) ? key : null;
+        return;
+      }
+      if (collapsedKey) {
+        hidden.add(item.id);
+      }
+    });
+    return hidden;
+  });
+
+  function isFieldVisible(item: FormCreateField) {
+    return item.show !== false && item.readable && !hiddenByCollapse.value.has(item.id);
+  }
+
+  function getItemWidth(item: FormCreateField) {
+    if (item.type === FieldTypeEnum.ATTACHMENT) {
+      return '100%';
+    }
+    if (props.columns) {
+      if (
+        [FieldTypeEnum.DIVIDER, FieldTypeEnum.TEXTAREA, FieldTypeEnum.SUB_PRICE, FieldTypeEnum.SUB_PRODUCT].includes(
+          item.type
+        )
+      ) {
+        return '100%';
+      }
+      return `${100 / props.columns}%`;
+    }
+    return `${item.fieldWidth * 100}%`;
+  }
 
   function getItemComponent(item: FormCreateField) {
     if (item.type === FieldTypeEnum.INPUT || item.resourceFieldId) {
@@ -872,13 +955,22 @@
   onBeforeMount(async () => {
     const initApprovalReviewConfigPromise = initApprovalReviewConfig();
     await initFormConfig();
+    initCollapsedDividers();
     emit('init', formCreateTitle.value, formConfig.value.viewSize);
     if (props.sourceId && props.needInitDetail) {
       await initFormDetail();
     }
+    emit('ready', sourceName.value, collaborationType.value);
     initForm(props.linkScenario);
     initFormulaDataSourceRemark();
     await initApprovalReviewConfigPromise;
+  });
+
+  defineExpose({
+    submit: () => handleSave(false),
+    reload: () => initFormDetail(),
+    sourceName,
+    collaborationType,
   });
 </script>
 

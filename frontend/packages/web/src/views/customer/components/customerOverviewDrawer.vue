@@ -9,6 +9,7 @@
     :form-key="FormDesignKeyEnum.CUSTOMER"
     :source-id="props.sourceId"
     :formViewSize="formViewSize"
+    default-layout="vertical"
     show-tab-setting
     @button-pop-update="handleTransferPopUpdate"
     @button-select="handleButtonSelect"
@@ -23,17 +24,19 @@
     </template>
     <template #left>
       <div class="h-full overflow-hidden">
-        <CrmFormDescription
-          ref="descriptionRef"
-          :form-key="FormDesignKeyEnum.CUSTOMER"
+        <CrmFormCreate
+          ref="formCreateRef"
+          embedded
+          is-edit
+          :need-init-detail="true"
           :source-id="props.sourceId"
-          :refresh-key="refreshKey"
+          :form-key="FormDesignKeyEnum.CUSTOMER"
+          :columns="layout === 'vertical' ? 3 : undefined"
+          :readonly="collaborationType === 'READ_ONLY' || !hasAnyPermission(['CUSTOMER_MANAGEMENT:UPDATE'])"
           class="p-[16px_24px]"
-          :column="layout === 'vertical' ? 3 : undefined"
-          :label-width="layout === 'vertical' ? 'auto' : undefined"
-          :value-align="layout === 'vertical' ? 'start' : undefined"
-          :readonly="!hasAnyPermission(['CUSTOMER_MANAGEMENT:UPDATE'])"
-          @init="handleDescriptionInit"
+          @init="handleFormInit"
+          @saved="handleSaved"
+          @ready="handleFormReady"
         />
       </div>
     </template>
@@ -145,12 +148,11 @@
   import { ModuleConfigEnum, ReasonTypeEnum } from '@lib/shared/enums/moduleEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import { CollaborationType } from '@lib/shared/models/customer';
-  import type { FormConfig, FormViewSize } from '@lib/shared/models/system/module';
+  import type { FormViewSize } from '@lib/shared/models/system/module';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import type { ActionsItem } from '@/components/pure/crm-more-action/type';
   import ContactTable from '@/components/business/crm-form-create-table/contactTable.vue';
-  import CrmFormDescription from '@/components/business/crm-form-description/index.vue';
   import CrmHeaderTable from '@/components/business/crm-header-table/index.vue';
   import CrmMoveModal from '@/components/business/crm-move-modal/index.vue';
   import CrmOverviewDrawer from '@/components/business/crm-overview-drawer/index.vue';
@@ -170,6 +172,7 @@
   import { hasAnyPermission } from '@/utils/permission';
 
   const FollowDetail = defineAsyncComponent(() => import('@/components/business/crm-follow-detail/index.vue'));
+  const CrmFormCreate = defineAsyncComponent(() => import('@/components/business/crm-form-create/index.vue'));
 
   const props = defineProps<{
     sourceId: string;
@@ -196,15 +199,15 @@
   const transferLoading = ref(false);
   const collaborationType = ref<CollaborationType>();
   const sourceName = ref('');
-  const descriptionRef = ref<InstanceType<typeof CrmFormDescription>>();
+  const formCreateRef = ref<InstanceType<typeof CrmFormCreate>>();
   const buttonList = computed<ActionsItem[]>(() => {
     if (collaborationType.value || props.readonly) {
       return [];
     }
     return [
       {
-        label: t('common.edit'),
-        key: 'edit',
+        label: t('common.save'),
+        key: 'save',
         text: false,
         ghost: true,
         class: 'n-btn-outline-primary',
@@ -361,7 +364,7 @@
       });
       Message.success(t('common.transferSuccess'));
       resetTransferForm();
-      descriptionRef.value?.initFormDescription();
+      formCreateRef.value?.reload();
       emit('transfer');
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -400,7 +403,9 @@
   }
 
   function handleButtonSelect(key: string) {
-    if (key === 'delete') {
+    if (key === 'save') {
+      formCreateRef.value?.submit();
+    } else if (key === 'delete') {
       handleDelete();
     } else if (key === 'pop-transfer') {
       transfer();
@@ -415,15 +420,13 @@
   }
 
   const formViewSize = ref<FormViewSize>('large');
-  function handleDescriptionInit(
-    _collaborationType?: CollaborationType,
-    _sourceName?: string,
-    detail?: Record<string, any>,
-    config?: FormConfig
-  ) {
+  function handleFormInit(_title: string, viewSize?: FormViewSize) {
+    formViewSize.value = viewSize || 'large';
+  }
+
+  function handleFormReady(_sourceName?: string, _collaborationType?: CollaborationType) {
     collaborationType.value = _collaborationType;
     sourceName.value = _sourceName || '';
-    formViewSize.value = config?.viewSize || 'large';
   }
 
   const showContractDetailDrawer = ref(false);

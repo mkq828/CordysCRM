@@ -6,6 +6,7 @@ import cn.cordys.common.constants.LinkScenarioKey;
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.JSON;
+import cn.cordys.crm.customer.domain.CustomerField;
 import cn.cordys.crm.system.domain.*;
 import cn.cordys.crm.system.dto.field.base.BaseField;
 import cn.cordys.crm.system.dto.field.base.ControlRuleProp;
@@ -22,6 +23,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,6 +75,10 @@ public class ModuleFormMigrationService {
     private ExtModuleFieldMapper extModuleFieldMapper;
     @Resource
     private ModuleFieldService moduleFieldService;
+    @Resource
+    private BaseMapper<CustomerField> customerFieldMapper;
+    @Resource
+    private CacheManager cacheManager;
 
     /**
      * 表单初始化
@@ -384,6 +391,318 @@ public class ModuleFormMigrationService {
         fieldDef.put("accept", "jpg,jpeg,png,pdf");
         fieldDef.put("limitSize", "20MB");
         return fieldDef;
+    }
+
+    /**
+     * 回填客户表单的企业工商字段（存量租户）：新增「工商信息」分组及经营状态、成立日期、
+     * 法定代表人、联系电话、邮箱、注册资本、实缴资本、纳税人识别号、企业类型、营业期限、
+     * 登记机关、注册地址、通信地址、经营业务范围等字段，供用户手动填写工商信息。
+     * <p>字段均非必填，与 field.json 中的新字段保持一致；所属行业/所属地区复用既有
+     * 「客户行业」「地区」字段，不重复新增。</p>
+     */
+    public void backfillCustomerBusinessFields() {
+        LambdaQueryWrapper<ModuleForm> formWrapper = new LambdaQueryWrapper<>();
+        formWrapper.eq(ModuleForm::getFormKey, FormKey.CUSTOMER.getKey());
+        List<ModuleForm> forms = moduleFormMapper.selectListByLambda(formWrapper);
+        if (CollectionUtils.isEmpty(forms)) {
+            return;
+        }
+        List<String> formIds = forms.stream().map(ModuleForm::getId).toList();
+
+        // 幂等保护：收集各表单已存在的 internalKey
+        LambdaQueryWrapper<ModuleField> existWrapper = new LambdaQueryWrapper<>();
+        existWrapper.in(ModuleField::getFormId, formIds);
+        List<ModuleField> existFields = moduleFieldMapper.selectListByLambda(existWrapper);
+        Map<String, Set<String>> existingKeysByForm = new HashMap<>();
+        for (ModuleField field : existFields) {
+            existingKeysByForm.computeIfAbsent(field.getFormId(), k -> new HashSet<>()).add(field.getInternalKey());
+        }
+
+        List<ModuleField> newFields = new ArrayList<>();
+        List<ModuleFieldBlob> newFieldBlobs = new ArrayList<>();
+        for (ModuleForm form : forms) {
+            Set<String> existingKeys = existingKeysByForm.getOrDefault(form.getId(), Set.of());
+            Long maxPos = extModuleFieldMapper.getMaxFieldPosByFormId(form.getId());
+            AtomicLong pos = new AtomicLong(maxPos == null ? 0L : maxPos);
+            for (Map<String, Object> fieldDef : customerBusinessFieldDefs()) {
+                String internalKey = fieldDef.get("internalKey").toString();
+                if (existingKeys.contains(internalKey)) {
+                    continue;
+                }
+                ModuleField field = supplyFieldInfo(fieldDef, form.getId(), pos.incrementAndGet(), new HashMap<>(2));
+                fieldDef.put("id", field.getId());
+                newFields.add(field);
+                ModuleFieldBlob fieldBlob = new ModuleFieldBlob();
+                fieldBlob.setId(field.getId());
+                fieldBlob.setProp(JSON.toJSONString(fieldDef));
+                newFieldBlobs.add(fieldBlob);
+            }
+        }
+        if (CollectionUtils.isNotEmpty(newFields)) {
+            moduleFieldMapper.batchInsert(newFields);
+        }
+        if (CollectionUtils.isNotEmpty(newFieldBlobs)) {
+            moduleFieldBlobMapper.batchInsert(newFieldBlobs);
+        }
+    }
+
+    /**
+     * 删除客户表单的「地址信息」「负责人信息」两个分组分隔符（字段行 + blob）。
+     * <p>原详情页把地址、负责人单独分组，现并入「基本信息」分组，故移除这两个 DIVIDER。</p>
+     */
+    public void removeCustomerSubDividers() {
+        LambdaQueryWrapper<ModuleForm> formWrapper = new LambdaQueryWrapper<>();
+        formWrapper.eq(ModuleForm::getFormKey, FormKey.CUSTOMER.getKey());
+        List<ModuleForm> forms = moduleFormMapper.selectListByLambda(formWrapper);
+        if (CollectionUtils.isEmpty(forms)) {
+            return;
+        }
+        List<String> formIds = forms.stream().map(ModuleForm::getId).toList();
+        LambdaQueryWrapper<ModuleField> fieldWrapper = new LambdaQueryWrapper<>();
+        fieldWrapper.in(ModuleField::getFormId, formIds);
+        fieldWrapper.in(ModuleField::getInternalKey, List.of("customerAddressInfo", "customerOwnerInfo"));
+        List<ModuleField> fields = moduleFieldMapper.selectListByLambda(fieldWrapper);
+        List<String> ids = fields.stream().map(ModuleField::getId).toList();
+        if (!ids.isEmpty()) {
+            extModuleFieldMapper.deleteByIds(ids);
+            extModuleFieldMapper.deletePropByIds(ids);
+        }
+        // 表单字段已变更，失效各组织客户表单缓存，避免前端读到旧字段配置
+        evictFormCache(forms, FormKey.CUSTOMER.getKey());
+    }
+
+    /**
+     * 将客户「地区」字段（LOCATION detail：省市区 + 详细地址）拆分为
+     * 「地址」（LOCATION PCD，仅省市区）与「详细地址」（INPUT）两个字段，
+     * 并把「客户标签」移到「详细地址」之后。
+     * <p>同时把存量 customer_area 值 {@code "{省市区编码}-{详细地址}"} 拆到两个字段。</p>
+     */
+    @SuppressWarnings("unchecked")
+    public void splitCustomerAreaField() {
+        LambdaQueryWrapper<ModuleForm> formWrapper = new LambdaQueryWrapper<>();
+        formWrapper.eq(ModuleForm::getFormKey, FormKey.CUSTOMER.getKey());
+        List<ModuleForm> forms = moduleFormMapper.selectListByLambda(formWrapper);
+        if (CollectionUtils.isEmpty(forms)) {
+            return;
+        }
+        List<String> formIds = forms.stream().map(ModuleForm::getId).toList();
+
+        LambdaQueryWrapper<ModuleField> fieldWrapper = new LambdaQueryWrapper<>();
+        fieldWrapper.in(ModuleField::getFormId, formIds);
+        List<ModuleField> allFields = moduleFieldMapper.selectListByLambda(fieldWrapper);
+        Map<String, List<ModuleField>> fieldsByForm = allFields.stream()
+                .collect(Collectors.groupingBy(ModuleField::getFormId));
+
+        List<ModuleField> newFields = new ArrayList<>();
+        List<ModuleFieldBlob> newFieldBlobs = new ArrayList<>();
+        List<CustomerField> detailValues = new ArrayList<>();
+        List<CustomerField> updatedAreaValues = new ArrayList<>();
+
+        for (ModuleForm form : forms) {
+            List<ModuleField> fields = fieldsByForm.getOrDefault(form.getId(), List.of());
+            Map<String, ModuleField> byKey = fields.stream()
+                    .collect(Collectors.toMap(ModuleField::getInternalKey, f -> f, (a, b) -> a));
+            ModuleField area = byKey.get("customerArea");
+            ModuleField tag = byKey.get("customerTag");
+            // 已迁移过，或字段缺失
+            if (area == null || tag == null || byKey.containsKey("customerDetailAddress")) {
+                continue;
+            }
+
+            // 1. 「地区」改名为「地址」，locationType 改为 PCD（仅省市区）
+            area.setName("地址");
+            moduleFieldMapper.updateById(area);
+            ModuleFieldBlob areaBlob = moduleFieldBlobMapper.selectByPrimaryKey(area.getId());
+            if (areaBlob != null && StringUtils.isNotBlank(areaBlob.getProp())) {
+                Map<String, Object> propMap = JSON.parseMap(areaBlob.getProp());
+                // 展示名取自 blob.prop.name（见 ModuleFormService.getAllFields），需一并改
+                propMap.put("name", "地址");
+                propMap.put("locationType", "PCD");
+                areaBlob.setProp(JSON.toJSONString(propMap));
+                moduleFieldBlobMapper.updateById(areaBlob);
+            }
+
+            // 2. 交换 pos：让「地址」排到「客户标签」前（原顺序为 标签 < 地址）
+            long areaPos = area.getPos();
+            long tagPos = tag.getPos();
+            area.setPos(tagPos);
+            tag.setPos(areaPos);
+            moduleFieldMapper.updateById(area);
+            moduleFieldMapper.updateById(tag);
+
+            // 3. 新增「详细地址」字段，插在「地址」与「客户标签」之间
+            long detailPos = tagPos + 1;
+            if (detailPos >= areaPos) {
+                // 无空位：顺延「客户标签」及其后字段
+                detailPos = areaPos;
+                for (ModuleField f : fields) {
+                    if (f.getPos() >= areaPos) {
+                        f.setPos(f.getPos() + 1);
+                        moduleFieldMapper.updateById(f);
+                    }
+                }
+            }
+            Map<String, Object> detailDef = inputFieldDef("详细地址", "customerDetailAddress");
+            ModuleField detail = supplyFieldInfo(detailDef, form.getId(), detailPos, new HashMap<>(2));
+            // 前端 BaseField 的 id 取自 blob.prop.id（见 ModuleFormService.getAllFields），必须回填
+            detailDef.put("id", detail.getId());
+            newFields.add(detail);
+            ModuleFieldBlob detailBlob = new ModuleFieldBlob();
+            detailBlob.setId(detail.getId());
+            detailBlob.setProp(JSON.toJSONString(detailDef));
+            newFieldBlobs.add(detailBlob);
+
+            // 4. 拆分存量数据
+            splitAreaValues(area.getId(), detail.getId(), updatedAreaValues, detailValues);
+        }
+
+        if (CollectionUtils.isNotEmpty(newFields)) {
+            moduleFieldMapper.batchInsert(newFields);
+        }
+        if (CollectionUtils.isNotEmpty(newFieldBlobs)) {
+            moduleFieldBlobMapper.batchInsert(newFieldBlobs);
+        }
+        for (CustomerField field : updatedAreaValues) {
+            customerFieldMapper.updateById(field);
+        }
+        if (CollectionUtils.isNotEmpty(detailValues)) {
+            customerFieldMapper.batchInsert(detailValues);
+        }
+        // 表单字段已变更，失效各组织客户表单缓存，避免前端读到旧字段配置
+        evictFormCache(forms, FormKey.CUSTOMER.getKey());
+    }
+
+    /**
+     * 拆分 customer_field 中的 area 值 {@code "{省市区编码}-{详细地址}"}。
+     * <p>LOCATION 值最大约 200+6 字符，落在 VARCHAR(255) 的 customer_field 表，
+     * 不会进入 customer_field_blob，故仅处理 customer_field。</p>
+     */
+    private void splitAreaValues(String areaFieldId, String detailFieldId,
+            List<CustomerField> updatedAreaValues, List<CustomerField> detailValues) {
+        LambdaQueryWrapper<CustomerField> dataWrapper = new LambdaQueryWrapper<>();
+        dataWrapper.eq(CustomerField::getFieldId, areaFieldId);
+        List<CustomerField> areaValues = customerFieldMapper.selectListByLambda(dataWrapper);
+        for (CustomerField value : areaValues) {
+            String raw = value.getFieldValue() == null ? "" : value.getFieldValue().toString();
+            int dash = raw.indexOf('-');
+            String code = dash < 0 ? raw : raw.substring(0, dash);
+            String detailText = dash < 0 ? "" : raw.substring(dash + 1);
+            if (StringUtils.isNotBlank(detailText)) {
+                CustomerField detailField = new CustomerField();
+                detailField.setId(IDGenerator.nextStr());
+                detailField.setResourceId(value.getResourceId());
+                detailField.setFieldId(detailFieldId);
+                detailField.setFieldValue(detailText);
+                detailValues.add(detailField);
+            }
+            if (!code.equals(raw)) {
+                value.setFieldValue(code);
+                updatedAreaValues.add(value);
+            }
+        }
+    }
+
+    /**
+     * 失效指定表单在各组织的 form_cache / field_cache 缓存。
+     * <p>一次性迁移直接改 sys_module_field(_blob)，不会经过
+     * {@link ModuleFormCacheService#save}，需手动清缓存，否则前端会读到旧字段配置。</p>
+     */
+    private void evictFormCache(List<ModuleForm> forms, String formKey) {
+        if (CollectionUtils.isEmpty(forms)) {
+            return;
+        }
+        for (ModuleForm form : forms) {
+            String cacheKey = form.getOrganizationId() + ":" + formKey;
+            for (String cacheName : List.of("form_cache", "field_cache")) {
+                Cache cache = cacheManager.getCache(cacheName);
+                if (cache != null) {
+                    cache.evict(cacheKey);
+                }
+            }
+        }
+    }
+
+    /**
+     * 客户「工商信息」分组及字段定义（与 field.json 中的新字段保持一致）。
+     */
+    private List<Map<String, Object>> customerBusinessFieldDefs() {
+        List<Map<String, Object>> defs = new ArrayList<>(16);
+        defs.add(dividerFieldDef("工商信息", "customerBusinessInfo"));
+        defs.add(selectFieldDef("企业经营状态", "customerBusinessStatus",
+                List.of("在营/存续", "注销", "吊销", "迁出", "停业", "清算")));
+        defs.add(inputFieldDef("统一社会信用代码", "customerCreditCode"));
+        defs.add(dateFieldDef("成立日期", "customerEstablishDate"));
+        defs.add(inputFieldDef("法定代表人", "customerLegalPerson"));
+        defs.add(phoneFieldDef("联系电话", "customerContactPhone"));
+        defs.add(inputFieldDef("邮箱", "customerEmail"));
+        defs.add(inputFieldDef("注册资本", "customerRegisteredCapital"));
+        defs.add(inputFieldDef("实缴资本", "customerPaidInCapital"));
+        defs.add(inputFieldDef("纳税人识别号", "customerTaxNo"));
+        defs.add(selectFieldDef("企业类型", "customerCompanyType",
+                List.of("有限责任公司", "股份有限公司", "合伙企业", "个人独资企业", "个体工商户",
+                        "外商投资企业", "国有企业", "集体企业", "其他")));
+        defs.add(inputFieldDef("营业期限", "customerBusinessTerm"));
+        defs.add(inputFieldDef("登记机关", "customerRegAuthority"));
+        defs.add(inputFieldDef("注册地址", "customerRegAddress"));
+        defs.add(inputFieldDef("通信地址", "customerMailAddress"));
+        defs.add(textareaFieldDef("经营业务范围", "customerBusinessScope"));
+        return defs;
+    }
+
+    private Map<String, Object> baseFieldDef(String name, String internalKey, String type) {
+        Map<String, Object> def = new HashMap<>(8);
+        def.put("name", name);
+        def.put("internalKey", internalKey);
+        def.put("type", type);
+        def.put("showLabel", true);
+        def.put("readable", true);
+        def.put("editable", true);
+        def.put("fieldWidth", 1);
+        return def;
+    }
+
+    private Map<String, Object> inputFieldDef(String name, String internalKey) {
+        return baseFieldDef(name, internalKey, "INPUT");
+    }
+
+    private Map<String, Object> textareaFieldDef(String name, String internalKey) {
+        return baseFieldDef(name, internalKey, "TEXTAREA");
+    }
+
+    private Map<String, Object> dateFieldDef(String name, String internalKey) {
+        Map<String, Object> def = baseFieldDef(name, internalKey, "DATE_TIME");
+        def.put("dateType", "date");
+        return def;
+    }
+
+    private Map<String, Object> phoneFieldDef(String name, String internalKey) {
+        Map<String, Object> def = baseFieldDef(name, internalKey, "PHONE");
+        def.put("format", "255");
+        return def;
+    }
+
+    private Map<String, Object> selectFieldDef(String name, String internalKey, List<String> labels) {
+        Map<String, Object> def = baseFieldDef(name, internalKey, "SELECT");
+        List<Map<String, String>> options = new ArrayList<>(labels.size());
+        for (int i = 0; i < labels.size(); i++) {
+            options.add(Map.of("label", labels.get(i), "value", String.valueOf(i + 1)));
+        }
+        def.put("options", options);
+        return def;
+    }
+
+    private Map<String, Object> dividerFieldDef(String name, String internalKey) {
+        Map<String, Object> def = new HashMap<>(9);
+        def.put("name", name);
+        def.put("internalKey", internalKey);
+        def.put("type", "DIVIDER");
+        def.put("showLabel", true);
+        def.put("readable", true);
+        def.put("fieldWidth", 1);
+        def.put("dividerClass", "divider--normal");
+        def.put("dividerColor", "#edf0f1");
+        def.put("titleColor", "#323535");
+        return def;
     }
 
     /**

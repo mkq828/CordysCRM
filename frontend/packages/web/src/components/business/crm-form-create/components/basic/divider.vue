@@ -2,12 +2,19 @@
   <div class="mb-[24px] mt-[8px]">
     <div
       v-if="props.fieldConfig.showLabel"
-      class="mb-[8px] font-semibold"
+      class="mb-[8px] flex cursor-pointer select-none items-center gap-[4px]"
       :style="{
         color: fieldConfig.titleColor,
       }"
+      @click="emit('toggle')"
     >
-      {{ props.fieldConfig.name }}
+      <CrmIcon
+        type="iconicon_chevron_down"
+        :size="14"
+        class="transition-transform duration-200"
+        :class="{ '-rotate-90': props.collapsed }"
+      />
+      <span class="font-semibold">{{ props.fieldConfig.name }}</span>
     </div>
     <n-divider
       class="!mb-[4px] !mt-0"
@@ -23,10 +30,17 @@
 <script setup lang="ts">
   import { NDivider } from 'naive-ui';
 
+  import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
+
   import { FormCreateField } from '../../types';
 
   const props = defineProps<{
     fieldConfig: FormCreateField;
+    collapsed?: boolean;
+  }>();
+
+  const emit = defineEmits<{
+    (e: 'toggle'): void;
   }>();
 
   // v-bind内必须全小写
