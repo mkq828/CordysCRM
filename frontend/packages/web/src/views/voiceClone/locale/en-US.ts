@@ -7,6 +7,8 @@ export default {
   'voiceClone.sampleLabel': 'Sample audio',
   'voiceClone.samplePlaceholder': 'Click or drag to upload',
   'voiceClone.sampleTip': 'Upload 3~10s of clear speech (wav / mp3 / m4a); clean audio clones best',
+  'voiceClone.sampleTip2':
+    "The uploaded sample's emotion is preserved: a passionate voice yields passionate voice-over; a dull one yields flat narration. You can upload samples in different moods for later use.",
   'voiceClone.submit': 'Clone',
   'voiceClone.submitting': 'Submitting…',
   'voiceClone.training': 'Cloning…',

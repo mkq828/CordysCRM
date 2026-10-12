@@ -7,6 +7,8 @@ export default {
   'voiceClone.sampleLabel': '样本音频',
   'voiceClone.samplePlaceholder': '点击或拖拽上传音频',
   'voiceClone.sampleTip': '建议上传 3~10 秒清晰人声（wav / mp3 / m4a），无背景噪音效果更佳',
+  'voiceClone.sampleTip2':
+    '上传音色的情绪会被保留：音色有激情，后续对话/配音就有激情；音色沉闷，配音讲解就偏沉闷。也可上传不同情绪的音色，供后续不同场景选用。',
   'voiceClone.submit': '开始复刻',
   'voiceClone.submitting': '提交中…',
   'voiceClone.training': '正在复刻…',

@@ -28,6 +28,7 @@
             <n-button>{{ t('voiceClone.samplePlaceholder') }}</n-button>
           </n-upload>
           <p class="voiceclone-sample-tip">{{ t('voiceClone.sampleTip') }}</p>
+          <p class="voiceclone-sample-tip">{{ t('voiceClone.sampleTip2') }}</p>
         </div>
         <AiActionButton :loading="submitting" :disabled="submitting" @click="handleSubmit">
           {{ submitting ? t('voiceClone.submitting') : t('voiceClone.submit') }}

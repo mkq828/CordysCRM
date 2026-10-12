@@ -46,7 +46,7 @@
           :maxlength="255"
         />
       </n-form-item>
-      <n-form-item v-if="!isVolcVoice" :label="t('system.business.modelSettings.apiKey')" path="apiKey">
+      <n-form-item :label="t('system.business.modelSettings.apiKey')" path="apiKey">
         <n-input
           v-model:value="form.apiKey"
           clearable
@@ -69,38 +69,6 @@
           :placeholder="t('system.business.modelSettings.voiceCloneModelPlaceholder')"
         />
       </n-form-item>
-      <template v-if="isVolcVoice">
-        <n-form-item :label="t('system.business.modelSettings.appId')" path="appId">
-          <n-input
-            v-model:value="form.appId"
-            clearable
-            show-password-on="click"
-            type="password"
-            :maxlength="100"
-            :input-props="{ autocomplete: 'new-password', name: 'agent_model_app_id' }"
-          />
-        </n-form-item>
-        <n-form-item :label="t('system.business.modelSettings.accessToken')" path="accessToken">
-          <n-input
-            v-model:value="form.accessToken"
-            clearable
-            show-password-on="click"
-            type="password"
-            :maxlength="1000"
-            :input-props="{ autocomplete: 'new-password', name: 'agent_model_access_token' }"
-          />
-        </n-form-item>
-        <n-form-item :label="t('system.business.modelSettings.secretKey')" path="secretKey">
-          <n-input
-            v-model:value="form.secretKey"
-            clearable
-            show-password-on="click"
-            type="password"
-            :maxlength="1000"
-            :input-props="{ autocomplete: 'new-password', name: 'agent_model_secret_key' }"
-          />
-        </n-form-item>
-      </template>
       <n-form-item :label="t('system.business.modelSettings.description')" path="description">
         <n-input
           v-model:value="form.description"
@@ -223,7 +191,6 @@
     { label: 'Anthropic', value: 'Anthropic' },
     { label: t('system.business.modelSettings.providerTencent'), value: '腾讯云' },
     { label: t('system.business.modelSettings.providerDoubao'), value: '豆包' },
-    { label: t('system.business.modelSettings.providerDoubaoVoice'), value: '豆包语音' },
     { label: t('system.business.modelSettings.providerCustom'), value: '自定义' },
   ]);
 
@@ -293,8 +260,6 @@
 
   const form = reactive(createForm());
 
-  // 豆包语音旧版应用走三件套鉴权，其余 provider 仍用单串 apiKey
-  const isVolcVoice = computed(() => form.provider === '豆包语音');
   // 阿里云需额外配置声音克隆模型名（复刻模型下线时 admin 改这里即可，无需改代码）
   const isAliyun = computed(() => form.provider === '阿里云');
 
@@ -306,42 +271,13 @@
         trigger: ['blur', 'input'],
       },
     ],
-    apiKey: isVolcVoice.value
-      ? []
-      : [
-          {
-            required: true,
-            message: t('common.notNull', { value: t('system.business.modelSettings.apiKey') }),
-            trigger: ['blur', 'input'],
-          },
-        ],
-    appId: isVolcVoice.value
-      ? [
-          {
-            required: true,
-            message: t('common.notNull', { value: t('system.business.modelSettings.appId') }),
-            trigger: ['blur', 'input'],
-          },
-        ]
-      : [],
-    accessToken: isVolcVoice.value
-      ? [
-          {
-            required: true,
-            message: t('common.notNull', { value: t('system.business.modelSettings.accessToken') }),
-            trigger: ['blur', 'input'],
-          },
-        ]
-      : [],
-    secretKey: isVolcVoice.value
-      ? [
-          {
-            required: true,
-            message: t('common.notNull', { value: t('system.business.modelSettings.secretKey') }),
-            trigger: ['blur', 'input'],
-          },
-        ]
-      : [],
+    apiKey: [
+      {
+        required: true,
+        message: t('common.notNull', { value: t('system.business.modelSettings.apiKey') }),
+        trigger: ['blur', 'input'],
+      },
+    ],
   }));
 
   function resetFormState(model?: Partial<AiModelItem>) {
