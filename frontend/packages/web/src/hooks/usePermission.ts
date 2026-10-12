@@ -1,7 +1,10 @@
 import { RouteLocationNormalized, RouteRecordRaw } from 'vue-router';
 
 import useAppStore from '@/store/modules/app';
+import useUserStore from '@/store/modules/user';
 import { hasAnyPermission, topLevelMenuHasPermission } from '@/utils/permission';
+
+import { DramaRouteEnum } from '@/enums/routeEnum';
 
 /**
  * 用户权限
@@ -18,6 +21,10 @@ export default function usePermission() {
      * @returns 是否
      */
     accessRouter(route: RouteLocationNormalized | RouteRecordRaw) {
+      // AI 漫剧已封存：仅平台超级管理员（userId == admin）可见/可访问
+      if (route.name === DramaRouteEnum.DRAMA) {
+        return useUserStore().isAdmin;
+      }
       if (firstLevelMenu.includes(route.name as string)) {
         // 一级菜单: 创建项目时 被勾选的模块
         return topLevelMenuHasPermission(route);

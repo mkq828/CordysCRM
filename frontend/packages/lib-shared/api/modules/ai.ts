@@ -66,6 +66,18 @@ import {
   AiVideoVoicePreviewUrl,
   AiVideoExpandUrl,
   AiVideoModelsUrl,
+  AiDramaAvailableUrl,
+  AiDramaProjectsUrl,
+  AiDramaScriptUrl,
+  AiDramaEpisodesUrl,
+  AiDramaAssetsUrl,
+  AiDramaVoicesUrl,
+  AiDramaModelsUrl,
+  AiDramaScriptSummaryUrl,
+  AiDramaEpisodeScriptUrl,
+  AiDramaAddEpisodeUrl,
+  AiDramaSeedAssetsUrl,
+  AiDramaFragmentVoicePreviewUrl,
   AiBiAvailableUrl,
   AiBiCatalogUrl,
   AiBiQueryUrl,
@@ -146,6 +158,27 @@ import type {
   AiVideoExpandParams,
   AiVideoExpandResult,
   AiVideoModelsResult,
+  DramaProject,
+  DramaProjectCreateParams,
+  DramaScript,
+  DramaScriptUpdateParams,
+  DramaScriptSummaryParams,
+  DramaScriptSummaryResult,
+  DramaEpisodeScriptParams,
+  DramaEpisodeScriptResult,
+  DramaAddEpisodeParams,
+  DramaAddEpisodeResult,
+  DramaSeedAssetsParams,
+  DramaSeedAssetsResult,
+  DramaEpisode,
+  DramaAsset,
+  DramaFragmentsSaveParams,
+  DramaGenerateParams,
+  DramaPlanFragmentsResult,
+  DramaGenerateStatusResult,
+  DramaNarrationParams,
+  DramaVoicePreviewParams,
+  DramaVoicePreviewResult,
   AiToolTextParams,
   AiToolImageParams,
   AiToolTranscodeParams,
@@ -796,6 +829,148 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.get<AiVideoModelsResult>({ url: AiVideoModelsUrl });
   }
 
+  function getAiDramaAvailable() {
+    return CDR.get<boolean>({ url: AiDramaAvailableUrl });
+  }
+
+  function getAiDramaProjects() {
+    return CDR.get<DramaProject[]>({ url: AiDramaProjectsUrl });
+  }
+
+  function createAiDramaProject(data: DramaProjectCreateParams) {
+    return CDR.post<DramaProject>({ url: AiDramaProjectsUrl, data });
+  }
+
+  function getAiDramaProject(id: string) {
+    return CDR.get<DramaProject>({ url: `${AiDramaProjectsUrl}/${id}` });
+  }
+
+  function updateAiDramaProject(id: string, data: Partial<DramaProject>) {
+    return CDR.put<DramaProject>({ url: `${AiDramaProjectsUrl}/${id}`, data });
+  }
+
+  function deleteAiDramaProject(id: string) {
+    return CDR.delete({ url: `${AiDramaProjectsUrl}/${id}` });
+  }
+
+  function getAiDramaScript(projectId: string) {
+    return CDR.get<DramaScript>({ url: `${AiDramaScriptUrl}/${projectId}/script` });
+  }
+
+  function updateAiDramaScript(projectId: string, data: DramaScriptUpdateParams) {
+    return CDR.put<DramaScript>({ url: `${AiDramaScriptUrl}/${projectId}/script`, data });
+  }
+
+  function getAiDramaEpisodes(projectId: string) {
+    return CDR.get<DramaEpisode[]>({ url: `${AiDramaScriptUrl}/${projectId}/episodes` });
+  }
+
+  function getAiDramaEpisode(id: string) {
+    return CDR.get<DramaEpisode>({ url: `${AiDramaEpisodesUrl}/${id}` });
+  }
+
+  function updateAiDramaEpisode(id: string, data: { name?: string; paramsJson?: string }) {
+    return CDR.put<DramaEpisode>({ url: `${AiDramaEpisodesUrl}/${id}`, data });
+  }
+
+  function renameAiDramaEpisode(projectId: string, episodeNumber: number, name: string) {
+    return CDR.put<null>({ url: `${AiDramaScriptUrl}/${projectId}/episodes/${episodeNumber}`, data: { name } });
+  }
+
+  function deleteAiDramaEpisode(projectId: string, episodeNumber: number) {
+    return CDR.delete<null>({ url: `${AiDramaScriptUrl}/${projectId}/episodes/${episodeNumber}` });
+  }
+
+  function getAiDramaAssets(projectId: string) {
+    return CDR.get<DramaAsset[]>({ url: `${AiDramaScriptUrl}/${projectId}/assets` });
+  }
+
+  function getAllAiDramaAssets() {
+    return CDR.get<DramaAsset[]>({ url: AiDramaAssetsUrl });
+  }
+
+  function createAiDramaAsset(data: Partial<DramaAsset> & { projectId: string }) {
+    return CDR.post<DramaAsset>({ url: AiDramaAssetsUrl, data });
+  }
+
+  function updateAiDramaAsset(id: string, data: Partial<DramaAsset>) {
+    return CDR.put<DramaAsset>({ url: `${AiDramaAssetsUrl}/${id}`, data });
+  }
+
+  function deleteAiDramaAsset(id: string) {
+    return CDR.delete({ url: `${AiDramaAssetsUrl}/${id}` });
+  }
+
+  function getAiDramaVoices() {
+    return CDR.get<AiVideoVoice[]>({ url: AiDramaVoicesUrl });
+  }
+
+  function getAiDramaModels() {
+    return CDR.get<AiVideoModelsResult>({ url: AiDramaModelsUrl });
+  }
+
+  function generateAiDramaScriptSummary(data: DramaScriptSummaryParams) {
+    return CDR.post<DramaScriptSummaryResult>({ url: AiDramaScriptSummaryUrl, data });
+  }
+
+  function generateAiDramaEpisodeScript(data: DramaEpisodeScriptParams) {
+    return CDR.post<DramaEpisodeScriptResult>({ url: AiDramaEpisodeScriptUrl, data });
+  }
+
+  function addAiDramaEpisode(data: DramaAddEpisodeParams) {
+    return CDR.post<DramaAddEpisodeResult>({ url: AiDramaAddEpisodeUrl, data });
+  }
+
+  function seedAiDramaAssets(data: DramaSeedAssetsParams) {
+    return CDR.post<DramaSeedAssetsResult>({ url: AiDramaSeedAssetsUrl, data });
+  }
+
+  function generateAiDramaAssetImage(id: string) {
+    return CDR.post<DramaAsset>({ url: `${AiDramaAssetsUrl}/${id}/generate` });
+  }
+
+  function uploadAiDramaAssetImage(id: string, params: ImportUploadParams) {
+    return CDR.uploadFile<{ data: DramaAsset }>({ url: `${AiDramaAssetsUrl}/${id}/upload` }, params, 'file');
+  }
+
+  function planAiDramaFragments(id: string) {
+    return CDR.post<DramaPlanFragmentsResult>({ url: `${AiDramaEpisodesUrl}/${id}/plan-fragments` });
+  }
+
+  function saveAiDramaFragments(id: string, data: DramaFragmentsSaveParams) {
+    return CDR.put<DramaEpisode>({ url: `${AiDramaEpisodesUrl}/${id}/fragments`, data });
+  }
+
+  function generateAiDramaFragments(id: string, data: DramaGenerateParams) {
+    return CDR.post<DramaGenerateStatusResult>({ url: `${AiDramaEpisodesUrl}/${id}/generate`, data });
+  }
+
+  function getAiDramaGenerateStatus(id: string) {
+    return CDR.get<DramaGenerateStatusResult>({ url: `${AiDramaEpisodesUrl}/${id}/generate-status` });
+  }
+
+  function generateAiDramaNarration(id: string, data?: DramaNarrationParams) {
+    return CDR.post<DramaEpisode>({ url: `${AiDramaEpisodesUrl}/${id}/voice`, data });
+  }
+
+  function previewAiDramaFragmentVoice(fragmentId: string, voice?: string, text?: string) {
+    const data: DramaVoicePreviewParams = {};
+    if (voice) data.voice = voice;
+    if (text) data.text = text;
+    return CDR.post<DramaVoicePreviewResult>({
+      url: `${AiDramaFragmentVoicePreviewUrl}/${fragmentId}/voice-preview`,
+      data,
+    });
+  }
+
+  function composeAiDramaEpisode(id: string) {
+    return CDR.post<DramaEpisode>({ url: `${AiDramaEpisodesUrl}/${id}/compose` });
+  }
+
+  function generateAiDramaFragmentVideos(id: string, data?: DramaGenerateParams) {
+    return CDR.post<DramaEpisode>({ url: `${AiDramaEpisodesUrl}/${id}/generate-video`, data });
+  }
+
   function getAiBiAvailable() {
     return CDR.get<boolean>({ url: AiBiAvailableUrl });
   }
@@ -954,6 +1129,40 @@ export default function useAiApi(CDR: CordysAxios) {
     getAiVideoTemplates,
     expandAiVideoContent,
     getAiVideoModels,
+    getAiDramaAvailable,
+    getAiDramaProjects,
+    createAiDramaProject,
+    getAiDramaProject,
+    updateAiDramaProject,
+    deleteAiDramaProject,
+    getAiDramaScript,
+    updateAiDramaScript,
+    getAiDramaEpisodes,
+    getAiDramaEpisode,
+    updateAiDramaEpisode,
+    renameAiDramaEpisode,
+    deleteAiDramaEpisode,
+    getAiDramaAssets,
+    getAllAiDramaAssets,
+    createAiDramaAsset,
+    updateAiDramaAsset,
+    deleteAiDramaAsset,
+    getAiDramaVoices,
+    getAiDramaModels,
+    generateAiDramaScriptSummary,
+    generateAiDramaEpisodeScript,
+    addAiDramaEpisode,
+    seedAiDramaAssets,
+    generateAiDramaAssetImage,
+    uploadAiDramaAssetImage,
+    planAiDramaFragments,
+    saveAiDramaFragments,
+    generateAiDramaFragments,
+    getAiDramaGenerateStatus,
+    generateAiDramaNarration,
+    previewAiDramaFragmentVoice,
+    composeAiDramaEpisode,
+    generateAiDramaFragmentVideos,
     getAiBiAvailable,
     getAiBiCatalog,
     askBiQuery,

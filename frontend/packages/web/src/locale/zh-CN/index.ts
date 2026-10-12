@@ -57,6 +57,7 @@ export default {
     'menu.aiPpt': '方案/PPT',
     'menu.aiLeadCrawl': '线索爬取',
     'menu.aiVideo': '短视频生成',
+    'menu.aiDrama': 'AI 漫剧',
     'menu.aiCreation': 'AI 创作中心',
     'menu.askBi': '问数 BI',
     'menu.voiceClone': '声音克隆',

@@ -577,6 +577,11 @@ public class VideoGenerateService {
             List<File> images = rebuildSceneImages(segments, workDir);
             List<File> shots = rebuildShotVideos(segments, workDir);
             File cover = resolveCoverFile(task, segments, images, workDir, orgId);
+            // 未显式设置封面（或封面附件下载失败）时，回退到首镜配图做标题卡，
+            // 避免「蓝黑底白字」纯色标题卡：用户没点「用首镜封面」也能得到首镜封面。
+            if (cover == null) {
+                cover = firstSceneImage(images);
+            }
             File closingAudio = new File(workDir, "closing.wav");
             if (!closingAudio.exists()) {
                 closingAudio = null;
@@ -985,6 +990,11 @@ public class VideoGenerateService {
     public List<TtsVoice> voices(String orgId) {
         Map<String, TtsVoice> byValue = new LinkedHashMap<>();
         for (AgentModel model : agentModelService.resolveTtsModels(orgId)) {
+            // 只列出凭据齐全的配音模型的音色：豆包语音需三件套，未配齐时其系统音色会合成失败，
+            // 直接不展示，避免用户在配音下拉里选到必然失败的音色。
+            if (!agentModelService.hasTtsCredential(model)) {
+                continue;
+            }
             try {
                 for (TtsVoice voice : ttsProviderFactory.get(model.getProvider()).voices()) {
                     byValue.putIfAbsent(voice.getValue(), voice);
@@ -997,6 +1007,9 @@ public class VideoGenerateService {
         for (AiCloneVoice clone : listSuccessCloneVoices(orgId)) {
             byValue.putIfAbsent(clone.getSpeakerId(), new TtsVoice(clone.getSpeakerId(), clone.getName(), null));
         }
+        log.info("[drama] voices orgId={} resolvedModels={} voiceCount={}",
+                orgId, agentModelService.resolveTtsModels(orgId).stream().map(AgentModel::getId).toList(),
+                byValue.size());
         return new ArrayList<>(byValue.values());
     }
 
@@ -2280,6 +2293,16 @@ public class VideoGenerateService {
             }
         }
         return downloadCoverFile(coverId, task, workDir, orgId);
+    }
+
+    /** 取首个存在的分镜配图文件（未设封面时的标题卡回退），无则返回 null 走纯色标题卡 */
+    private File firstSceneImage(List<File> images) {
+        for (File image : images) {
+            if (image != null && image.exists()) {
+                return image;
+            }
+        }
+        return null;
     }
 
     /** 把独立上传的封面附件下载到 workDir，失败返回 null（标题卡回退纯色背景） */

@@ -164,6 +164,14 @@ export enum VideoRouteEnum {
   VIDEO_INDEX = 'aiVideoIndex',
 }
 
+export enum DramaRouteEnum {
+  DRAMA = 'aiDrama',
+  DRAMA_INDEX = 'aiDramaIndex',
+  DRAMA_WORKSPACE = 'aiDramaWorkspace',
+  DRAMA_EPISODE = 'aiDramaEpisode',
+  DRAMA_ASSETS = 'aiDramaAssets',
+}
+
 export enum AiCreationRouteEnum {
   AI_CREATION = 'aiCreation',
   AI_CREATION_INDEX = 'aiCreationIndex',
@@ -223,6 +231,7 @@ export const AppRouteEnum = {
   ...PptRouteEnum,
   ...LeadCrawlRouteEnum,
   ...VideoRouteEnum,
+  ...DramaRouteEnum,
   ...AiCreationRouteEnum,
   ...AskBiRouteEnum,
   ...VoiceCloneRouteEnum,

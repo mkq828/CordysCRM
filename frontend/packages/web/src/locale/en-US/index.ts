@@ -58,6 +58,7 @@ export default {
     'menu.aiPpt': 'Proposal & PPT',
     'menu.aiLeadCrawl': 'Lead Crawl',
     'menu.aiVideo': 'Short Video',
+    'menu.aiDrama': 'AI Drama',
     'menu.aiCreation': 'AI Studio',
     'menu.askBi': 'Ask BI',
     'menu.voiceClone': 'Voice Clone',

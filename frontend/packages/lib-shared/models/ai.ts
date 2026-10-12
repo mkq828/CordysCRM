@@ -771,6 +771,224 @@ export interface AiVideoModelsResult {
   videoModels: AiVideoModelOption[];
 }
 
+/** AI 漫剧-项目（列表与详情共用，详情多带 script） */
+export interface DramaProject {
+  id: string;
+  title: string;
+  description?: string | null;
+  workflow?: string | null;
+  coverAttachmentId?: string | null;
+  paramsJson?: string | null;
+  episodeCount?: number;
+  assetCount?: number;
+  hasScript?: boolean;
+  script?: DramaScript | null;
+  createTime?: number | null;
+  updateTime?: number | null;
+}
+
+/** AI 漫剧-剧本（summaryJson / episodeContentJson 为 JSON 字符串，使用时自行解析） */
+export interface DramaScript {
+  id: string;
+  projectId: string;
+  name?: string | null;
+  sourceText?: string | null;
+  summaryJson?: string | null;
+  episodeContentJson?: string | null;
+  summaryStatus?: string | null;
+  paramsJson?: string | null;
+}
+
+/** AI 漫剧-分集（含分镜列表） */
+export interface DramaEpisode {
+  id: string;
+  projectId: string;
+  name?: string | null;
+  sortOrder?: number;
+  status?: string | null;
+  videoAttachmentId?: string | null;
+  narrationStatus?: string | null;
+  videoStatus?: string | null;
+  videoError?: string | null;
+  composeStatus?: string | null;
+  composeError?: string | null;
+  fragments: DramaFragment[];
+}
+
+/** AI 漫剧-分镜片段 */
+export interface DramaFragment {
+  id: string;
+  episodeId: string;
+  sortOrder?: number;
+  content?: string | null;
+  narration?: string | null;
+  narrationAttachmentId?: string | null;
+  voice?: string | null;
+  durationSec?: number | null;
+  coverAttachmentId?: string | null;
+  videoAttachmentId?: string | null;
+  assetIdsJson?: string | null;
+  status?: string | null;
+}
+
+/** AI 漫剧-资产（角色/场景/道具/音色） */
+export interface DramaAsset {
+  id: string;
+  projectId: string;
+  type: string;
+  assetType?: string | null;
+  name?: string | null;
+  voice?: string | null;
+  coverAttachmentId?: string | null;
+  paramsJson?: string | null;
+  status?: string | null;
+}
+
+/** AI 漫剧-新建项目参数 */
+export interface DramaProjectCreateParams {
+  title?: string;
+  source?: string;
+  episodeCount?: number;
+  imageStyleId?: string;
+  workflow?: string;
+}
+
+/** AI 漫剧-单集正文（episode_content 数组项，后端存 JSON 字符串） */
+export interface DramaEpisodeBody {
+  episodeNumber: number;
+  title?: string;
+  creative?: string;
+  summary?: string;
+  body?: string;
+  origin?: string;
+}
+
+/** AI 漫剧-更新剧本参数（创意/摘要/分集/风格/剧本名，对齐后端 DramaScriptUpdateRequest） */
+export interface DramaScriptUpdateParams {
+  source?: string;
+  summaryJson?: string | null;
+  episodeContentJson?: string | null;
+  imageStyleId?: string;
+  name?: string;
+}
+
+/** AI 漫剧-生成剧情摘要参数 */
+export interface DramaScriptSummaryParams {
+  projectId: string;
+  creative?: string;
+  episodeCount?: number;
+  imageStyleId?: string;
+}
+
+/** AI 漫剧-生成剧情摘要结果（queued 是否真正入队异步） */
+export interface DramaScriptSummaryResult {
+  queued: boolean;
+  script: DramaScript;
+}
+
+/** AI 漫剧-生成分集剧本参数 */
+export interface DramaEpisodeScriptParams {
+  projectId: string;
+  batchSize?: number;
+  force?: boolean;
+  episodeNumber?: number;
+}
+
+/** AI 漫剧-生成分集剧本结果 */
+export interface DramaEpisodeScriptResult {
+  queued: boolean;
+  totalGenerated: number;
+  totalTarget: number;
+  done: boolean;
+  script: DramaScript;
+}
+
+/** AI 漫剧-追加一集参数 */
+export interface DramaAddEpisodeParams {
+  projectId: string;
+  title?: string;
+}
+
+/** AI 漫剧-追加一集结果 */
+export interface DramaAddEpisodeResult {
+  episodeNumber: number;
+  script: DramaScript;
+}
+
+/** AI 漫剧-从剧本抽取资产参数 */
+export interface DramaSeedAssetsParams {
+  projectId: string;
+  refreshPrompts?: boolean;
+}
+
+/** AI 漫剧-从剧本抽取资产结果（异步时前端轮询项目 paramsJson.assets_seed_status） */
+export interface DramaSeedAssetsResult {
+  status: string;
+  queued: boolean;
+  createdCount?: number | null;
+  message?: string | null;
+  assets: DramaAsset[];
+}
+
+/** AI 漫剧-保存分镜列表参数（按 id 增量更新，未提交分镜删除） */
+export interface DramaFragmentsSaveParams {
+  fragments: Array<{
+    id?: string | null;
+    sortOrder?: number;
+    content?: string | null;
+    narration?: string | null;
+    voice?: string | null;
+    durationSec?: number | null;
+    assetIdsJson?: string | null;
+  }>;
+}
+
+/** AI 漫剧-生成分镜画面参数（空则整集） */
+export interface DramaGenerateParams {
+  fragmentIds?: string[];
+  modelId?: string;
+  mode?: string;
+}
+
+/** AI 漫剧-分镜规划结果（异步时前端轮询分集 status） */
+export interface DramaPlanFragmentsResult {
+  queued: boolean;
+  episode: DramaEpisode;
+}
+
+/** AI 漫剧-生成口播配音参数（空 fragmentIds 则整集含台词分镜） */
+export interface DramaNarrationParams {
+  fragmentIds?: string[];
+  voice?: string | null;
+}
+
+/** AI 漫剧-分镜口播试听参数（text 传编辑框当前未保存台词，保证所听即所得） */
+export interface DramaVoicePreviewParams {
+  voice?: string | null;
+  text?: string | null;
+}
+
+/** AI 漫剧-分镜口播试听结果（base64 WAV） */
+export interface DramaVoicePreviewResult {
+  audio: string;
+  voice?: string | null;
+}
+
+/** AI 漫剧-分集生成进度（轮询用） */
+export interface DramaGenerateStatusResult {
+  episodeId: string;
+  done: number;
+  failed: number;
+  running: number;
+  total: number;
+  fragments: Array<{
+    fragmentId: string;
+    status: string;
+    coverAttachmentId?: string | null;
+    videoAttachmentId?: string | null;
+  }>;
+}
+
 /** AI 工具中心-文案类工具流式生成参数 */
 export interface AiToolTextParams {
   type: 'REWRITE' | 'TITLE' | 'SCRIPT' | string;

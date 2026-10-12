@@ -97,10 +97,13 @@ public final class AiQuotaConstant {
     /** 声音克隆（功能 11，能力组件：克隆指定音色供短视频/数字人/外呼复用，只挂 G3 版本开关，企业版） */
     public static final String AI_VOICE_CLONE = "ai_voice_clone";
 
+    /** AI 漫剧（功能 7 扩展，生成型：剧本/分镜走 LLM 挂 G2 额度 + G3 权限，专业版+） */
+    public static final String AI_DRAMA = "ai_drama";
+
     public static final List<String> AI_FEATURE_CODES = List.of(
             "ai_advisor", "ai_acquire", "ai_sales_rag", "ai_video", "wecom_auto_analysis",
             "ai_ppt", "lead_crawl", "dm_profile", "ai_employee", "ai_kb", "digital_human", "ai_call_review",
-            "ai_tool", "ai_ask_bi", "ai_voice_clone");
+            "ai_tool", "ai_ask_bi", "ai_voice_clone", "ai_drama");
 
     private AiQuotaConstant() {
     }

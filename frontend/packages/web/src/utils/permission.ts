@@ -6,7 +6,7 @@ import appRoutes from '@/router/routes/index';
 import useAppStore from '@/store/modules/app';
 import useUserStore from '@/store/modules/user';
 
-import { WorkbenchRouteEnum } from '@/enums/routeEnum';
+import { DramaRouteEnum, WorkbenchRouteEnum } from '@/enums/routeEnum';
 
 export function hasPermission(permission: string) {
   const userStore = useUserStore();

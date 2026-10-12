@@ -135,6 +135,9 @@ public abstract class OpenAiCompatibleProvider implements LlmProvider {
         body.put("size", request.getSize());
         body.put("response_format", "url");
         body.put("watermark", false);
+        if (request.getImage() != null && !request.getImage().isEmpty()) {
+            body.put("image", request.getImage().size() == 1 ? request.getImage().get(0) : request.getImage());
+        }
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(url))

@@ -49,7 +49,18 @@ public class AliyunCosyVoiceTtsProvider implements TtsProvider {
                 new TtsVoice("Cherry", "芊悦（女声·亲切自然）", "female"),
                 new TtsVoice("Serena", "苏瑶（女声·温柔）", "female"),
                 new TtsVoice("Chelsie", "活力女声（甜美）", "female"),
-                new TtsVoice("Ethan", "晨煦（男声·阳光）", "male"));
+                new TtsVoice("Ethan", "晨煦（男声·阳光）", "male"),
+                new TtsVoice("Nofish", "不吃鱼（普通话·不卷舌）", null),
+                new TtsVoice("Jada", "阿珍（上海话·女）", "female"),
+                new TtsVoice("Dylan", "晓东（北京话·男）", "male"),
+                new TtsVoice("Sunny", "晴儿（四川话·女）", "female"),
+                new TtsVoice("Li", "老李（南京话·男）", "male"),
+                new TtsVoice("Marcus", "秦川（陕西话·男）", "male"),
+                new TtsVoice("Roy", "阿杰（闽南话·男）", "male"),
+                new TtsVoice("Peter", "李彼得（天津话·男）", "male"),
+                new TtsVoice("Rocky", "阿强（粤语·男）", "male"),
+                new TtsVoice("Kiki", "阿清（粤语·女）", "female"),
+                new TtsVoice("Eric", "程川（四川话·男）", "male"));
     }
 
     @Override
