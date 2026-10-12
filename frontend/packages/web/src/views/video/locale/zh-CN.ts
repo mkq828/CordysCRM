@@ -180,6 +180,7 @@ export default {
   'video.ratioItem': '比例',
   'video.modeItem': '成片',
   'video.generateStoryboard': '生成故事板',
+  'video.backToBoard': '返回分镜台',
   'video.generateFirstHint': '先生成分镜脚本，确认修改后再手动开始出图与配音。',
   // 分镜台（确认分镜/画面与配音/镜头视频/合成预览，1:1 复刻 printfilm 分镜工作台）
   'video.projectSettings': '项目设置',

@@ -530,6 +530,16 @@
               {{ t('video.auditionVoice', { label: selectedVoiceLabel }) }}
             </button>
             <button
+              v-if="hasActiveTask"
+              type="button"
+              class="pf-btn pf-btn-lime pf-btn-lg pf-btn-icon pf-btn-block"
+              @click="returnToBoard"
+            >
+              {{ t('video.backToBoard') }}
+              <span aria-hidden>→</span>
+            </button>
+            <button
+              v-else
               type="button"
               class="pf-btn pf-btn-lime pf-btn-lg pf-btn-icon pf-btn-block"
               :disabled="!canGenerate || generating"
@@ -1689,6 +1699,14 @@
     step.value = i;
   }
 
+  // 已有活动任务时，风格页主按钮应为「返回分镜台」而非重建任务，避免误触清空已生成的分镜/画面
+  const hasActiveTask = computed<boolean>(() => Boolean(activeTaskId.value));
+
+  function returnToBoard() {
+    const task = activeTask.value;
+    step.value = task ? Math.max(2, autoStepFor(task)) : 2;
+  }
+
   function onSourceInput() {
     if (inputMode.value === 'theme') {
       form.sourceText = form.sourceText.slice(0, THEME_MAX_LEN);
@@ -2375,7 +2393,7 @@
       activeTaskId.value = created.id;
       localActiveTask.value = created;
       step.value = 2;
-      maxReachedStep.value = Math.max(maxReachedStep.value, 2);
+      maxReachedStep.value = 2;
       Message.success(t('video.generateSuccess'));
       await loadTasks();
       if (!tasks.value.some((task) => task.id === created.id)) {

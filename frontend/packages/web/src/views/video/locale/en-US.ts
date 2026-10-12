@@ -186,6 +186,7 @@ export default {
   'video.ratioItem': 'Ratio',
   'video.modeItem': 'Mode',
   'video.generateStoryboard': 'Generate storyboard',
+  'video.backToBoard': 'Back to storyboard',
   'video.generateFirstHint': 'Generate the storyboard first; review, then manually start imaging and dubbing.',
   // Storyboard board (confirm / scenes & voice / shot videos / compose)
   'video.projectSettings': 'Project settings',
