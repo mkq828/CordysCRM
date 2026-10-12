@@ -64,7 +64,7 @@ export default {
   'platformAiQuota.feature.ai_video': '短视频生成',
   'platformAiQuota.feature.wecom_auto_analysis': '企微会话自动分析',
   'platformAiQuota.feature.ai_ppt': 'AI 方案/PPT 演示生成',
-  'platformAiQuota.feature.lead_crawl': '线索爬取 + 竞品/行业洞察',
+  'platformAiQuota.feature.lead_crawl': '竞品洞察',
   'platformAiQuota.feature.dm_profile': '私信获客画像',
   'platformAiQuota.feature.ai_employee': 'AI 员工 + 语音外呼',
   'platformAiQuota.feature.ai_kb': '企业知识库',

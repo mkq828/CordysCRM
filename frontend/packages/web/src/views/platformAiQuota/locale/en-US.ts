@@ -65,7 +65,7 @@ export default {
   'platformAiQuota.feature.ai_video': 'Short Video Generation',
   'platformAiQuota.feature.wecom_auto_analysis': 'WeCom Conversation Auto-analysis',
   'platformAiQuota.feature.ai_ppt': 'AI Proposal / PPT Generation',
-  'platformAiQuota.feature.lead_crawl': 'Lead Crawling + Industry Insights',
+  'platformAiQuota.feature.lead_crawl': 'Competitor Insight',
   'platformAiQuota.feature.dm_profile': 'DM Lead Profiling',
   'platformAiQuota.feature.ai_employee': 'AI Employee + Voice Outreach',
   'platformAiQuota.feature.ai_kb': 'Enterprise Knowledge Base',

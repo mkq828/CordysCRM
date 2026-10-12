@@ -10,14 +10,8 @@ import cn.cordys.crm.ai.controller.SseEventWriter;
 import cn.cordys.crm.ai.conversation.service.AgentConversationService;
 import cn.cordys.crm.ai.dto.response.AiStreamResult;
 import cn.cordys.crm.ai.leadcrawl.dto.request.CompetitorInsightRequest;
-import cn.cordys.crm.ai.leadcrawl.dto.request.LeadCrawlDetailRequest;
-import cn.cordys.crm.ai.leadcrawl.dto.request.LeadCrawlImportRequest;
-import cn.cordys.crm.ai.leadcrawl.dto.request.LeadCrawlSearchRequest;
 import cn.cordys.crm.ai.leadcrawl.dto.response.CompetitorInsightResponse;
-import cn.cordys.crm.ai.leadcrawl.dto.response.LeadCrawlEnterpriseResponse;
-import cn.cordys.crm.ai.leadcrawl.dto.response.LeadCrawlImportResponse;
 import cn.cordys.crm.ai.leadcrawl.service.CompetitorInsightService;
-import cn.cordys.crm.ai.leadcrawl.service.LeadCrawlService;
 import cn.cordys.crm.ai.llm.LlmUsage;
 import cn.cordys.crm.system.service.EditionService;
 import cn.cordys.security.SessionUtils;
@@ -25,7 +19,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,20 +29,17 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.List;
 import java.util.Map;
 
 /**
- * 线索爬取 + 竞品/行业洞察接口（功能 10，企业版 G3 门控）。
- * 线索爬取走企查查 API + 平台缓存，不计量额度；竞品洞察走任务模型流式生成，挂 G2 额度。
+ * 竞品洞察接口（功能 10，企业版 G3 门控）。
+ * 走任务模型流式生成，挂 G2 额度。
  */
 @RestController
 @RequestMapping("/agent/lead-crawl")
-@Tag(name = "线索爬取与竞品洞察")
+@Tag(name = "竞品洞察")
 public class LeadCrawlController extends BaseAiStreamController {
 
-    @Resource
-    private LeadCrawlService leadCrawlService;
     @Resource
     private CompetitorInsightService competitorInsightService;
     @Resource
@@ -58,33 +48,9 @@ public class LeadCrawlController extends BaseAiStreamController {
     private EditionService editionService;
 
     @GetMapping("/available")
-    @Operation(summary = "查询当前租户是否开通线索爬取与竞品洞察")
+    @Operation(summary = "查询当前租户是否开通竞品洞察")
     public boolean available() {
         return editionService.hasFeature(OrganizationContext.getOrganizationId(), AiQuotaConstant.AI_LEAD_CRAWL);
-    }
-
-    @PostMapping("/search")
-    @Operation(summary = "按关键字搜索企业名单")
-    public List<LeadCrawlEnterpriseResponse> search(@Valid @RequestBody LeadCrawlSearchRequest request) {
-        String orgId = OrganizationContext.getOrganizationId();
-        checkAvailable(orgId);
-        return leadCrawlService.search(orgId, request.getKeyword());
-    }
-
-    @PostMapping("/detail")
-    @Operation(summary = "拉取企业完整工商信息（命中缓存直接返回）")
-    public List<LeadCrawlEnterpriseResponse> detail(@Valid @RequestBody LeadCrawlDetailRequest request) {
-        String orgId = OrganizationContext.getOrganizationId();
-        checkAvailable(orgId);
-        return leadCrawlService.fetchDetail(orgId, request.getNames());
-    }
-
-    @PostMapping("/import")
-    @Operation(summary = "把选中企业导入线索池")
-    public LeadCrawlImportResponse importToPool(@Valid @RequestBody LeadCrawlImportRequest request) {
-        String orgId = OrganizationContext.getOrganizationId();
-        checkAvailable(orgId);
-        return leadCrawlService.importToPool(orgId, SessionUtils.getUserId(), request);
     }
 
     @PostMapping(value = "/insight/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -131,7 +97,7 @@ public class LeadCrawlController extends BaseAiStreamController {
 
     private void checkAvailable(String orgId) {
         if (!editionService.hasFeature(orgId, AiQuotaConstant.AI_LEAD_CRAWL)) {
-            throw new GenericException("当前版本未开通线索爬取与竞品洞察，请升级至企业版");
+            throw new GenericException("当前版本未开通竞品洞察，请升级至企业版");
         }
     }
 

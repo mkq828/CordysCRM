@@ -79,7 +79,7 @@ public final class AiQuotaConstant {
     /** AI 员工（功能 6，编排层：角色提示词 + 岗位 Agent 对话，G2 额度 + G3 权限） */
     public static final String AI_EMPLOYEE = "ai_employee";
 
-    /** 线索爬取 + 竞品/行业洞察（功能 10，爬取不计量，竞品洞察走任务模型挂 G2 额度 + G3 权限） */
+    /** 竞品洞察（功能 10，走任务模型挂 G2 额度 + G3 权限） */
     public static final String AI_LEAD_CRAWL = "lead_crawl";
 
     /** 私信获客画像（功能 8，采集不计量，AI 画像走任务模型挂 G2 额度 + G3 权限） */

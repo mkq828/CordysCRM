@@ -56,7 +56,7 @@ export default {
     'menu.aiContent': 'AI Content',
     'menu.aiKnowledge': 'AI Knowledge Base',
     'menu.aiPpt': 'Proposal & PPT',
-    'menu.aiLeadCrawl': 'Lead Crawl',
+    'menu.aiLeadCrawl': 'Competitor Insight',
     'menu.aiVideo': 'Short Video',
     'menu.aiDrama': 'AI Drama',
     'menu.aiCreation': 'AI Studio',
