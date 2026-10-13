@@ -272,7 +272,7 @@
     const routeItem = item as unknown as AppRouteRecordRaw;
     let name: string | symbol = key;
     if (routeItem.name === WorkbenchRouteEnum.WORKBENCH) {
-      name = WorkbenchRouteEnum.WORKBENCH_SMART;
+      name = WorkbenchRouteEnum.WORKBENCH_BOARD;
     } else if (routeItem.meta?.hideChildrenInMenu) {
       name = getFirstRouterNameByCurrentRoute(routeItem.name as string) || key;
     }

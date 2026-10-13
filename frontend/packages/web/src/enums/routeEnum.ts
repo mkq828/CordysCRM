@@ -66,11 +66,13 @@ export enum PersonalRouteEnum {
 
 export enum WorkbenchRouteEnum {
   WORKBENCH = 'workbench',
-  WORKBENCH_SMART = 'workbenchSmart',
   WORKBENCH_BOARD = 'workbenchBoard',
-  WORKBENCH_CALL_REVIEW = 'workbenchCallReview',
-  WORKBENCH_DM_PROFILE = 'workbenchDmProfile',
   WORKBENCH_DM_PROFILE_GUIDE = 'workbenchDmProfileGuide',
+  // 智慧工作台/通话复盘/私信画像已收编进「AI 创作中心」菜单，路由名刻意去掉 workbench 前缀：
+  // 避免在 useMenuTree.travel() 里误中 featureRouteMap['workbench']（首页模块开关）子串。
+  AI_SMART = 'aiSmart',
+  AI_CALL_REVIEW = 'aiCallReview',
+  AI_DM_PROFILE = 'aiDmProfile',
 }
 
 export enum AgentRouteEnum {

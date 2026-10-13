@@ -197,7 +197,7 @@
   );
 
   function goAdvisor() {
-    router.push({ name: WorkbenchRouteEnum.WORKBENCH_SMART });
+    router.push({ name: WorkbenchRouteEnum.AI_SMART });
   }
 
   // 了解升级：跳转到个人信息（个人中心）的「版本与授权」查看并自助申请续费/升级

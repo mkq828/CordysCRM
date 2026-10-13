@@ -61,6 +61,7 @@ export default {
     'menu.aiDrama': 'AI 漫剧',
     'menu.pending': '待完善功能',
     'menu.aiCreation': 'AI 创作中心',
+    'menu.aiCreation.tool': '工具中心',
     'menu.askBi': '问数 BI',
     'menu.voiceClone': '声音克隆',
     'menu.aiEmployee': 'AI 员工',

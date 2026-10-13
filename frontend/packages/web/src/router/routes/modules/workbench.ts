@@ -1,5 +1,3 @@
-// import useLicenseStore from '@/store/modules/setting/license';
-
 import { WorkbenchRouteEnum } from '@/enums/routeEnum';
 
 import { DEFAULT_LAYOUT } from '../base';
@@ -9,7 +7,7 @@ const workbench: AppRouteRecordRaw = {
   path: '/workbench',
   name: WorkbenchRouteEnum.WORKBENCH,
   redirect: {
-    name: WorkbenchRouteEnum.WORKBENCH_SMART,
+    name: WorkbenchRouteEnum.WORKBENCH_BOARD,
   },
   component: DEFAULT_LAYOUT,
   meta: {
@@ -21,43 +19,12 @@ const workbench: AppRouteRecordRaw = {
   },
   children: [
     {
-      path: 'smart',
-      name: WorkbenchRouteEnum.WORKBENCH_SMART,
-      component: () => import('@/views/workbench/smart/index.vue'),
-      meta: {
-        locale: 'menu.workbench.smart',
-        permissions: [],
-        isTopMenu: true,
-      },
-    },
-    {
       path: 'index',
       name: WorkbenchRouteEnum.WORKBENCH_BOARD,
       component: () => import('@/views/workbench/index.vue'),
       meta: {
         locale: 'menu.workbench.board',
         permissions: [],
-        isTopMenu: true,
-      },
-    },
-    {
-      path: 'callReview',
-      name: WorkbenchRouteEnum.WORKBENCH_CALL_REVIEW,
-      component: () => import('@/views/workbench/callReview/index.vue'),
-      meta: {
-        locale: 'menu.workbench.callReview',
-        permissions: [],
-        isTopMenu: true,
-      },
-    },
-    {
-      path: 'dmProfile',
-      name: WorkbenchRouteEnum.WORKBENCH_DM_PROFILE,
-      component: () => import('@/views/workbench/dmProfile/index.vue'),
-      meta: {
-        locale: 'menu.workbench.dmProfile',
-        permissions: [],
-        isTopMenu: true,
       },
     },
   ],

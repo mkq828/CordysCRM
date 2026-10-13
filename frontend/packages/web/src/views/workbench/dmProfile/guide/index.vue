@@ -89,7 +89,7 @@
       window.close();
       return;
     }
-    router.push({ name: WorkbenchRouteEnum.WORKBENCH_DM_PROFILE });
+    router.push({ name: WorkbenchRouteEnum.AI_DM_PROFILE });
   }
 
   function downloadPlugin() {

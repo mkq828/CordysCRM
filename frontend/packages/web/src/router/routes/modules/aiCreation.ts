@@ -1,10 +1,22 @@
-import { AiCreationRouteEnum } from '@/enums/routeEnum';
+import {
+  AgentRouteEnum,
+  AiCreationRouteEnum,
+  AiEmployeeRouteEnum,
+  AskBiRouteEnum,
+  ContentRouteEnum,
+  KnowledgeRouteEnum,
+  LeadCrawlRouteEnum,
+  ScriptRouteEnum,
+  VoiceCloneRouteEnum,
+  WorkbenchRouteEnum,
+} from '@/enums/routeEnum';
 
 import { DEFAULT_LAYOUT } from '../base';
 import type { AppRouteRecordRaw } from '../types';
 
-// AI 创作中心（一级入口：工具中心 / 模板库 / 资产库 / 我的作品）。
-// 菜单对所有登录用户可见，版本门控由后端 hasFeature(ai_tool) 控制（与短视频、线索爬取一致）。
+// AI 创作中心：统一入口，收编所有「已上线」的 AI 赋能模块。
+// 菜单对所有登录用户可见，各子项权限照搬原独立路由；版本门控由后端 hasFeature 控制。
+// 子路由用绝对路径保持原 URL（如 /agent/index、/workbench/smart）不变，只改菜单归属。
 const aiCreation: AppRouteRecordRaw = {
   path: '/ai-creation',
   name: AiCreationRouteEnum.AI_CREATION,
@@ -14,16 +26,114 @@ const aiCreation: AppRouteRecordRaw = {
     locale: 'menu.aiCreation',
     permissions: [],
     icon: 'iconicon_crmbot',
-    hideChildrenInMenu: true,
     collapsedLocale: 'menu.aiCreation',
   },
   children: [
     {
-      path: 'index',
+      path: '/ai-creation/index',
       name: AiCreationRouteEnum.AI_CREATION_INDEX,
       component: () => import('@/views/aiCreation/index.vue'),
       meta: {
-        locale: 'menu.aiCreation',
+        locale: 'menu.aiCreation.tool',
+        permissions: [],
+      },
+    },
+    {
+      path: '/workbench/smart',
+      name: WorkbenchRouteEnum.AI_SMART,
+      component: () => import('@/views/workbench/smart/index.vue'),
+      meta: {
+        locale: 'menu.workbench.smart',
+        permissions: [],
+      },
+    },
+    {
+      path: '/workbench/callReview',
+      name: WorkbenchRouteEnum.AI_CALL_REVIEW,
+      component: () => import('@/views/workbench/callReview/index.vue'),
+      meta: {
+        locale: 'menu.workbench.callReview',
+        permissions: [],
+      },
+    },
+    {
+      path: '/workbench/dmProfile',
+      name: WorkbenchRouteEnum.AI_DM_PROFILE,
+      component: () => import('@/views/workbench/dmProfile/index.vue'),
+      meta: {
+        locale: 'menu.workbench.dmProfile',
+        permissions: [],
+      },
+    },
+    {
+      path: '/agent/index',
+      name: AgentRouteEnum.AGENT_INDEX,
+      component: () => import('@/views/agent/index.vue'),
+      meta: {
+        locale: 'menu.agent',
+        permissions: ['AGENT:READ'],
+      },
+    },
+    {
+      path: '/ai-employee/index',
+      name: AiEmployeeRouteEnum.AI_EMPLOYEE_INDEX,
+      component: () => import('@/views/aiEmployee/index.vue'),
+      meta: {
+        locale: 'menu.aiEmployee',
+        permissions: [],
+      },
+    },
+    {
+      path: '/sales-script/index',
+      name: ScriptRouteEnum.SCRIPT_INDEX,
+      component: () => import('@/views/script/index.vue'),
+      meta: {
+        locale: 'menu.salesScript',
+        permissions: [],
+      },
+    },
+    {
+      path: '/ai-content/index',
+      name: ContentRouteEnum.CONTENT_INDEX,
+      component: () => import('@/views/content/index.vue'),
+      meta: {
+        locale: 'menu.aiContent',
+        permissions: [],
+      },
+    },
+    {
+      path: '/ai-knowledge/index',
+      name: KnowledgeRouteEnum.KNOWLEDGE_INDEX,
+      component: () => import('@/views/knowledge/index.vue'),
+      meta: {
+        locale: 'menu.aiKnowledge',
+        permissions: [],
+      },
+    },
+    {
+      path: '/ai-lead-crawl/index',
+      name: LeadCrawlRouteEnum.LEAD_CRAWL_INDEX,
+      component: () => import('@/views/leadCrawl/index.vue'),
+      meta: {
+        locale: 'menu.aiLeadCrawl',
+        permissions: [],
+      },
+    },
+    {
+      path: '/ai-bi/index',
+      name: AskBiRouteEnum.ASK_BI_INDEX,
+      component: () => import('@/views/askBi/index.vue'),
+      meta: {
+        locale: 'menu.askBi',
+        permissions: [],
+      },
+    },
+    {
+      path: '/ai-voice-clone/index',
+      name: VoiceCloneRouteEnum.VOICE_CLONE_INDEX,
+      component: () => import('@/views/voiceClone/index.vue'),
+      meta: {
+        locale: 'menu.voiceClone',
         permissions: [],
       },
     },

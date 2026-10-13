@@ -62,6 +62,7 @@ export default {
     'menu.aiDrama': 'AI Drama',
     'menu.pending': 'Pending Features',
     'menu.aiCreation': 'AI Studio',
+    'menu.aiCreation.tool': 'Tool Center',
     'menu.askBi': 'Ask BI',
     'menu.voiceClone': 'Voice Clone',
     'menu.aiEmployee': 'AI Employees',
