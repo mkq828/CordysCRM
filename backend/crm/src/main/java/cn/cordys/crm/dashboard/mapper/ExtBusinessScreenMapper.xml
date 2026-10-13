@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.cordys.crm.dashboard.mapper.ExtBusinessScreenMapper">
+
+    <select id="selectKpi" resultType="cn.cordys.crm.dashboard.dto.response.BusinessScreenKpi">
+        SELECT
+            (SELECT COUNT(*) FROM customer WHERE organization_id = #{orgId} AND in_shared_pool = 0) AS customerCount,
+            (SELECT COUNT(*) FROM clue WHERE organization_id = #{orgId} AND in_shared_pool = 0
+             AND (transition_type IS NULL OR transition_type != 'CUSTOMER')) AS clueCount,
+            (SELECT COUNT(*) FROM opportunity WHERE organization_id = #{orgId}) AS opportunityCount,
+            (SELECT COUNT(*) FROM sales_order WHERE organization_id = #{orgId}) AS orderCount,
+            (SELECT COUNT(*) FROM contract WHERE organization_id = #{orgId}
+             AND (void_reason IS NULL OR void_reason = '')) AS contractCount,
+            (SELECT COALESCE(SUM(amount), 0) FROM contract WHERE organization_id = #{orgId}
+             AND (void_reason IS NULL OR void_reason = '')) AS totalContractAmount,
+            (SELECT COALESCE(SUM(record_amount), 0) FROM contract_payment_record WHERE organization_id = #{orgId}
+             AND verification_status = 'DONE') AS verifiedAmount,
+            (SELECT COUNT(*) FROM customer WHERE organization_id = #{orgId} AND in_shared_pool = 0
+             AND create_time &gt;= #{monthStart}) AS monthNewCustomer,
+            (SELECT COUNT(*) FROM clue WHERE organization_id = #{orgId} AND in_shared_pool = 0
+             AND (transition_type IS NULL OR transition_type != 'CUSTOMER')
+             AND create_time &gt;= #{monthStart}) AS monthNewClue
+    </select>
+
+    <select id="selectContractTrend" resultType="cn.cordys.crm.dashboard.dto.response.TrendPoint">
+        SELECT DATE_FORMAT(FROM_UNIXTIME(start_time / 1000), '%Y-%m') AS month,
+               COALESCE(SUM(amount), 0) AS amount
+        FROM contract
+        WHERE organization_id = #{orgId}
+          AND (void_reason IS NULL OR void_reason = '')
+          AND start_time &gt;= #{sinceMillis}
+        GROUP BY DATE_FORMAT(FROM_UNIXTIME(start_time / 1000), '%Y-%m')
+        ORDER BY month ASC
+    </select>
+
+    <select id="selectPaymentTrend" resultType="cn.cordys.crm.dashboard.dto.response.TrendPoint">
+        SELECT DATE_FORMAT(FROM_UNIXTIME(record_end_time / 1000), '%Y-%m') AS month,
+               COALESCE(SUM(record_amount), 0) AS amount
+        FROM contract_payment_record
+        WHERE organization_id = #{orgId}
+          AND verification_status = 'DONE'
+          AND record_end_time &gt;= #{sinceMillis}
+        GROUP BY DATE_FORMAT(FROM_UNIXTIME(record_end_time / 1000), '%Y-%m')
+        ORDER BY month ASC
+    </select>
+
+    <select id="selectSalesRank" resultType="cn.cordys.crm.dashboard.dto.response.RankItem">
+        SELECT t.owner AS owner,
+               t.contractAmount AS contractAmount,
+               t.contractCount AS contractCount,
+               COALESCE(p.verifiedAmount, 0) AS verifiedAmount,
+               COALESCE(c.customerCount, 0) AS customerCount
+        FROM (
+            SELECT owner, COALESCE(SUM(amount), 0) AS contractAmount, COUNT(*) AS contractCount
+            FROM contract
+            WHERE organization_id = #{orgId} AND (void_reason IS NULL OR void_reason = '')
+            GROUP BY owner
+        ) t
+        LEFT JOIN (
+            SELECT owner, COALESCE(SUM(record_amount), 0) AS verifiedAmount
+            FROM contract_payment_record
+            WHERE organization_id = #{orgId} AND verification_status = 'DONE'
+            GROUP BY owner
+        ) p ON p.owner = t.owner
+        LEFT JOIN (
+            SELECT owner, COUNT(*) AS customerCount
+            FROM customer
+            WHERE organization_id = #{orgId} AND in_shared_pool = 0
+            GROUP BY owner
+        ) c ON c.owner = t.owner
+        ORDER BY t.contractAmount DESC
+        LIMIT 10
+    </select>
+
+    <select id="selectContractStageDist" resultType="cn.cordys.crm.dashboard.dto.response.DistributionItem">
+        SELECT c.stage AS code, COALESCE(s.name, c.stage) AS name, COUNT(*) AS value
+        FROM contract c
+        LEFT JOIN contract_stage_config s ON s.id = c.stage AND s.organization_id = c.organization_id
+        WHERE c.organization_id = #{orgId}
+          AND (c.void_reason IS NULL OR c.void_reason = '')
+        GROUP BY c.stage, s.name
+        ORDER BY value DESC
+    </select>
+
+    <select id="selectCustomerRegionDist" resultType="cn.cordys.crm.dashboard.dto.response.RegionItem">
+        SELECT CONCAT(LEFT(cf.field_value, 2), '0000') AS code, COUNT(*) AS value
+        FROM customer_field cf
+        JOIN sys_module_field f ON f.id = cf.field_id AND f.internal_key = 'customerArea'
+        JOIN sys_module_form m ON m.id = f.form_id AND m.form_key = 'customer' AND m.organization_id = #{orgId}
+        WHERE cf.field_value IS NOT NULL AND cf.field_value != ''
+        GROUP BY CONCAT(LEFT(cf.field_value, 2), '0000')
+        ORDER BY value DESC
+    </select>
+
+    <sql id="regionCustomerIds">
+        SELECT DISTINCT cf.resource_id
+        FROM customer_field cf
+        JOIN sys_module_field f ON f.id = cf.field_id AND f.internal_key = 'customerArea'
+        JOIN sys_module_form m ON m.id = f.form_id AND m.form_key = 'customer' AND m.organization_id = #{orgId}
+        WHERE cf.field_value IS NOT NULL AND cf.field_value != ''
+          AND CONCAT(LEFT(cf.field_value, 2), '0000') = #{adcode}
+    </sql>
+
+    <select id="selectSalesKpi" resultType="cn.cordys.crm.dashboard.dto.response.SalesKpi">
+        SELECT
+            (SELECT COALESCE(SUM(amount), 0) FROM contract WHERE organization_id = #{orgId} AND owner = #{ownerId}
+             AND (void_reason IS NULL OR void_reason = '')) AS contractAmount,
+            (SELECT COUNT(*) FROM contract WHERE organization_id = #{orgId} AND owner = #{ownerId}
+             AND (void_reason IS NULL OR void_reason = '')) AS contractCount,
+            (SELECT COALESCE(SUM(record_amount), 0) FROM contract_payment_record WHERE organization_id = #{orgId}
+             AND owner = #{ownerId} AND verification_status = 'DONE') AS verifiedAmount,
+            (SELECT COUNT(*) FROM customer WHERE organization_id = #{orgId} AND owner = #{ownerId}
+             AND in_shared_pool = 0) AS customerCount,
+            (SELECT COUNT(*) FROM clue WHERE organization_id = #{orgId} AND owner = #{ownerId}
+             AND in_shared_pool = 0 AND (transition_type IS NULL OR transition_type != 'CUSTOMER')) AS clueCount,
+            (SELECT COUNT(*) FROM opportunity WHERE organization_id = #{orgId} AND owner = #{ownerId}) AS opportunityCount,
+            (SELECT COUNT(*) FROM customer WHERE organization_id = #{orgId} AND owner = #{ownerId}
+             AND in_shared_pool = 0 AND create_time &gt;= #{monthStart}) AS monthNewCustomer,
+            (SELECT COUNT(*) FROM contract WHERE organization_id = #{orgId} AND owner = #{ownerId}
+             AND (void_reason IS NULL OR void_reason = '') AND start_time &gt;= #{monthStart}) AS monthNewContract,
+            (SELECT COALESCE(SUM(amount), 0) FROM contract WHERE organization_id = #{orgId} AND owner = #{ownerId}
+             AND (void_reason IS NULL OR void_reason = '') AND start_time &gt;= #{monthStart}) AS monthNewContractAmount
+    </select>
+
+    <select id="selectSalesContractTrend" resultType="cn.cordys.crm.dashboard.dto.response.TrendPoint">
+        SELECT DATE_FORMAT(FROM_UNIXTIME(start_time / 1000), '%Y-%m') AS month,
+               COALESCE(SUM(amount), 0) AS amount
+        FROM contract
+        WHERE organization_id = #{orgId} AND owner = #{ownerId}
+          AND (void_reason IS NULL OR void_reason = '')
+          AND start_time &gt;= #{sinceMillis}
+        GROUP BY DATE_FORMAT(FROM_UNIXTIME(start_time / 1000), '%Y-%m')
+        ORDER BY month ASC
+    </select>
+
+    <select id="selectSalesPaymentTrend" resultType="cn.cordys.crm.dashboard.dto.response.TrendPoint">
+        SELECT DATE_FORMAT(FROM_UNIXTIME(record_end_time / 1000), '%Y-%m') AS month,
+               COALESCE(SUM(record_amount), 0) AS amount
+        FROM contract_payment_record
+        WHERE organization_id = #{orgId} AND owner = #{ownerId}
+          AND verification_status = 'DONE'
+          AND record_end_time &gt;= #{sinceMillis}
+        GROUP BY DATE_FORMAT(FROM_UNIXTIME(record_end_time / 1000), '%Y-%m')
+        ORDER BY month ASC
+    </select>
+
+    <select id="selectSalesStageDist" resultType="cn.cordys.crm.dashboard.dto.response.DistributionItem">
+        SELECT c.stage AS code, COALESCE(s.name, c.stage) AS name, COUNT(*) AS value
+        FROM contract c
+        LEFT JOIN contract_stage_config s ON s.id = c.stage AND s.organization_id = c.organization_id
+        WHERE c.organization_id = #{orgId} AND c.owner = #{ownerId}
+          AND (c.void_reason IS NULL OR c.void_reason = '')
+        GROUP BY c.stage, s.name
+        ORDER BY value DESC
+    </select>
+
+    <select id="selectSalesCustomerList" resultType="cn.cordys.crm.dashboard.dto.response.CustomerBrief">
+        SELECT c.id AS customerId, c.name AS name,
+               COALESCE(t.contractAmount, 0) AS contractAmount,
+               COALESCE(t.verifiedAmount, 0) AS verifiedAmount
+        FROM customer c
+        LEFT JOIN (
+            SELECT ct.customer_id,
+                   COALESCE(SUM(ct.amount), 0) AS contractAmount,
+                   COALESCE(SUM(pv.verified), 0) AS verifiedAmount
+            FROM contract ct
+            LEFT JOIN (
+                SELECT contract_id, COALESCE(SUM(record_amount), 0) AS verified
+                FROM contract_payment_record
+                WHERE verification_status = 'DONE' AND organization_id = #{orgId}
+                GROUP BY contract_id
+            ) pv ON pv.contract_id = ct.id
+            WHERE ct.organization_id = #{orgId} AND ct.owner = #{ownerId}
+              AND (ct.void_reason IS NULL OR ct.void_reason = '')
+            GROUP BY ct.customer_id
+        ) t ON t.customer_id = c.id
+        WHERE c.organization_id = #{orgId} AND c.owner = #{ownerId} AND c.in_shared_pool = 0
+        ORDER BY contractAmount DESC
+    </select>
+
+    <select id="selectRegionKpi" resultType="cn.cordys.crm.dashboard.dto.response.RegionKpi">
+        SELECT
+            (SELECT COUNT(*) FROM (<include refid="regionCustomerIds"/>) rc) AS customerCount,
+            (SELECT COALESCE(SUM(amount), 0) FROM contract
+             WHERE organization_id = #{orgId} AND (void_reason IS NULL OR void_reason = '')
+               AND customer_id IN (<include refid="regionCustomerIds"/>)) AS contractAmount,
+            (SELECT COUNT(*) FROM contract
+             WHERE organization_id = #{orgId} AND (void_reason IS NULL OR void_reason = '')
+               AND customer_id IN (<include refid="regionCustomerIds"/>)) AS contractCount,
+            (SELECT COALESCE(SUM(p.record_amount), 0) FROM contract_payment_record p
+             JOIN contract t ON t.id = p.contract_id AND t.organization_id = #{orgId}
+             WHERE p.organization_id = #{orgId} AND p.verification_status = 'DONE'
+               AND t.customer_id IN (<include refid="regionCustomerIds"/>)) AS verifiedAmount
+    </select>
+
+    <select id="selectRegionCustomerList" resultType="cn.cordys.crm.dashboard.dto.response.CustomerBrief">
+        SELECT c.id AS customerId, c.name AS name,
+               COALESCE(t.contractAmount, 0) AS contractAmount,
+               COALESCE(t.verifiedAmount, 0) AS verifiedAmount
+        FROM customer c
+        LEFT JOIN (
+            SELECT ct.customer_id,
+                   COALESCE(SUM(ct.amount), 0) AS contractAmount,
+                   COALESCE(SUM(pv.verified), 0) AS verifiedAmount
+            FROM contract ct
+            LEFT JOIN (
+                SELECT contract_id, COALESCE(SUM(record_amount), 0) AS verified
+                FROM contract_payment_record
+                WHERE verification_status = 'DONE' AND organization_id = #{orgId}
+                GROUP BY contract_id
+            ) pv ON pv.contract_id = ct.id
+            WHERE ct.organization_id = #{orgId}
+              AND (ct.void_reason IS NULL OR ct.void_reason = '')
+            GROUP BY ct.customer_id
+        ) t ON t.customer_id = c.id
+        WHERE c.organization_id = #{orgId}
+          AND c.id IN (<include refid="regionCustomerIds"/>)
+        ORDER BY contractAmount DESC
+    </select>
+
+    <select id="selectRegionSalesDist" resultType="cn.cordys.crm.dashboard.dto.response.RankItem">
+        SELECT c.owner AS owner,
+               COALESCE(t.contractAmount, 0) AS contractAmount,
+               COALESCE(t.contractCount, 0) AS contractCount,
+               COALESCE(p.verifiedAmount, 0) AS verifiedAmount,
+               c.customerCount AS customerCount
+        FROM (
+            SELECT owner, COUNT(*) AS customerCount
+            FROM customer
+            WHERE organization_id = #{orgId} AND in_shared_pool = 0
+              AND owner IS NOT NULL AND owner != ''
+              AND id IN (<include refid="regionCustomerIds"/>)
+            GROUP BY owner
+        ) c
+        LEFT JOIN (
+            SELECT owner, COALESCE(SUM(amount), 0) AS contractAmount, COUNT(*) AS contractCount
+            FROM contract
+            WHERE organization_id = #{orgId} AND (void_reason IS NULL OR void_reason = '')
+              AND customer_id IN (<include refid="regionCustomerIds"/>)
+            GROUP BY owner
+        ) t ON t.owner = c.owner
+        LEFT JOIN (
+            SELECT p2.owner, COALESCE(SUM(p2.record_amount), 0) AS verifiedAmount
+            FROM contract_payment_record p2
+            JOIN contract ct2 ON ct2.id = p2.contract_id AND ct2.organization_id = #{orgId}
+            WHERE p2.organization_id = #{orgId} AND p2.verification_status = 'DONE'
+              AND ct2.customer_id IN (<include refid="regionCustomerIds"/>)
+            GROUP BY p2.owner
+        ) p ON p.owner = c.owner
+        ORDER BY contractAmount DESC, customerCount DESC
+    </select>
+
+    <select id="selectStageContractList" resultType="cn.cordys.crm.dashboard.dto.response.StageContractItem">
+        SELECT c.id AS contractId,
+               c.number AS contractNumber,
+               c.customer_id AS customerId,
+               cust.name AS customerName,
+               c.amount AS amount,
+               c.owner AS owner,
+               DATE_FORMAT(FROM_UNIXTIME(c.start_time / 1000), '%Y-%m-%d') AS signDate,
+               COALESCE(p.verifiedAmount, 0) AS verifiedAmount
+        FROM contract c
+        LEFT JOIN customer cust ON cust.id = c.customer_id
+        LEFT JOIN (
+            SELECT contract_id, COALESCE(SUM(record_amount), 0) AS verifiedAmount
+            FROM contract_payment_record
+            WHERE verification_status = 'DONE' AND organization_id = #{orgId}
+            GROUP BY contract_id
+        ) p ON p.contract_id = c.id
+        WHERE c.organization_id = #{orgId}
+          AND c.stage = #{stage}
+          AND (c.void_reason IS NULL OR c.void_reason = '')
+        ORDER BY c.start_time DESC
+    </select>
+
+    <select id="selectStageName" resultType="java.lang.String">
+        SELECT name FROM contract_stage_config WHERE id = #{stage} AND organization_id = #{orgId} LIMIT 1
+    </select>
+
+</mapper>

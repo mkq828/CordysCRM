@@ -217,6 +217,11 @@ export enum PlatformAdminRouteEnum {
   PLATFORM_ADMIN = 'platformAdmin',
 }
 
+export enum BusinessScreenRouteEnum {
+  BUSINESS_SCREEN = 'businessScreen',
+  BUSINESS_SCREEN_INDEX = 'businessScreenIndex',
+}
+
 export const AppRouteEnum = {
   ...SystemRouteEnum,
   ...OpportunityRouteEnum,
@@ -226,6 +231,7 @@ export const AppRouteEnum = {
   ...PersonalRouteEnum,
   ...WorkbenchRouteEnum,
   ...DashboardRouteEnum,
+  ...BusinessScreenRouteEnum,
   ...AgentRouteEnum,
   ...ContractRouteEnum,
   ...OrderRouteEnum,

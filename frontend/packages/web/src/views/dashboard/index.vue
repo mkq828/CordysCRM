@@ -1,18 +1,14 @@
 <template>
-  <CrmCard no-content-padding hide-footer>
-    <div class="flex h-full items-center justify-center">
-      <n-empty size="large" :description="t('dashboard.comingSoon')" />
-    </div>
-  </CrmCard>
+  <div />
 </template>
 
 <script setup lang="ts">
-  import { NEmpty } from 'naive-ui';
+  import { useRouter } from 'vue-router';
 
-  import { useI18n } from '@lib/shared/hooks/useI18n';
+  import { BusinessScreenRouteEnum } from '@/enums/routeEnum';
 
-  import CrmCard from '@/components/pure/crm-card/index.vue';
-
-  // TODO: 仪表盘暂为占位页，后续替换为租户经营大屏；DataEase 看板相关代码（link.vue / module.vue）暂保留未删除。
-  const { t } = useI18n();
+  // 原「仪表盘」占位页已被全屏「经营大屏」取代，此文件仅保留为兼容历史 /dashboard/index 入口，直接跳转大屏。
+  // DataEase 看板相关代码（link.vue / module.vue）暂保留未删除。
+  const router = useRouter();
+  router.replace({ name: BusinessScreenRouteEnum.BUSINESS_SCREEN_INDEX });
 </script>

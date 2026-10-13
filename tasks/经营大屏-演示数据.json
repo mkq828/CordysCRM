@@ -1,0 +1,120 @@
+{
+  "meta": {
+    "title": "CordysCRM 经营大屏演示数据",
+    "desc": "某企业 CRM 经营驾驶舱数据（客户/线索/商机/订单/合同全漏斗），用于可视化大屏。金额单位：元。",
+    "trendRange": "2025-11 ~ 2026-10（近 12 个月）"
+  },
+  "kpi": [
+    { "name": "客户总数", "value": 101 },
+    { "name": "线索总数", "value": 140 },
+    { "name": "商机总数", "value": 70 },
+    { "name": "订单总数", "value": 45 },
+    { "name": "合同总数", "value": 30 },
+    { "name": "合同总额", "value": 38963102 },
+    { "name": "已核销回款", "value": 24383499 },
+    { "name": "待收金额", "value": 14579603 },
+    { "name": "本月新增客户", "value": 17 },
+    { "name": "本月新增线索", "value": 16 }
+  ],
+  "contractTrend": [
+    { "month": "2025-11", "amount": 4101248 },
+    { "month": "2025-12", "amount": 4456072 },
+    { "month": "2026-01", "amount": 4604942 },
+    { "month": "2026-02", "amount": 5131747 },
+    { "month": "2026-03", "amount": 4213363 },
+    { "month": "2026-04", "amount": 5516368 },
+    { "month": "2026-05", "amount": 302600 },
+    { "month": "2026-06", "amount": 2010753 },
+    { "month": "2026-07", "amount": 1794227 },
+    { "month": "2026-08", "amount": 2978905 },
+    { "month": "2026-09", "amount": 2528948 },
+    { "month": "2026-10", "amount": 1323929 }
+  ],
+  "paymentTrend": [
+    { "month": "2025-11", "amount": 2851820 },
+    { "month": "2025-12", "amount": 2939512 },
+    { "month": "2026-01", "amount": 2836282 },
+    { "month": "2026-02", "amount": 3200764 },
+    { "month": "2026-03", "amount": 2862303 },
+    { "month": "2026-04", "amount": 3160668 },
+    { "month": "2026-05", "amount": 208697 },
+    { "month": "2026-06", "amount": 1433522 },
+    { "month": "2026-07", "amount": 924158 },
+    { "month": "2026-08", "amount": 1847073 },
+    { "month": "2026-09", "amount": 1328268 },
+    { "month": "2026-10", "amount": 790432 }
+  ],
+  "salesRank": [
+    { "name": "张强", "contractAmount": 8071812, "contractCount": 4, "verifiedAmount": 4300532, "customerCount": 14 },
+    { "name": "Administrator", "contractAmount": 7941822, "contractCount": 5, "verifiedAmount": 4996498, "customerCount": 16 },
+    { "name": "王伟", "contractAmount": 5678632, "contractCount": 5, "verifiedAmount": 3518310, "customerCount": 15 },
+    { "name": "李娜", "contractAmount": 5293666, "contractCount": 4, "verifiedAmount": 3425632, "customerCount": 14 },
+    { "name": "赵磊", "contractAmount": 4836214, "contractCount": 4, "verifiedAmount": 3113371, "customerCount": 14 },
+    { "name": "陈静", "contractAmount": 4083244, "contractCount": 4, "verifiedAmount": 2865451, "customerCount": 14 },
+    { "name": "刘洋", "contractAmount": 3057712, "contractCount": 4, "verifiedAmount": 2163705, "customerCount": 14 }
+  ],
+  "contractStageDist": [
+    { "name": "待签署", "value": 5 },
+    { "name": "已签署", "value": 5 },
+    { "name": "合同变更", "value": 5 },
+    { "name": "履行中", "value": 5 },
+    { "name": "履行完毕", "value": 5 },
+    { "name": "合同完结", "value": 5 }
+  ],
+  "customerRegionDist": [
+    { "name": "广东", "value": 10 },
+    { "name": "江苏", "value": 10 },
+    { "name": "浙江", "value": 10 },
+    { "name": "上海", "value": 10 },
+    { "name": "北京", "value": 10 },
+    { "name": "四川", "value": 10 },
+    { "name": "湖北", "value": 10 },
+    { "name": "山东", "value": 10 },
+    { "name": "福建", "value": 10 },
+    { "name": "湖南", "value": 10 }
+  ],
+  "funnel": [
+    { "name": "线索", "value": 140 },
+    { "name": "客户", "value": 101 },
+    { "name": "商机", "value": 70 },
+    { "name": "订单", "value": 45 },
+    { "name": "合同", "value": 30 }
+  ],
+  "customerDimensions": {
+    "level": [
+      { "name": "A级", "value": 20 },
+      { "name": "B级", "value": 20 },
+      { "name": "C级", "value": 20 },
+      { "name": "D级", "value": 20 },
+      { "name": "E级", "value": 20 }
+    ],
+    "businessStatus": [
+      { "name": "在营/存续", "value": 40 },
+      { "name": "注销", "value": 16 },
+      { "name": "吊销", "value": 16 },
+      { "name": "迁出", "value": 7 },
+      { "name": "停业", "value": 14 },
+      { "name": "清算", "value": 7 }
+    ],
+    "industry": [
+      { "name": "软件信息技术", "value": 10 },
+      { "name": "互联网", "value": 10 },
+      { "name": "智能制造", "value": 10 },
+      { "name": "零售电商", "value": 10 },
+      { "name": "金融服务", "value": 10 },
+      { "name": "教育培训", "value": 10 },
+      { "name": "医疗健康", "value": 10 },
+      { "name": "物流供应链", "value": 10 },
+      { "name": "建筑工程", "value": 10 },
+      { "name": "新能源", "value": 10 }
+    ],
+    "source": [
+      { "name": "官网咨询", "value": 17 },
+      { "name": "行业展会", "value": 17 },
+      { "name": "客户转介绍", "value": 17 },
+      { "name": "广告投放", "value": 17 },
+      { "name": "抖音获客", "value": 16 },
+      { "name": "电话陌拜", "value": 16 }
+    ]
+  }
+}

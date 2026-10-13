@@ -37,6 +37,7 @@ export default {
     'menu.customer': '客户',
     'menu.contact': '联系人',
     'menu.dashboard': '仪表板',
+    'menu.businessScreen': '经营大屏',
     'menu.platformDashboard': '平台大屏',
     'menu.agent': '智能体',
     'menu.custom_form': '自定义表单',

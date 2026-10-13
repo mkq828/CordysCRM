@@ -2,6 +2,7 @@ import createAxios from '@lib/shared/api/http';
 import useAgentApi from '@lib/shared/api/modules/agent';
 import useAiApi from '@lib/shared/api/modules/ai';
 import useAiQuotaApi from '@lib/shared/api/modules/aiQuota';
+import useBusinessScreenApi from '@lib/shared/api/modules/businessScreen';
 import useCallReviewApi from '@lib/shared/api/modules/callReview';
 import useClueApi from '@lib/shared/api/modules/clue';
 import useContractApi from '@lib/shared/api/modules/contract';
@@ -61,6 +62,7 @@ const customerApi = useCustomerApi(CDR);
 const businessApi = useBusinessApi(CDR);
 const callReviewApi = useCallReviewApi(CDR);
 const dashboardApi = useDashboard(CDR);
+const businessScreenApi = useBusinessScreenApi(CDR);
 const opportunityApi = useOpportunityApi(CDR);
 const contractApi = useContractApi(CDR);
 const orderApi = useOrderApi(CDR);
@@ -1122,6 +1124,13 @@ export const {
 } = registerApi;
 
 export const { financeOverview, financePage, financeVerify, financeRevoke } = financeApi;
+
+export const {
+  businessScreenOverview,
+  businessScreenSalesDetail,
+  businessScreenRegionDetail,
+  businessScreenStageDetail,
+} = businessScreenApi;
 
 export const {
   pageList: tenantPlanPageList,

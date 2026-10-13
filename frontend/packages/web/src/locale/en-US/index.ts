@@ -38,6 +38,7 @@ export default {
     'menu.customer': 'Account',
     'menu.contact': 'Contact',
     'menu.dashboard': 'Dashboard',
+    'menu.businessScreen': 'Business Overview',
     'menu.platformDashboard': 'Platform Overview',
     'menu.agent': 'Agent',
     'menu.custom_form': 'Custom Form',
