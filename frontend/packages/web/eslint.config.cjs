@@ -28,7 +28,10 @@ module.exports = defineConfig([
         extraFileExtensions: ['.vue'],
         ecmaVersion: 2020,
         sourceType: 'module',
-        project: path.resolve(__dirname, './tsconfig.json'),
+        project: [
+          path.resolve(__dirname, './tsconfig.json'),
+          path.resolve(__dirname, './tsconfig.node.json'),
+        ],
       },
       globals: {
         ...globals.browser,
