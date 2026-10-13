@@ -100,10 +100,13 @@ public final class AiQuotaConstant {
     /** AI 漫剧（功能 7 扩展，生成型：剧本/分镜走 LLM 挂 G2 额度 + G3 权限，专业版+） */
     public static final String AI_DRAMA = "ai_drama";
 
+    /** 爆款复刻（功能 7 扩展 · 换皮变体，生成型：变体方案走 LLM 挂 G2 额度 + G3 权限，专业版+） */
+    public static final String AI_REPLICA = "ai_replica";
+
     public static final List<String> AI_FEATURE_CODES = List.of(
             "ai_advisor", "ai_acquire", "ai_sales_rag", "ai_video", "wecom_auto_analysis",
             "ai_ppt", "lead_crawl", "dm_profile", "ai_employee", "ai_kb", "digital_human", "ai_call_review",
-            "ai_tool", "ai_ask_bi", "ai_voice_clone", "ai_drama");
+            "ai_tool", "ai_ask_bi", "ai_voice_clone", "ai_drama", "ai_replica");
 
     private AiQuotaConstant() {
     }

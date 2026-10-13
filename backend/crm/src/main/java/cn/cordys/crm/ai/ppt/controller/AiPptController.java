@@ -1,5 +1,6 @@
 package cn.cordys.crm.ai.ppt.controller;
 
+import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.JSON;
 import cn.cordys.context.OrganizationContext;
@@ -12,6 +13,7 @@ import cn.cordys.crm.ai.llm.LlmUsage;
 import cn.cordys.crm.ai.ppt.dto.request.AiPptOutlineRequest;
 import cn.cordys.crm.ai.ppt.dto.request.AiPptSlidesRequest;
 import cn.cordys.crm.ai.ppt.service.AiPptService;
+import cn.cordys.crm.platform.util.PlatformSessionUtils;
 import cn.cordys.security.SessionUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,6 +48,7 @@ public class AiPptController extends BaseAiStreamController {
     @Operation(summary = "流式生成方案大纲（先输出引导语，再回传 6 区块大纲）")
     public void outlineStream(@RequestBody AiPptOutlineRequest request, HttpServletResponse response) throws IOException {
         String orgId = OrganizationContext.getOrganizationId();
+        checkAvailable();
         String userId = SessionUtils.getUserId();
         doStream(response, orgId, userId, AiQuotaConstant.AI_PPT, request.getConversationId(),
                 title(request.getProduct(), "方案生成"), outlineUserContent(request),
@@ -56,6 +59,7 @@ public class AiPptController extends BaseAiStreamController {
     @Operation(summary = "流式生成 PPT 逐页（先输出引导语，再回传逐页内容）")
     public void slidesStream(@RequestBody AiPptSlidesRequest request, HttpServletResponse response) throws IOException {
         String orgId = OrganizationContext.getOrganizationId();
+        checkAvailable();
         String userId = SessionUtils.getUserId();
         doStream(response, orgId, userId, AiQuotaConstant.AI_PPT, request.getConversationId(),
                 title(request.getTitle(), "PPT 逐页"), slidesUserContent(request),
@@ -97,6 +101,13 @@ public class AiPptController extends BaseAiStreamController {
         } finally {
             writer.flush();
             writer.close();
+        }
+    }
+
+    /** 方案/PPT 已封存，仅平台超级管理员（userId == admin）可用。 */
+    private void checkAvailable() {
+        if (!PlatformSessionUtils.isAdmin()) {
+            throw new GenericException("AI 方案/PPT 功能已封存，暂未对外开放");
         }
     }
 

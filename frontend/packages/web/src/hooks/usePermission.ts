@@ -4,7 +4,7 @@ import useAppStore from '@/store/modules/app';
 import useUserStore from '@/store/modules/user';
 import { hasAnyPermission, topLevelMenuHasPermission } from '@/utils/permission';
 
-import { DramaRouteEnum } from '@/enums/routeEnum';
+import { PendingRouteEnum } from '@/enums/routeEnum';
 
 /**
  * 用户权限
@@ -21,8 +21,10 @@ export default function usePermission() {
      * @returns 是否
      */
     accessRouter(route: RouteLocationNormalized | RouteRecordRaw) {
-      // AI 漫剧已封存：仅平台超级管理员（userId == admin）可见/可访问
-      if (route.name === DramaRouteEnum.DRAMA) {
+      // 「待完善功能」下的四个 AI 生成功能已封存：仅平台超级管理员（userId == admin）可见/可访问。
+      // 直接敲子路由 URL 时 route.name 是叶子名，需按 matched 链命中父级 aiPending 一并拦截。
+      const matched = (route as RouteLocationNormalized).matched ?? [];
+      if (route.name === PendingRouteEnum.PENDING || matched.some((r) => r.name === PendingRouteEnum.PENDING)) {
         return useUserStore().isAdmin;
       }
       if (firstLevelMenu.includes(route.name as string)) {

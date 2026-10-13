@@ -28,7 +28,7 @@
                 <span class="content-field-label">{{ t('content.topic') }}</span>
                 <span class="text-[14px] font-semibold text-[var(--text-n1)]">{{ item.topic }}</span>
               </template>
-              <n-button size="tiny" quaternary type="primary" class="ml-auto" @click="makeVideo(item)">
+              <n-button v-if="isAdmin" size="tiny" quaternary type="primary" class="ml-auto" @click="makeVideo(item)">
                 {{ t('content.makeVideo') }}
               </n-button>
             </div>
@@ -59,11 +59,14 @@
 </template>
 
 <script setup lang="ts">
+  import { computed } from 'vue';
   import { useRouter } from 'vue-router';
   import { NButton, NTag, useMessage } from 'naive-ui';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import type { AiContentItem } from '@lib/shared/models/ai';
+
+  import useUserStore from '@/store/modules/user';
 
   const props = defineProps<{
     contents: AiContentItem[];
@@ -73,6 +76,9 @@
   const { t } = useI18n();
   const Message = useMessage();
   const router = useRouter();
+
+  // 短视频生成已封存，仅平台超管可跳转；普通用户隐藏「转视频」入口
+  const isAdmin = computed(() => useUserStore().isAdmin);
 
   // 一键把这条获客内容带进「短视频生成」：标题 + 口播脚本（缺脚本回退到正文）
   function makeVideo(item: AiContentItem) {

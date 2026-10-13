@@ -15,6 +15,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -172,6 +173,18 @@ public class AliyunParaformerProvider implements AsrProvider {
 
     @Override
     public String poll(String taskId, String apiKey) throws Exception {
+        String transcriptionUrl = pollTranscriptionUrl(taskId, apiKey);
+        return transcriptionUrl == null ? null : fetchTranscript(transcriptionUrl);
+    }
+
+    @Override
+    public List<AsrSentence> pollSentences(String taskId, String apiKey) throws Exception {
+        String transcriptionUrl = pollTranscriptionUrl(taskId, apiKey);
+        return transcriptionUrl == null ? null : fetchSentences(transcriptionUrl);
+    }
+
+    /** 轮询转写任务：完成时返回结果地址，未完成返回 null，失败抛异常 */
+    private String pollTranscriptionUrl(String taskId, String apiKey) throws Exception {
         HttpRequest request = HttpRequest.newBuilder(URI.create(BASE_URL + "/tasks/" + taskId))
                 .timeout(Duration.ofSeconds(30))
                 .header("Authorization", "Bearer " + apiKey)
@@ -194,7 +207,7 @@ public class AliyunParaformerProvider implements AsrProvider {
             if (StringUtils.isBlank(transcriptionUrl)) {
                 throw new RuntimeException("阿里云语音转写未返回结果地址");
             }
-            return fetchTranscript(transcriptionUrl);
+            return transcriptionUrl;
         }
         if ("FAILED".equals(status) || "ERROR".equals(status)) {
             throw new RuntimeException("阿里云语音转写失败: " + output.path("message").asText(""));
@@ -217,5 +230,39 @@ public class AliyunParaformerProvider implements AsrProvider {
             return transcripts.get(0).path("text").asText("");
         }
         return "";
+    }
+
+    /** 拉取转写结果 JSON，解析句级时间戳（sentences[] 的 begin_time/end_time 为毫秒） */
+    private List<AsrSentence> fetchSentences(String url) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                .timeout(Duration.ofSeconds(30))
+                .GET()
+                .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new RuntimeException("阿里云语音转写结果拉取失败(" + response.statusCode() + ")");
+        }
+        JsonNode transcripts = MAPPER.readTree(response.body()).path("transcripts");
+        if (transcripts.isArray() && !transcripts.isEmpty()) {
+            JsonNode sentences = transcripts.get(0).path("sentences");
+            List<AsrSentence> result = new ArrayList<>();
+            if (sentences.isArray()) {
+                for (JsonNode s : sentences) {
+                    String text = s.path("text").asText("");
+                    if (StringUtils.isNotBlank(text)) {
+                        result.add(new AsrSentence(text, s.path("begin_time").asLong(0), s.path("end_time").asLong(0)));
+                    }
+                }
+            }
+            // 兜底：部分场景无句级时间戳，退回整段 text（begin/end=0，由调用方按字数占比近似定时）
+            if (result.isEmpty()) {
+                String text = transcripts.get(0).path("text").asText("");
+                if (StringUtils.isNotBlank(text)) {
+                    result.add(new AsrSentence(text, 0, 0));
+                }
+            }
+            return result;
+        }
+        return List.of();
     }
 }

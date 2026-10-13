@@ -1,5 +1,7 @@
 package cn.cordys.crm.ai.callreview.asr;
 
+import java.util.List;
+
 /**
  * 语音转写 Provider：与对话模型（{@link cn.cordys.crm.ai.llm.LlmProvider}）分离，
  * 因为协议不同（ASR 是异步提交 + 轮询，非 SSE 流式）。
@@ -33,4 +35,9 @@ public interface AsrProvider {
      * 轮询转写任务：完成时返回转写文本，未完成返回 {@code null}，失败抛异常。
      */
     String poll(String taskId, String apiKey) throws Exception;
+
+    /**
+     * 轮询转写任务并返回带时间戳的句子：完成时返回句子列表（可能为空），未完成返回 {@code null}，失败抛异常。
+     */
+    List<AsrSentence> pollSentences(String taskId, String apiKey) throws Exception;
 }

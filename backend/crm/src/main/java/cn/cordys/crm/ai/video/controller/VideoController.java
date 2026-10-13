@@ -2,7 +2,6 @@ package cn.cordys.crm.ai.video.controller;
 
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.context.OrganizationContext;
-import cn.cordys.crm.ai.constant.AiQuotaConstant;
 import cn.cordys.crm.ai.video.dto.request.VideoExpandRequest;
 import cn.cordys.crm.ai.video.dto.request.VideoGenerateRequest;
 import cn.cordys.crm.ai.video.dto.request.VideoPromptUpdateRequest;
@@ -16,7 +15,7 @@ import cn.cordys.crm.ai.video.dto.response.VideoVoicePreviewResponse;
 import cn.cordys.crm.ai.video.service.VideoGenerateService;
 import cn.cordys.crm.ai.video.service.VideoTemplateService;
 import cn.cordys.crm.ai.video.tts.TtsVoice;
-import cn.cordys.crm.system.service.EditionService;
+import cn.cordys.crm.platform.util.PlatformSessionUtils;
 import cn.cordys.security.SessionUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -47,13 +46,12 @@ public class VideoController {
     private VideoGenerateService videoGenerateService;
     @Resource
     private VideoTemplateService videoTemplateService;
-    @Resource
-    private EditionService editionService;
 
     @GetMapping("/available")
     @Operation(summary = "查询当前租户是否开通短视频生成")
     public boolean available() {
-        return editionService.hasFeature(OrganizationContext.getOrganizationId(), AiQuotaConstant.AI_VIDEO);
+        // 短视频生成已封存：仅平台超级管理员（userId == admin）可用
+        return PlatformSessionUtils.isAdmin();
     }
 
     @GetMapping("/templates")
@@ -233,8 +231,9 @@ public class VideoController {
     }
 
     private void checkAvailable(String orgId) {
-        if (!editionService.hasFeature(orgId, AiQuotaConstant.AI_VIDEO)) {
-            throw new GenericException("当前版本未开通短视频生成，请升级至专业版");
+        // 短视频生成已封存，仅平台超级管理员可用；orgId 保留参数以对齐各调用点签名
+        if (!PlatformSessionUtils.isAdmin()) {
+            throw new GenericException("短视频生成功能已封存，暂未对外开放");
         }
     }
 }

@@ -172,6 +172,15 @@ export enum DramaRouteEnum {
   DRAMA_ASSETS = 'aiDramaAssets',
 }
 
+export enum ReplicaRouteEnum {
+  REPLICA = 'aiReplica',
+  REPLICA_INDEX = 'aiReplicaIndex',
+}
+
+export enum PendingRouteEnum {
+  PENDING = 'aiPending',
+}
+
 export enum AiCreationRouteEnum {
   AI_CREATION = 'aiCreation',
   AI_CREATION_INDEX = 'aiCreationIndex',
@@ -232,6 +241,8 @@ export const AppRouteEnum = {
   ...LeadCrawlRouteEnum,
   ...VideoRouteEnum,
   ...DramaRouteEnum,
+  ...ReplicaRouteEnum,
+  ...PendingRouteEnum,
   ...AiCreationRouteEnum,
   ...AskBiRouteEnum,
   ...VoiceCloneRouteEnum,

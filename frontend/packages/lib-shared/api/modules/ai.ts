@@ -85,6 +85,9 @@ import {
   AiToolTasksPageUrl,
   AiVoiceCloneAvailableUrl,
   AiVoiceCloneTasksUrl,
+  AiReplicaAvailableUrl,
+  AiReplicaTasksUrl,
+  AiReplicaVariantsUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -183,6 +186,9 @@ import type {
   AiCloneVoice,
   AiCloneVoiceSubmitParams,
   AiCloneVoicePreviewResult,
+  AiReplicaSubmitParams,
+  AiReplicaTask,
+  AiReplicaVariant,
 } from '../../models/ai';
 
 interface SseBlock {
@@ -784,7 +790,11 @@ export default function useAiApi(CDR: CordysAxios) {
   }
 
   function uploadAiVideoShotImage(id: string, index: number, params: ImportUploadParams) {
-    return CDR.uploadFile<{ data: AiVideoTask }>({ url: `${AiVideoTasksUrl}/${id}/shots/${index}/image` }, params, 'file');
+    return CDR.uploadFile<{ data: AiVideoTask }>(
+      { url: `${AiVideoTasksUrl}/${id}/shots/${index}/image` },
+      params,
+      'file'
+    );
   }
 
   function getAiVideoVoices() {
@@ -1028,6 +1038,34 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.uploadFile({ url: AiSalesScriptImportUrl }, params, 'file');
   }
 
+  function getAiReplicaAvailable() {
+    return CDR.get<boolean>({ url: AiReplicaAvailableUrl });
+  }
+
+  function createAiReplicaTask(data: AiReplicaSubmitParams) {
+    return CDR.post<AiReplicaTask>({ url: AiReplicaTasksUrl, data });
+  }
+
+  function getAiReplicaTasks() {
+    return CDR.get<AiReplicaTask[]>({ url: AiReplicaTasksUrl });
+  }
+
+  function getAiReplicaTask(id: string) {
+    return CDR.get<AiReplicaTask>({ url: `${AiReplicaTasksUrl}/${id}` });
+  }
+
+  function regenerateAiReplicaTask(id: string) {
+    return CDR.post<null>({ url: `${AiReplicaTasksUrl}/${id}/regenerate` });
+  }
+
+  function deleteAiReplicaTask(id: string) {
+    return CDR.delete({ url: `${AiReplicaTasksUrl}/${id}` });
+  }
+
+  function deleteAiReplicaVariant(id: string) {
+    return CDR.delete({ url: `${AiReplicaVariantsUrl}/${id}` });
+  }
+
   return {
     streamAgentChat,
     streamSalesAdvisor,
@@ -1169,5 +1207,12 @@ export default function useAiApi(CDR: CordysAxios) {
     downloadAiSalesScriptTemplate,
     preCheckImportAiSalesScript,
     importAiSalesScript,
+    getAiReplicaAvailable,
+    createAiReplicaTask,
+    getAiReplicaTasks,
+    getAiReplicaTask,
+    regenerateAiReplicaTask,
+    deleteAiReplicaTask,
+    deleteAiReplicaVariant,
   };
 }

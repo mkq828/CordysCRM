@@ -744,6 +744,51 @@ export interface AiVideoModelsResult {
   videoModels: AiVideoModelOption[];
 }
 
+/** 爆款复刻-提交参数（换皮变体，功能 7 扩展） */
+export interface AiReplicaSubmitParams {
+  /** 参考视频附件ID（上传临时附件返回的 ID） */
+  referenceAttachmentId: string;
+  /** 任务名（默认取参考视频文件名） */
+  title?: string;
+  /** 变体数量（默认 3，范围 1~5） */
+  variantCount?: number;
+}
+
+/** 爆款复刻-变体（换皮变体：画面/声音复用原视频，AI 只动钩子/标题/字幕样式/比例） */
+export interface AiReplicaVariant {
+  id: string;
+  /** 变体序号 */
+  variantNo?: number;
+  /** 钩子文案（开头大字） */
+  hookText?: string;
+  /** 标题/主题标签文案 */
+  titleText?: string;
+  /** 字幕样式标识（预设样式 key：classic / karaoke_yellow / karaoke_green / karaoke_pink） */
+  subtitleStyle?: string;
+  /** 输出比例：9:16 / 16:9 / 1:1 */
+  ratio?: string;
+  status: 'PENDING' | 'COMPOSING' | 'DONE' | 'FAILED' | string;
+  /** 输出变体视频附件ID */
+  attachmentId?: string;
+  errorMsg?: string;
+}
+
+/** 爆款复刻-任务（含变体列表，解析/生成/合成进度由前端轮询感知） */
+export interface AiReplicaTask {
+  id: string;
+  title?: string;
+  referenceAttachmentId?: string;
+  /** 封面帧附件ID */
+  coverAttachmentId?: string;
+  /** 视频时长（毫秒） */
+  durationMs?: number;
+  parseStatus?: 'PENDING' | 'PARSING' | 'READY' | 'FAILED' | string;
+  status: 'PENDING' | 'PARSING' | 'GENERATING' | 'READY' | 'FAILED' | string;
+  errorMsg?: string;
+  variants?: AiReplicaVariant[];
+  createTime?: number;
+}
+
 /** AI 漫剧-项目（列表与详情共用，详情多带 script） */
 export interface DramaProject {
   id: string;

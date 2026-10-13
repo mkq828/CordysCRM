@@ -88,3 +88,6 @@ export const AiToolTasksUrl = '/agent/tool/tasks'; // AI 工具中心-任务（G
 export const AiToolTasksPageUrl = '/agent/tool/tasks/page'; // AI 工具中心-生成记录分页列表
 export const AiVoiceCloneAvailableUrl = '/agent/voice-clone/available'; // 声音克隆-版本开关查询
 export const AiVoiceCloneTasksUrl = '/agent/voice-clone/tasks'; // 声音克隆-音色任务（POST 提交 / GET 列表 / 拼 /{id} 详情、删除与试听）
+export const AiReplicaAvailableUrl = '/agent/replica/available'; // 爆款复刻-版本开关查询
+export const AiReplicaTasksUrl = '/agent/replica/tasks'; // 爆款复刻-任务（POST 提交 / GET 列表 / 拼 /{id} 详情、重新生成与删除）
+export const AiReplicaVariantsUrl = '/agent/replica/variants'; // 爆款复刻-变体（拼 /{id} 删除）
