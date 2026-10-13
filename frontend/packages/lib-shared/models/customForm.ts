@@ -1,8 +1,9 @@
-import type { FormCreateField } from '@cordys/web/src/components/business/crm-form-create/types';
-import type { FormConfig } from '@lib/shared/models/system/module';
-import type { RoleMemberRoleItem } from '@lib/shared/models/system/role';
 import type { ModuleField, TableQueryParams } from '@lib/shared/models/common';
-import type { SelectedUsersItem } from '@lib/shared/models/system/module';
+import type { FormConfig, SelectedUsersItem } from '@lib/shared/models/system/module';
+import type { RoleMemberRoleItem } from '@lib/shared/models/system/role';
+
+import type { FormCreateField } from '@cordys/web/src/components/business/crm-form-create/types';
+
 export interface CustomFormSaveRequest {
   id?: string;
   name: string;

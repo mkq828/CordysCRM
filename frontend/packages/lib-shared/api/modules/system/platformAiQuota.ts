@@ -18,11 +18,11 @@ import {
 import type {
   AdminAiCostOverview,
   AdminAiCostRequest,
+  AiMockRecordParams,
   AiModelPrice,
   AiModelPriceSaveParams,
   AiQuotaConfig,
   AiQuotaConfigParams,
-  AiMockRecordParams,
   AiQuotaPack,
   AiQuotaPackOrder,
   AiQuotaPackOrderHandleParams,

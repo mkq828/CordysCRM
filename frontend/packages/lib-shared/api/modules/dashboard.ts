@@ -1,3 +1,5 @@
+import type { CordysAxios } from '@lib/shared/api/http/Axios';
+
 import type { CommonList, TableQueryParams } from '../../models/common';
 import type {
   DashboardAddModuleParams,
@@ -29,7 +31,6 @@ import {
   dashboardUnCollectUrl,
   dashboardUpdateUrl,
 } from '../requrls/dashboard';
-import type { CordysAxios } from '@lib/shared/api/http/Axios';
 
 export default function useDashboardApi(CDR: CordysAxios) {
   // 重命名仪表板模块

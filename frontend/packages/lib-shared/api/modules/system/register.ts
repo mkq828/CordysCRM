@@ -11,8 +11,8 @@ import {
 } from '@lib/shared/api/requrls/system/register';
 import type { CommonList } from '@lib/shared/models/common';
 import type {
-  RegisterApproveParams,
   RegisterApplyParams,
+  RegisterApproveParams,
   RegisterAuditItem,
   RegisterAuditQueryParams,
   RegisterRejectParams,

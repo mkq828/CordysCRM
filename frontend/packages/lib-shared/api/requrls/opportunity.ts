@@ -75,7 +75,6 @@ export const BatchUpdateQuotationUrl = '/opportunity/quotation/batch/update';
 export const GetQuotationSnapshotFormConfigUrl = '/opportunity/quotation/module/form/snapshot';
 export const DownloadQuotationUrl = '/opportunity/quotation/download';
 
-
 // 导入
 export const PreCheckOptImportUrl = '/opportunity/import/pre-check';
 export const DownloadOptTemplateUrl = '/opportunity/template/download';

@@ -1,11 +1,12 @@
-import type { ModuleField } from './common';
-import type { FormDesignConfigDetailParams } from '@lib/shared/models/system/module';
 import { ProcessStatusEnum } from '@lib/shared/enums/process';
+import type { FormDesignConfigDetailParams } from '@lib/shared/models/system/module';
+
+import type { ModuleField } from './common';
 
 export interface SaveOrderParams {
   name: string;
   customerId: string; // 客户id
-  contractId: string; 
+  contractId: string;
   amount?: number; // 金额
   owner: string; // 负责人
   moduleFields?: ModuleField[]; // 自定义字段
@@ -37,9 +38,9 @@ export interface OrderItem {
   updateUserName: string;
   departmentId: string;
   departmentName: string;
-  createTime:number;
-  updateTime:number;
-  amount:number;
+  createTime: number;
+  updateTime: number;
+  amount: number;
   inCustomerPool: boolean;
   poolId: string;
   optionMap?: Record<string, any>;

@@ -96,6 +96,24 @@ function isHistoryContentItem(value: unknown): value is HistoryContentItem {
   );
 }
 
+function toHistoryAttachment(item: HistoryContentItem): AiChatAttachment | undefined {
+  if (!item.fileId || !['image', 'file'].includes(item.type ?? '')) {
+    return undefined;
+  }
+
+  return {
+    id: item.fileId,
+    name: item.name || item.fileId,
+    mimeType: item.contentType,
+    size: item.size,
+    kind: item.type === 'image' ? 'image' : 'file',
+    status: 'done',
+    metadata: {
+      fileId: item.fileId,
+    },
+  };
+}
+
 function parseStructuredMessageContent(content: string): ParsedMessageContent | undefined {
   if (!content) {
     return undefined;
@@ -119,24 +137,6 @@ function parseStructuredMessageContent(content: string): ParsedMessageContent | 
   } catch {
     return undefined;
   }
-}
-
-function toHistoryAttachment(item: HistoryContentItem): AiChatAttachment | undefined {
-  if (!item.fileId || !['image', 'file'].includes(item.type ?? '')) {
-    return undefined;
-  }
-
-  return {
-    id: item.fileId,
-    name: item.name || item.fileId,
-    mimeType: item.contentType,
-    size: item.size,
-    kind: item.type === 'image' ? 'image' : 'file',
-    status: 'done',
-    metadata: {
-      fileId: item.fileId,
-    },
-  };
 }
 
 function parseMessageContent(content: AgentConversationMessage['content']): ParsedMessageContent {
@@ -166,11 +166,7 @@ function tryReadJsonObject(
       } else if (char === '"') {
         inString = false;
       }
-
-      continue;
-    }
-
-    if (char === '"') {
+    } else if (char === '"') {
       inString = true;
     } else if (char === '{') {
       depth += 1;
@@ -206,10 +202,11 @@ function tryReadJsonObject(
 function collectCodeFenceRanges(content: string): Array<{ start: number; end: number }> {
   const fences: Array<{ start: number; end: number }> = [];
   const fenceRegex = /^```[^\r\n]*$/gm;
-  let match: RegExpExecArray | null;
+  let match = fenceRegex.exec(content);
 
-  while ((match = fenceRegex.exec(content))) {
+  while (match !== null) {
     fences.push({ start: match.index, end: match.index + match[0].length });
+    match = fenceRegex.exec(content);
   }
 
   const ranges: Array<{ start: number; end: number }> = [];
@@ -230,41 +227,37 @@ function parseEmbeddedJsonContent(content: string): ParsedContentPiece[] {
   let index = 0;
 
   while (index < content.length) {
-    const fence = fenceRanges.find((range) => index >= range.start && index < range.end);
+    const pos = index;
+    const fence = fenceRanges.find((range) => pos >= range.start && pos < range.end);
 
     if (fence) {
       // 跳到代码块结束之后，围栏内原文保留在下一步的 text 片段里。
       index = fence.end;
-      continue;
-    }
-
-    if (content[index] !== '{') {
+    } else if (content[index] !== '{') {
       index += 1;
-      continue;
+    } else {
+      const jsonObject = tryReadJsonObject(content, index);
+
+      if (!jsonObject) {
+        index += 1;
+      } else {
+        if (textStart < index) {
+          pieces.push({
+            type: 'text',
+            content: content.slice(textStart, index),
+          });
+        }
+
+        pieces.push({
+          type: 'json',
+          content: jsonObject.value,
+          raw: jsonObject.raw,
+        });
+
+        index = jsonObject.endIndex;
+        textStart = index;
+      }
     }
-
-    const jsonObject = tryReadJsonObject(content, index);
-
-    if (!jsonObject) {
-      index += 1;
-      continue;
-    }
-
-    if (textStart < index) {
-      pieces.push({
-        type: 'text',
-        content: content.slice(textStart, index),
-      });
-    }
-
-    pieces.push({
-      type: 'json',
-      content: jsonObject.value,
-      raw: jsonObject.raw,
-    });
-
-    index = jsonObject.endIndex;
-    textStart = index;
   }
 
   if (textStart < content.length) {

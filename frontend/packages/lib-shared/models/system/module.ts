@@ -1,7 +1,8 @@
+import { MemberSelectTypeEnum, ReasonTypeEnum } from '@lib/shared/enums/moduleEnum';
+
 import type { FormDesignKeyEnum, FormLinkScenarioEnum } from '../../enums/formDesignEnum';
 import type { ModuleField, TableQueryParams } from '../common';
 import type { FormCreateField } from '@cordys/web/src/components/business/crm-form-create/types';
-import { MemberSelectTypeEnum, ReasonTypeEnum } from '@lib/shared/enums/moduleEnum';
 
 export interface ModuleNavCommon {
   id?: string;

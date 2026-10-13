@@ -1,4 +1,6 @@
+import type { CordysAxios } from '@lib/shared/api/http/Axios';
 import { ThirdPartyResourceConfig } from '@lib/shared/models/system/business';
+
 import type {
   AddAgentModuleParams,
   AddAgentParams,
@@ -37,7 +39,6 @@ import {
   updateAgentUrl,
 } from '../requrls/agent';
 import type { CrmTreeNodeData } from '@cordys/web/src/components/pure/crm-tree/type';
-import type { CordysAxios } from '@lib/shared/api/http/Axios';
 
 export default function useAgentApi(CDR: CordysAxios) {
   // 智能体模块重命名

@@ -1,5 +1,6 @@
-import type { FilterResult } from '@cordys/web/src/components/pure/crm-advance-filter/type';
 import { ColumnTypeEnum, OperatorEnum } from '@lib/shared/enums/commonEnum';
+
+import type { FilterResult } from '@cordys/web/src/components/pure/crm-advance-filter/type';
 
 // 请求返回结构
 export default interface CommonResponse<T> {

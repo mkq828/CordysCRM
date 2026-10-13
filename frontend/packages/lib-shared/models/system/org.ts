@@ -1,6 +1,7 @@
+import { SelectedUsersItem } from '@lib/shared/models/system/module';
+
 import type { TableQueryParams } from '../common';
 import { UserInfo } from '../user';
-import { SelectedUsersItem } from '@lib/shared/models/system/module';
 
 // 添加部门
 export interface DepartmentItemParams {

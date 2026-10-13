@@ -18,7 +18,7 @@ export abstract class AxiosTransform {
   /**
    * @description: 请求之前的拦截器
    */
-  // eslint-disable-next-line no-use-before-define
+
   requestInterceptors?: (config: AxiosRequestConfig, options: CreateAxiosOptions) => AxiosRequestConfig;
 
   /**

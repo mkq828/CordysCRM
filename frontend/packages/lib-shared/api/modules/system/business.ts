@@ -1,16 +1,16 @@
 import type { CordysAxios } from '@lib/shared/api/http/Axios';
 import {
-  AddApiKeyUrl,
-  AddAiModelUrl,
   AddAgentTaskUrl,
+  AddAiModelUrl,
+  AddApiKeyUrl,
   AddTermCategoryUrl,
   AddTermUrl,
   AdoptTermDiscoveryUrl,
   ApplyPlanUrl,
   CancelCenterExportUrl,
   CreateAuthUrl,
-  DeleteAgentTaskUrl,
   DeleteAgentTaskExecutionRecordUrl,
+  DeleteAgentTaskUrl,
   DeleteAiModelUrl,
   DeleteApiKeyUrl,
   DeleteAuthUrl,
@@ -51,13 +51,13 @@ import {
   GetThirdPartyConfigUrl,
   GetThirdPartyResourceUrl,
   GetThirdTypeListUrl,
-  ImportTermUrl,
   IgnoreTermDiscoveryUrl,
+  ImportTermUrl,
   PreCheckImportTermUrl,
   SavePageConfigUrl,
   SendEmailCodeUrl,
-  SwitchAgentTaskUrl,
   StopAgentTaskExecutionRecordUrl,
+  SwitchAgentTaskUrl,
   SwitchTermUrl,
   SwitchThirdPartyUrl,
   SyncDEUrl,
@@ -81,6 +81,14 @@ import {
 import { CompanyTypeEnum } from '@lib/shared/enums/commonEnum';
 import type { CommonList, ImportUploadParams, TableQueryParams } from '@lib/shared/models/common';
 import { CustomerFollowPlanTableParams, FollowDetailItem } from '@lib/shared/models/customer';
+import type { AgentTaskExecutionRecordItem, AgentTaskItem, AgentTaskParams } from '@lib/shared/models/system/agentTask';
+import type {
+  AiModelItem,
+  AiModelOption,
+  AiModelRouteStrategy,
+  AiModelSaveParams,
+  AiModelStatusParams,
+} from '@lib/shared/models/system/aiModel';
 import type {
   ApiKey,
   Auth,
@@ -88,13 +96,13 @@ import type {
   AuthTableQueryParams,
   AuthUpdateParams,
   ConfigEmailParams,
-  ThirdPartyResourceConfig,
   DEOrgItem,
   PageConfigReturns,
   SavePageConfigParams,
-  ThirdPartyResource,
-  UpdateApiKeyParams,
   ThirdPartyDEConfig,
+  ThirdPartyResource,
+  ThirdPartyResourceConfig,
+  UpdateApiKeyParams,
 } from '@lib/shared/models/system/business';
 import {
   ExportCenterItem,
@@ -105,18 +113,14 @@ import {
   SendEmailDTO,
   TenantSubscription,
 } from '@lib/shared/models/system/business';
-import type {
-  AiModelItem,
-  AiModelOption,
-  AiModelRouteStrategy,
-  AiModelSaveParams,
-  AiModelStatusParams,
-} from '@lib/shared/models/system/aiModel';
-import type { AgentTaskExecutionRecordItem, AgentTaskItem, AgentTaskParams } from '@lib/shared/models/system/agentTask';
 import type { Edition } from '@lib/shared/models/system/edition';
 import { type DEToken, OrgUserInfo, type ValidateInfo } from '@lib/shared/models/system/org';
 import type { PlatformBankAccount } from '@lib/shared/models/system/platformFinance';
-import type { TenantPlanApplyParams, TenantPlanApplicationItem, TenantPlanQuote } from '@lib/shared/models/system/tenant-plan';
+import type {
+  TenantPlanApplicationItem,
+  TenantPlanApplyParams,
+  TenantPlanQuote,
+} from '@lib/shared/models/system/tenant-plan';
 import type {
   TermCategoryItem,
   TermCategoryParams,

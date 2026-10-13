@@ -1,8 +1,8 @@
-import type { CommonList, ModuleField } from '../models/common';
 import { FieldTypeEnum } from '../enums/formDesignEnum';
-import type { FormCreateField, FormDetail } from '@cordys/web/src/components/business/crm-form-create/types';
-import { formatTimeValue, getCityPath, getIndustryPath } from './index';
 import { useI18n } from '../hooks/useI18n';
+import type { CommonList, ModuleField } from '../models/common';
+import { formatTimeValue, getCityPath, getIndustryPath } from './index';
+import type { FormCreateField, FormDetail } from '@cordys/web/src/components/business/crm-form-create/types';
 
 export const linkAllAcceptTypes = [FieldTypeEnum.INPUT, FieldTypeEnum.TEXTAREA];
 export const dataSourceTypes = [FieldTypeEnum.DATA_SOURCE, FieldTypeEnum.DATA_SOURCE_MULTIPLE];
@@ -379,7 +379,6 @@ export function transformData({
       });
     }
     if (field.businessKey && !field.resourceFieldId) {
-      const fieldId = field.businessKey;
       const options = originalData?.optionMap?.[fieldId]?.map((e: any) => ({
         ...e,
         name: e.name || t('common.optionNotExist'),

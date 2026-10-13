@@ -1,5 +1,4 @@
 import type { CordysAxios } from '@lib/shared/api/http/Axios';
-
 import {
   cityManagerAddUrl,
   cityManagerAssignUrl,

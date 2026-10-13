@@ -3,8 +3,8 @@ import { computed, markRaw, ref, shallowRef, watch } from 'vue';
 import type { AgentChatConfirmData, AgentChatConfirmRequest } from '@lib/shared/models/ai';
 
 import type { AiChatAttachment, AiChatMessage, AiChatMeta, AiChatSubmitPayload } from '../types';
-import type { AiChatRuntime, CreateAiChatRuntimeOptions } from './types';
 import { getAiChatMessageText } from '../utils/message';
+import type { AiChatRuntime, CreateAiChatRuntimeOptions } from './types';
 import { Chat } from '@ai-sdk/vue';
 import type { ChatTransport, FileUIPart } from 'ai';
 
@@ -183,7 +183,7 @@ export default function createAiChatRuntime(options: CreateAiChatRuntimeOptions 
     );
   }
 
-   function markLatestAssistantStopped(): void {
+  function markLatestAssistantStopped(): void {
     const latestAssistantMessage = [...chat.value.messages].reverse().find((message) => message.role === 'assistant');
 
     if (!latestAssistantMessage) {
@@ -225,7 +225,7 @@ export default function createAiChatRuntime(options: CreateAiChatRuntimeOptions 
     let stopWatch: (() => void) | undefined;
     const timeout = window.setTimeout(() => {
       stopWatch?.();
-      void chat.value.stop();
+      chat.value.stop();
     }, 15000);
 
     function onStatusChange(): void {
@@ -235,11 +235,7 @@ export default function createAiChatRuntime(options: CreateAiChatRuntimeOptions 
       }
     }
 
-    stopWatch = watch(
-      status,
-      onStatusChange,
-      { flush: 'sync' }
-    );
+    stopWatch = watch(status, onStatusChange, { flush: 'sync' });
     onStatusChange();
   }
 
@@ -251,7 +247,11 @@ export default function createAiChatRuntime(options: CreateAiChatRuntimeOptions 
     await chat.value.regenerate({ messageId });
   }
 
-  async function edit(messageId: string, content: string, options: AiChatSubmitPayload['options'] = {}): Promise<void> {
+  async function edit(
+    messageId: string,
+    content: string,
+    payloadOptions: AiChatSubmitPayload['options'] = {}
+  ): Promise<void> {
     if (loading.value) {
       return;
     }
@@ -264,7 +264,7 @@ export default function createAiChatRuntime(options: CreateAiChatRuntimeOptions 
 
     const metadata: AiChatMeta = {
       ...targetMessage.metadata,
-      mcps: options.mcps ?? targetMessage.metadata?.mcps,
+      mcps: payloadOptions.mcps ?? targetMessage.metadata?.mcps,
     };
 
     await chat.value.sendMessage(

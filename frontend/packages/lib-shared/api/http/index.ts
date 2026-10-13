@@ -1,7 +1,3 @@
-import { getLocalStorage } from '../../method/local-storage';
-import { CordysAxios } from './Axios';
-import type { AxiosTransform, CreateAxiosOptions } from './axiosTransform';
-import { joinTimestamp } from './helper';
 import { ContentTypeEnum, RequestEnum } from '@lib/shared/enums/httpEnum';
 import { useI18n } from '@lib/shared/hooks/useI18n';
 import { deepMerge, setObjToUrlParams } from '@lib/shared/method';
@@ -10,6 +6,11 @@ import { isString } from '@lib/shared/method/is';
 import type CommonResponse from '@lib/shared/models/common';
 import type { RequestOptions, Result } from '@lib/shared/types/axios';
 import type { Recordable } from '@lib/shared/types/global';
+
+import { getLocalStorage } from '../../method/local-storage';
+import { CordysAxios } from './Axios';
+import type { AxiosTransform, CreateAxiosOptions } from './axiosTransform';
+import { joinTimestamp } from './helper';
 import type { AxiosResponse } from 'axios';
 
 export default function createAxios(opt: Partial<CreateAxiosOptions>) {

@@ -4,5 +4,5 @@ export const enum IRNodeType {
   Binary = 'binary', // 运算符
   Compare = 'compare', // 比较运算符
   Function = 'function', // 函数
-  Invalid = 'invalid' // 无效节点
+  Invalid = 'invalid', // 无效节点
 }

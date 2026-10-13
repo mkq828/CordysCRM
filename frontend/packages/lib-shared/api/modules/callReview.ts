@@ -1,4 +1,3 @@
-import type { CommonList } from '../../models/common';
 import type {
   CallReviewConfigResponse,
   CallReviewConfigSaveRequest,
@@ -7,6 +6,8 @@ import type {
   CallReviewResponse,
   CallReviewUploadRequest,
 } from '../../models/callReview';
+import type { CommonList } from '../../models/common';
+import type { CordysAxios } from '../http/Axios';
 import {
   CallReviewAvailableUrl,
   CallReviewConfigResetKeyUrl,
@@ -17,7 +18,6 @@ import {
   CallReviewRetryUrl,
   CallReviewUploadUrl,
 } from '../requrls/callReview';
-import type { CordysAxios } from '../http/Axios';
 
 export default function useCallReviewApi(CDR: CordysAxios) {
   function getCallReviewAvailable() {

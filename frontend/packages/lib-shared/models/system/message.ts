@@ -1,5 +1,6 @@
-import type { TableQueryParams } from '../common';
 import { SelectedUsersItem } from '@lib/shared/models/system/module';
+
+import type { TableQueryParams } from '../common';
 
 export interface AnnouncementSaveParams {
   id?: string;
@@ -76,7 +77,6 @@ export interface MessageSettingsConfig {
   roleIdNames: { id: string; name: string }[];
 }
 
-
 export interface SaveMessageConfigParams {
   module: string;
   event: string;
@@ -87,7 +87,7 @@ export interface SaveMessageConfigParams {
   larkEnable?: boolean;
   smsEnable?: boolean;
   template?: string;
-  config?:MessageSettingsConfig;
+  config?: MessageSettingsConfig;
 }
 
 export interface MessageCenterItem {

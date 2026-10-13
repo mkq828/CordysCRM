@@ -1,6 +1,5 @@
-import mitt, { Handler } from 'mitt';
-
 import { PersonalEnum } from '../enums/systemEnum';
+import mitt, { Handler } from 'mitt';
 
 /**
  * 个人中心抽屉跨页面打开通道。

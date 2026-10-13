@@ -1,5 +1,5 @@
 export enum ProcessStatusEnum {
-  /** 无 **/
+  /** 无 * */
   NONE = 'NONE',
   /** 待提审, 待审批 */
   PENDING = 'PENDING',

@@ -94,7 +94,10 @@ export default function useProductApi(CDR: CordysAxios) {
 
   // 批量编辑消息设置
   function batchSaveMessageTask(
-    data: Pick<SaveMessageConfigParams, 'emailEnable' | 'sysEnable' | 'weComEnable' | 'dingTalkEnable' | 'larkEnable' | 'smsEnable'>
+    data: Pick<
+      SaveMessageConfigParams,
+      'emailEnable' | 'sysEnable' | 'weComEnable' | 'dingTalkEnable' | 'larkEnable' | 'smsEnable'
+    >
   ) {
     return CDR.post({ url: BatchSaveMessageTaskUrl, data });
   }
@@ -110,7 +113,7 @@ export default function useProductApi(CDR: CordysAxios) {
   }
 
   // 获取消息任务配置详情
-  function getMessageTaskConfigDetail(data: { module: string ,event:string}) {
+  function getMessageTaskConfigDetail(data: { module: string; event: string }) {
     return CDR.post<MessageSettingsConfig>({ url: getMessageTaskConfigDetailUrl, data });
   }
 

@@ -1,66 +1,67 @@
 import type { CordysAxios } from '@lib/shared/api/http/Axios';
 import {
+  AddOrderStatusUrl,
   AddOrderUrl,
   AddOrderViewUrl,
-  BatchUpdateOrderUrl,
   BatchDeleteOrderUrl,
+  BatchUpdateOrderUrl,
+  DeleteOrderStatusUrl,
   DeleteOrderUrl,
-  UpdateOrderStageUrl,
   DeleteOrderViewUrl,
+  DownloadOrderTemplateUrl,
+  DownloadOrderUrl,
   DragOrderViewUrl,
   EnableOrderViewUrl,
+  ExportOrderAllUrl,
+  ExportOrderSelectedUrl,
   FixedOrderViewUrl,
   GetOrderDetailUrl,
-  OrderPageUrl,
-  SortOrderUrl,
-  OrderDetailSnapshotUrl,
-  OrderFormConfigUrl,
-  OrderFormConfigSnapshotUrl,
-  OrderInContractPageUrl,
+  GetOrderStatusConfigUrl,
   GetOrderTabUrl,
   GetOrderViewDetailUrl,
   GetOrderViewListUrl,
+  ImportOrderUrl,
+  OrderDetailSnapshotUrl,
+  OrderFormConfigSnapshotUrl,
+  OrderFormConfigUrl,
+  OrderInContractPageUrl,
+  OrderPageUrl,
+  OrderStatisticUrl,
+  PreCheckOrderImportUrl,
+  SaveAdvanceConfigUrl,
+  SortOrderStatusUrl,
+  SortOrderUrl,
+  SwitchOrderCirculationTypeUrl,
+  UpdateOrderStageUrl,
+  UpdateOrderStatusRollbackUrl,
+  UpdateOrderStatusUrl,
   UpdateOrderUrl,
   UpdateOrderViewUrl,
-  UpdateOrderStatusUrl,
-  UpdateOrderStatusRollbackUrl,
-  SortOrderStatusUrl,
-  AddOrderStatusUrl,
-  GetOrderStatusConfigUrl,
-  DeleteOrderStatusUrl,
-  DownloadOrderUrl,
-  ExportOrderAllUrl,
-  ExportOrderSelectedUrl,
-  OrderStatisticUrl,
-  SaveAdvanceConfigUrl,
-  SwitchOrderCirculationTypeUrl,
-  PreCheckOrderImportUrl,
-  DownloadOrderTemplateUrl,
-  ImportOrderUrl,
 } from '@lib/shared/api/requrls/order';
-import type { FormDesignConfigDetailParams } from '@lib/shared/models/system/module';
-import { ValidateInfo } from '@lib/shared/models/system/org';
+import type { CirculationTypeEnum } from '@lib/shared/enums/opportunityEnum';
 import type {
   CommonList,
-  ImportUploadParams, TableDraggedParams,
+  ImportUploadParams,
+  TableDraggedParams,
   TableExportParams,
   TableExportSelectedParams,
   TableQueryParams,
 } from '@lib/shared/models/common';
 import type { BatchUpdatePoolAccountParams, CustomerTabHidden } from '@lib/shared/models/customer';
-import type { OrderItem, UpdateOrderParams } from '@lib/shared/models/order';
-import type { ViewItem, ViewParams } from '@lib/shared/models/view';
 import {
-  StageBoardPageQueryParams,
-  StageBoardDraggedParams,
-  StageBaseParams,
   OpportunityStageConfig,
+  type SaveCirculationConfigParams,
+  StageBaseParams,
+  StageBoardDraggedParams,
+  StageBoardPageQueryParams,
   UpdateOpportunityStageRollbackParams,
   UpdateStageBaseParams,
-  type SaveCirculationConfigParams,
   type UpdateStageParams,
 } from '@lib/shared/models/opportunity';
-import type { CirculationTypeEnum } from '@lib/shared/enums/opportunityEnum';
+import type { OrderItem, UpdateOrderParams } from '@lib/shared/models/order';
+import type { FormDesignConfigDetailParams } from '@lib/shared/models/system/module';
+import { ValidateInfo } from '@lib/shared/models/system/org';
+import type { ViewItem, ViewParams } from '@lib/shared/models/view';
 
 export default function useOrderApi(CDR: CordysAxios) {
   // 列表

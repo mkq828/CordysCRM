@@ -35,7 +35,7 @@ export enum ModuleConfigEnum {
   /** 招标 */
   TENDER = 'tender',
 
-   /** 自定义表单 */
+  /** 自定义表单 */
   CUSTOM_FORM = 'customForm',
 
   /** 财务 */

@@ -1,6 +1,7 @@
+import type { SaveCustomerParams } from '@lib/shared/models/customer';
+
 import type { CustomerSearchTypeEnum } from '../../enums/customerEnum';
 import type { ModuleField, TableQueryParams } from '../common';
-import type { SaveCustomerParams } from '@lib/shared/models/customer';
 
 export interface SaveClueParams extends SaveCustomerParams {
   contact?: string;

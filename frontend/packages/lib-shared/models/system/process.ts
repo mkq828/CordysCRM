@@ -1,17 +1,13 @@
+import { RequestEnum } from '@lib/shared/enums/httpEnum';
 import {
   ApprovalLevelDirectionEnum,
   ApprovalOperationEnum,
+  type ApprovalResourceTypeEnum,
+  type ApprovalTaskExecuteTimeEnum,
   ApprovalTypeEnum,
   ApproverTypeEnum,
   ProcessStatusEnum,
-  type ApprovalResourceTypeEnum,
-  type ApprovalTaskExecuteTimeEnum,
 } from '@lib/shared/enums/process';
-import { RequestEnum } from '@lib/shared/enums/httpEnum';
-import type { SelectedUsersItem } from './module';
-import type { OptionDTO } from './business';
-import type { FilterForm } from '@cordys/web/src/components/pure/crm-advance-filter/type';
-import type { UserInfo } from '@lib/shared/models/user';
 import {
   ApprovalFieldPermissionModeEnum,
   ApprovalNodeTypeEnum,
@@ -19,9 +15,14 @@ import {
   MultiApproverModeEnum,
   SameSubmitterActionEnum,
 } from '@lib/shared/enums/process';
-import type { ActionNode, ConditionBranch } from '@cordys/web/src/components/business/crm-flow/types';
+import type { UserInfo } from '@lib/shared/models/user';
+
 import type { TableQueryParams } from '../common';
+import type { OptionDTO } from './business';
+import type { SelectedUsersItem } from './module';
+import type { ActionNode, ConditionBranch } from '@cordys/web/src/components/business/crm-flow/types';
 import type { AttachmentInfo } from '@cordys/web/src/components/business/crm-form-create/types';
+import type { FilterForm } from '@cordys/web/src/components/pure/crm-advance-filter/type';
 
 export interface BaseItem {
   id: string;

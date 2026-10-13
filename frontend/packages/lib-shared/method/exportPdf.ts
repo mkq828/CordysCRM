@@ -1,7 +1,8 @@
+import { nextTick } from 'vue';
+
 import { Canvg } from 'canvg';
 import html2canvas from 'html2canvas-pro';
 import JSPDF from 'jspdf';
-import { nextTick } from 'vue';
 
 const A4_WIDTH = 595;
 const A4_HEIGHT = 842;
@@ -67,66 +68,64 @@ export async function replaceSvgWithBase64(container: HTMLElement) {
   });
 }
 
+/**
+ * 处理 DOM 元素的分页，防止内容被截断
+ * @param containerId 容器 ID
+ * @param pageHeight PDF 一页的有效高度 (对应你的 PAGE_HEIGHT 或 IMAGE_HEIGHT / SCALE_RATIO)
+ */
+function handlePageBreak(containerId: string, pageHeight: number) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
 
-/**  
- * 处理 DOM 元素的分页，防止内容被截断  
- * @param containerId 容器 ID  
- * @param pageHeight PDF 一页的有效高度 (对应你的 PAGE_HEIGHT 或 IMAGE_HEIGHT / SCALE_RATIO)  
- */  
-function handlePageBreak(containerId: string, pageHeight: number) {  
-  const container = document.getElementById(containerId);  
-  if (!container) return;  
-  
-  // 获取所有直接子元素，这里假设子元素是不可分割的块（比如一行表格、一个段落）  
-  // 根据实际情况，你可能需要更精确的选择器，比如 '.table-row', 'p', 'img'  
-  const children = Array.from(container.children) as HTMLElement[];  
-    
-  let currentPageHeight = 0;  
-  const nodesToMove: { node: HTMLElement; spacerHeight: number }[] = [];  
-  
-  children.forEach((child) => {  
-    const childHeight = child.offsetHeight;  
-    // 如果元素本身就比一页还高，那没法处理，只能让它截断  
-    if (childHeight > pageHeight) {  
-      currentPageHeight += childHeight;  
-      // 重置当前页高度计数，近似处理  
-      currentPageHeight = currentPageHeight % pageHeight;   
-      return;  
-    }  
-  
-    // 判断加上当前元素后是否超出一页  
-    if (currentPageHeight + childHeight > pageHeight) {  
-      // 计算需要插入的空白高度，把当前元素挤到下一页开头  
-      const spacerHeight = pageHeight - currentPageHeight;  
-      nodesToMove.push({ node: child, spacerHeight });  
-      // 当前元素被挤到下一页了，所以新的当前页高度就是它自己的高度  
-      currentPageHeight = childHeight;   
-    } else {  
-      // 没超出一页，累加高度  
-      currentPageHeight += childHeight;  
-    }  
-  });  
-  
-  // 统一插入空白占位符  
-  // 需要倒序插入，否则会影响后续元素的 offsetTop 计算（虽然这里用的是累加高度，倒序更安全）  
-  for (let i = nodesToMove.length - 1; i >= 0; i--) {  
-    const { node, spacerHeight } = nodesToMove[i];  
-    const spacer = document.createElement('div');  
-    spacer.style.height = `${spacerHeight}px`;  
-    spacer.style.width = '100%';  
-    // 标记一下，方便导出后移除  
-    spacer.className = 'pdf-page-break-spacer';   
-    spacer.style.backgroundColor = 'transparent'; // 确保透明  
-    container.insertBefore(spacer, node);  
-  }  
-    
-  return () => {  
-    // 返回一个清理函数，在导出完成后移除这些占位符，恢复网页原样  
-    const spacers = container.querySelectorAll('.pdf-page-break-spacer');  
-    spacers.forEach(spacer => spacer.remove());  
-  }  
-}  
+  // 获取所有直接子元素，这里假设子元素是不可分割的块（比如一行表格、一个段落）
+  // 根据实际情况，你可能需要更精确的选择器，比如 '.table-row', 'p', 'img'
+  const children = Array.from(container.children) as HTMLElement[];
 
+  let currentPageHeight = 0;
+  const nodesToMove: { node: HTMLElement; spacerHeight: number }[] = [];
+
+  children.forEach((child) => {
+    const childHeight = child.offsetHeight;
+    // 如果元素本身就比一页还高，那没法处理，只能让它截断
+    if (childHeight > pageHeight) {
+      currentPageHeight += childHeight;
+      // 重置当前页高度计数，近似处理
+      currentPageHeight %= pageHeight;
+      return;
+    }
+
+    // 判断加上当前元素后是否超出一页
+    if (currentPageHeight + childHeight > pageHeight) {
+      // 计算需要插入的空白高度，把当前元素挤到下一页开头
+      const spacerHeight = pageHeight - currentPageHeight;
+      nodesToMove.push({ node: child, spacerHeight });
+      // 当前元素被挤到下一页了，所以新的当前页高度就是它自己的高度
+      currentPageHeight = childHeight;
+    } else {
+      // 没超出一页，累加高度
+      currentPageHeight += childHeight;
+    }
+  });
+
+  // 统一插入空白占位符
+  // 需要倒序插入，否则会影响后续元素的 offsetTop 计算（虽然这里用的是累加高度，倒序更安全）
+  for (let i = nodesToMove.length - 1; i >= 0; i--) {
+    const { node, spacerHeight } = nodesToMove[i];
+    const spacer = document.createElement('div');
+    spacer.style.height = `${spacerHeight}px`;
+    spacer.style.width = '100%';
+    // 标记一下，方便导出后移除
+    spacer.className = 'pdf-page-break-spacer';
+    spacer.style.backgroundColor = 'transparent'; // 确保透明
+    container.insertBefore(spacer, node);
+  }
+
+  return () => {
+    // 返回一个清理函数，在导出完成后移除这些占位符，恢复网页原样
+    const spacers = container.querySelectorAll('.pdf-page-break-spacer');
+    spacers.forEach((spacer) => spacer.remove());
+  };
+}
 
 /**
  * 导出PDF
@@ -216,4 +215,3 @@ export default async function exportPDF(name: string, contentId: string, doneCal
     });
   }
 }
-

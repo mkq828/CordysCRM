@@ -1,6 +1,7 @@
+import { PersonalExportStatusEnum } from '@lib/shared/enums/systemEnum';
+
 import type { CompanyTypeEnum } from '../../enums/commonEnum';
 import type { TableQueryParams } from '../common';
-import { PersonalExportStatusEnum } from '@lib/shared/enums/systemEnum';
 import type { TenantPlanHistoryItem } from './tenant-plan';
 
 // 邮件设置
@@ -16,27 +17,27 @@ export interface ConfigEmailParams {
 }
 
 // 三方扫码登录配置基础类型
-export interface ThirdPartyBaseLoginConfig { 
+export interface ThirdPartyBaseLoginConfig {
   agentId: string;
   appSecret: string;
   corpId: string;
   startEnable: boolean;
 }
 // 钉钉扫码登录配置类型
-export interface ThirdPartyDingTalkLoginConfig extends ThirdPartyBaseLoginConfig { 
+export interface ThirdPartyDingTalkLoginConfig extends ThirdPartyBaseLoginConfig {
   appId: string;
 }
 
 // 飞书扫码登录配置类型
-export interface ThirdPartyLarkLoginConfig extends ThirdPartyBaseLoginConfig { 
+export interface ThirdPartyLarkLoginConfig extends ThirdPartyBaseLoginConfig {
   redirectUrl: string;
 }
 
 // DE配置类型
 export interface ThirdPartyDEConfig {
-  agentId:string;
-  appSecret:string;
-  deAccessKey:string;
+  agentId: string;
+  appSecret: string;
+  deAccessKey: string;
   deAutoSync: boolean;
   deBoardEnable: boolean;
   deOrgID: string;
@@ -45,30 +46,30 @@ export interface ThirdPartyDEConfig {
 }
 // sql智能体配置类型
 export interface ThirdPartySQLBotConfig {
-  appSecret:string;
+  appSecret: string;
   sqlBotChatEnable: boolean;
   sqlBotBoardEnable: boolean;
 }
 // maxKB配置类型
 export interface ThirdPartyMKConfig {
-  appSecret:string;
+  appSecret: string;
   mkAddress: string;
   mkEnable: boolean;
-} 
+}
 // 大单网配置类型
 export interface ThirdPartyTenderConfig {
-  tenderAddress:string;
-  tenderEnable:boolean;
+  tenderAddress: string;
+  tenderEnable: boolean;
 }
 // 企查查配置类型
-export interface ThirdPartyQccConfig{
-  qccAddress:string;
-  qccAccessKey:string;
-  qccSecretKey:string;
-  qccEnable:boolean;
+export interface ThirdPartyQccConfig {
+  qccAddress: string;
+  qccAccessKey: string;
+  qccSecretKey: string;
+  qccEnable: boolean;
 }
 
-export interface ThirdPartyResourceConfig{
+export interface ThirdPartyResourceConfig {
   type: CompanyTypeEnum;
   verify: boolean;
   config: Record<string, any>;
@@ -310,7 +311,3 @@ export interface TenantSubscription {
   contract?: TenantSubscriptionContract | null; // 当前生效合同
   histories?: TenantPlanHistoryItem[]; // 开通/续费/升级记录（含计算过程）
 }
-
-
-
-

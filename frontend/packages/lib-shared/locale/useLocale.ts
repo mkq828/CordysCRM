@@ -1,9 +1,10 @@
 import { ref, unref } from 'vue';
 import dayjs from 'dayjs';
 
+import type { LocaleType, Recordable } from '@lib/shared/types/global';
+
 import { loadLocalePool } from './helper';
 import { i18n } from './index';
-import type { LocaleType, Recordable } from '@lib/shared/types/global';
 
 interface LangModule {
   message: Recordable;

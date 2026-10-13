@@ -1,5 +1,6 @@
-import { setupDrag } from './setupDrag';
 import { CompanyTypeEnum } from '@lib/shared/enums/commonEnum';
+
+import { setupDrag } from './setupDrag';
 
 interface ScriptOptions {
   identifier: string; // 脚本标识

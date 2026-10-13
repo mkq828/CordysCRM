@@ -1,4 +1,3 @@
-import type { CrmTreeNodeData } from '@cordys/web/src/components/pure/crm-tree/type';
 import type { CordysAxios } from '@lib/shared/api/http/Axios';
 import {
   addDepartmentUrl,
@@ -7,14 +6,14 @@ import {
   batchEnableUserUrl,
   batchResetPasswordUrl,
   checkDeleteDepartmentUrl,
+  CheckSyncUrl,
   checkSyncUserFromThirdUrl,
   deleteDepartmentUrl,
   deleteUserCheckUrl,
   deleteUserUrl,
-  getDepartmentTreeUrl,
   getAdminOptionsUrl,
+  getDepartmentTreeUrl,
   getOrgDepartmentUserUrl,
-  CheckSyncUrl,
   getRoleOptionsUrl,
   getUserDetailUrl,
   getUserListUrl,
@@ -41,6 +40,8 @@ import type {
   ValidateInfo,
 } from '@lib/shared/models/system/org';
 import type { DeptUserTreeNode } from '@lib/shared/models/system/role';
+
+import type { CrmTreeNodeData } from '@cordys/web/src/components/pure/crm-tree/type';
 
 export default function useProductApi(CDR: CordysAxios) {
   // 组织架构-部门树查询

@@ -403,11 +403,7 @@ export default function useProductApi(CDR: CordysAxios) {
   }
 
   function preCheckImportPoolLead(params: ImportUploadParams) {
-    return CDR.uploadFile<{ data: ValidateInfo }>(
-      { url: PreCheckPoolLeadImportUrl },
-      params,
-      'file'
-    );
+    return CDR.uploadFile<{ data: ValidateInfo }>({ url: PreCheckPoolLeadImportUrl }, params, 'file');
   }
 
   function downloadPoolLeadTemplate() {
@@ -421,11 +417,7 @@ export default function useProductApi(CDR: CordysAxios) {
   }
 
   function importPoolLead(params: ImportUploadParams) {
-    return CDR.uploadFile(
-      { url: ImportPoolLeadUrl },
-      params,
-      'file'
-    );
+    return CDR.uploadFile({ url: ImportPoolLeadUrl }, params, 'file');
   }
 
   function getAdvancedSearchClueList(data: CustomerTableParams) {

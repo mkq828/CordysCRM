@@ -9,12 +9,12 @@ import type {
   AgentConversationPageResult,
 } from '@lib/shared/models/ai';
 
-import createAgentChatTransport from './createAgentChatTransport';
-import createAiChatRuntime from './createAiChatRuntime';
-import type { AiChatRuntime } from './types';
 import type { AiChatAttachment, AiChatMcp, AiChatMessage } from '../types';
 import { toAiChatMessage } from '../utils/conversation';
 import { getAiChatMessageText } from '../utils/message';
+import createAgentChatTransport from './createAgentChatTransport';
+import createAiChatRuntime from './createAiChatRuntime';
+import type { AiChatRuntime } from './types';
 
 interface AgentChatWorkbenchApis {
   streamAgentChat: (
@@ -197,6 +197,8 @@ export default function useAgentChatWorkbench(options: UseAgentChatWorkbenchOpti
   }
 
   const runningHistoryIds = computed(() => {
+    // 读取版本号，确保 runningHistoryIds 在 runtime 版本变化时重新计算
+    // eslint-disable-next-line no-void
     void runtimeEntryVersion.value;
 
     // 只暴露正在生成中的 conversationId，列表组件不需要知道 runtime 细节。
@@ -341,7 +343,7 @@ export default function useAgentChatWorkbench(options: UseAgentChatWorkbenchOpti
         }
       },
       async onFinish() {
-        const conversationId = entry.conversationId;
+        const { conversationId } = entry;
 
         if (!conversationId) {
           return;

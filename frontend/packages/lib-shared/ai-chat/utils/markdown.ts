@@ -78,7 +78,7 @@ function normalizeLooseMarkdownSyntax(content: string): string {
     const normalizedLine = line
       .replace(/^(\s{0,3}#{1,6})([^\s#])/u, '$1 $2')
       .replace(/^(\s{0,3}>+)([^\s>])/u, '$1 $2')
-      .replace(/^(\s*)([-+])([^\s\-\+\[])/u, '$1$2 $3')
+      .replace(/^(\s*)([-+])([^\s\-+[])/u, '$1$2 $3')
       .replace(/^(\s*)(\d{1,3}[.)])([^\s\d])/u, '$1$2 $3')
       .replace(/^(\s*)-\s*\[([xX ])\]([^\s])/u, '$1- [$2] $3');
 
@@ -110,10 +110,7 @@ function normalizeTableSpacing(content: string): string {
     if (/^```/u.test(line)) {
       inFence = !inFence;
       result.push(line);
-      continue;
-    }
-
-    if (!inFence && isTableBlockStart(lines, index)) {
+    } else if (!inFence && isTableBlockStart(lines, index)) {
       if (result.length > 0 && result[result.length - 1].trim()) {
         result.push('');
       }
@@ -128,10 +125,9 @@ function normalizeTableSpacing(content: string): string {
       }
 
       index -= 1;
-      continue;
+    } else {
+      result.push(line);
     }
-
-    result.push(line);
   }
 
   return result.join('\n');
