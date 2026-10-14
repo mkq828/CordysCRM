@@ -508,7 +508,9 @@
       form.value.list.splice(index, 1);
       emit('cancelRow', index);
     }
-    formValidate(() => {});
+    formValidate(() => {
+      // 取消行后仅触发一次校验（有误时定位到首个报错项），无需后续处理
+    });
   }
 
   // 保存编辑
