@@ -40,6 +40,12 @@ export enum ModuleConfigEnum {
 
   /** 财务 */
   FINANCE = 'finance',
+
+  /** AI 创作中心 */
+  AI_CREATION = 'aiCreation',
+
+  /** 经营决策中枢 */
+  BUSINESS_SCREEN = 'businessScreen',
 }
 
 // 添加员工API

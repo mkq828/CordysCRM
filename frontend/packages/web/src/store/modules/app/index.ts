@@ -77,6 +77,14 @@ const defaultModuleConfig = [
     enable: true,
   },
   {
+    moduleKey: ModuleConfigEnum.BUSINESS_SCREEN,
+    enable: true,
+  },
+  {
+    moduleKey: ModuleConfigEnum.AI_CREATION,
+    enable: true,
+  },
+  {
     moduleKey: ModuleConfigEnum.CUSTOMER_MANAGEMENT,
     enable: true,
   },

@@ -2,6 +2,8 @@ import { ModuleConfigEnum } from '@lib/shared/enums/moduleEnum';
 
 import {
   AgentRouteEnum,
+  AiCreationRouteEnum,
+  BusinessScreenRouteEnum,
   ClueRouteEnum,
   ContractRouteEnum,
   CustomerRouteEnum,
@@ -54,6 +56,8 @@ export const featureRouteMap: Record<string, any> = {
   [TenderRouteEnum.TENDER]: ModuleConfigEnum.TENDER,
   [CustomFormRouteEnum.CUSTOM_FORM]: ModuleConfigEnum.CUSTOM_FORM,
   [FinanceRouteEnum.FINANCE]: ModuleConfigEnum.FINANCE,
+  [AiCreationRouteEnum.AI_CREATION]: ModuleConfigEnum.AI_CREATION,
+  [BusinessScreenRouteEnum.BUSINESS_SCREEN]: ModuleConfigEnum.BUSINESS_SCREEN,
 };
 
 export const allMenuRouteMap: Record<string, any> = {

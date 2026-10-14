@@ -119,6 +119,16 @@
       icon: 'iconicon_home',
     },
     {
+      label: t('menu.businessScreen'),
+      key: ModuleConfigEnum.BUSINESS_SCREEN,
+      icon: 'iconicon_precise_monitor',
+    },
+    {
+      label: t('menu.aiCreation'),
+      key: ModuleConfigEnum.AI_CREATION,
+      icon: 'iconicon_crmbot',
+    },
+    {
       label: t('module.customerManagement'),
       key: ModuleConfigEnum.CUSTOMER_MANAGEMENT,
       icon: 'iconicon_customer',

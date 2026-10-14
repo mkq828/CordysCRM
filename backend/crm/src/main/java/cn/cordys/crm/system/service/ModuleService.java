@@ -32,6 +32,7 @@ import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -64,6 +65,8 @@ public class ModuleService {
     private BaseMapper<OrganizationConfigDetail> organizationConfigDetailMapper;
     @Resource
     private BaseMapper<Parameter> parameterMapper;
+    @Resource
+    private EditionService editionService;
 
     /**
      * 获取系统模块配置列表
@@ -76,6 +79,9 @@ public class ModuleService {
         queryWrapper.eq(Module::getOrganizationId, request.getOrganizationId());
         List<Module> modules = moduleMapper.selectListByLambda(queryWrapper);
         return modules.stream()
+                // 带版本功能编码的模块按租户版本过滤：试用/无快照放开，付费按「版本→功能」映射判断。
+                .filter(module -> StringUtils.isBlank(module.getFeatureCode())
+                        || editionService.hasFeature(module.getOrganizationId(), module.getFeatureCode()))
                 .map(module -> {
                     ModuleDTO dto = new ModuleDTO();
                     BeanUtils.copyProperties(module, dto);
@@ -138,10 +144,10 @@ public class ModuleService {
         List<String> beforeKeys = getModuleSortKeys(module.getOrganizationId());
         if (request.getStart() < request.getEnd()) {
             // start < end, 区间模块上移, pos - 1
-            extModuleMapper.moveUpModule(request.getStart(), request.getEnd());
+            extModuleMapper.moveUpModule(module.getOrganizationId(), request.getStart(), request.getEnd());
         } else {
             // start > end, 区间模块下移, pos + 1
-            extModuleMapper.moveDownModule(request.getEnd(), request.getStart());
+            extModuleMapper.moveDownModule(module.getOrganizationId(), request.getEnd(), request.getStart());
         }
         Module dragModule = new Module();
         dragModule.setId(request.getDragModuleId());
@@ -260,6 +266,7 @@ public class ModuleService {
             module.setModuleKey(source.getModuleKey());
             module.setEnable(source.getEnable());
             module.setPos(source.getPos());
+            module.setFeatureCode(source.getFeatureCode());
             module.setCreateUser(InternalUser.ADMIN.getValue());
             module.setCreateTime(System.currentTimeMillis());
             module.setUpdateUser(InternalUser.ADMIN.getValue());

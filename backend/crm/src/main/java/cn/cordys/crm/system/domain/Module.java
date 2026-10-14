@@ -20,4 +20,7 @@ public class Module extends BaseModel {
 
     @Schema(description = "自定义排序")
     private Long pos;
+
+    @Schema(description = "版本功能编码（空则所有版本可见）")
+    private String featureCode;
 }

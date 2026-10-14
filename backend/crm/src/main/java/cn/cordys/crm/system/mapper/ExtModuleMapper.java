@@ -10,18 +10,20 @@ public interface ExtModuleMapper {
     /**
      * 模块区间上移
      *
+     * @param orgId 组织ID
      * @param start 开始
      * @param end   结束
      */
-    void moveUpModule(@Param("start") Long start, @Param("end") Long end);
+    void moveUpModule(@Param("orgId") String orgId, @Param("start") Long start, @Param("end") Long end);
 
     /**
      * 模块区间下移
      *
+     * @param orgId 组织ID
      * @param start 开始
      * @param end   结束
      */
-    void moveDownModule(@Param("start") Long start, @Param("end") Long end);
+    void moveDownModule(@Param("orgId") String orgId, @Param("start") Long start, @Param("end") Long end);
 
     /**
      * 根据模块key查询模块集合按照pos属性倒叙排序
