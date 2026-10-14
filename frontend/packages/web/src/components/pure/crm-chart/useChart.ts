@@ -37,7 +37,7 @@ export const lightColors = [
   '#68DF92',
   '#3EBCF3',
   '#A4B5E0',
-  '#00A6AB',
+  '#0fb8a8',
 ];
 
 export const darkColors = [
@@ -52,7 +52,7 @@ export const darkColors = [
   '#76DE74',
   '#3BC2FC',
   '#798FC5',
-  '#008D91',
+  '#0d9c8f',
 ];
 
 export default function useChart(props: ChartProps) {

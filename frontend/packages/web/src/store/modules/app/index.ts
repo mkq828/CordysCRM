@@ -36,7 +36,7 @@ const defaultThemeConfig = {
   style: 'default' as Style,
   customStyle: '#f9fbfb',
   theme: 'default' as Theme,
-  customTheme: '#008d91',
+  customTheme: '#0d9c8f',
 };
 const defaultLoginConfig = {
   title: '哆咪CRM',

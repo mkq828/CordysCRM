@@ -3,7 +3,7 @@
     v-model:collapsed="collapsed"
     collapse-mode="width"
     :collapsed-width="56"
-    :width="180"
+    :width="206"
     :native-scrollbar="false"
     class="crm-layout-sider"
     @update-collapsed="appStore.setMenuCollapsed"
@@ -26,7 +26,7 @@
           :root-indent="24"
           :indent="appStore.getMenuIconStatus ? 38 : 8"
           :collapsed-width="appStore.collapsedWidth"
-          :icon-size="18"
+          :icon-size="16"
           :collapsed-icon-size="28"
           :options="menuOptions"
           :render-label="renderLabel"
@@ -123,7 +123,6 @@
   } from '@/enums/routeEnum';
 
   import { MenuGroupOption, MenuOption } from 'naive-ui/es/menu/src/interface';
-  import type { VNodeChild } from 'vue';
 
   const emit = defineEmits<{
     (e: 'openPersonalInfo', tab: PersonalEnum): void;
@@ -155,7 +154,7 @@
   function renderIcon(type: string) {
     return () =>
       h(CrmIcon, {
-        size: 18,
+        size: 16,
         type,
         class: 'text-[var(--text-n1)]',
       });
@@ -218,8 +217,9 @@
 
   function renderLabel(option: MenuOption | MenuGroupOption) {
     // 展开态菜单名已完整显示，悬浮重复弹文字纯干扰；折叠成图标时才用 tooltip 补全名称
+    // 菜单名包一层 span，用于展开态文字超长省略；右侧指示灯由 CSS ::after 注入（仅一级菜单）
     if (!collapsed.value) {
-      return option.label as VNodeChild;
+      return h('span', { class: 'crm-menu-text' }, { default: () => option.label });
     }
     return h(
       NTooltip,
@@ -255,11 +255,11 @@
     }
   }
 
-  function renderExpandMenuIcon(option: MenuOption) {
-    const type = expandedKeys.value.includes(option.key as string) ? 'iconicon_chevron_down' : 'iconicon_chevron_right';
+  function renderExpandMenuIcon() {
+    // 单一向下 chevron：折叠态朝下、展开态朝上，旋转动画由 Naive 内建 transform(rotate 180deg) 承担
     return h(CrmIcon, {
-      size: 16,
-      type,
+      size: 14,
+      type: 'iconicon_chevron_down',
     });
   }
 
@@ -399,13 +399,214 @@
 
 <style lang="less">
   .crm-layout-sider {
+    --n-color: #e3e9f0;
+
     font-weight: 500;
+    background-color: #e3e9f0;
     .n-scrollbar-content {
       @apply h-full;
     }
     .n-divider:not(.n-divider--vertical) {
       margin: 12px 0;
     }
+
+    // ============ 菜单容器：左右留 14px，键帽不贴边（对齐设计稿 .menu padding） ============
+    .n-menu {
+      padding: 16px 14px 10px;
+    }
+
+    // ============ 一级菜单垂直间距：叶子/父项之间 10px，父标签与子项之间 10px ============
+    .n-menu > .n-menu-item,
+    .n-menu > .n-submenu {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+    .n-menu > .n-submenu > .n-menu-item {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    // ============ 一级菜单键帽：渐变 + 阴影 + 圆角全落在同一可视层（::before 铺满） ============
+    .n-menu > .n-menu-item > .n-menu-item-content,
+    .n-menu > .n-submenu > .n-menu-item > .n-menu-item-content {
+      padding-right: 12px !important;
+      padding-left: 12px !important;
+      height: 40px;
+      transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s ease;
+      will-change: transform;
+      &::before {
+        right: 0;
+        left: 0;
+        border-radius: 11px;
+        background-color: transparent;
+        box-shadow: 4px 4px 10px rgb(140 158 175 / 75%), -4px -4px 10px #ffffff, inset 0 1px 0 #ffffff;
+        transition: background-image 0.18s ease, box-shadow 0.18s ease;
+        background-image: linear-gradient(145deg, #ffffff, #e7edf4);
+      }
+    }
+
+    // 悬浮：轻微上浮 + 阴影增强（按压态不参与）
+    .n-menu
+      > .n-menu-item
+      > .n-menu-item-content:not(.n-menu-item-content--selected):not(.n-menu-item-content--child-active):hover,
+    .n-menu
+      > .n-submenu
+      > .n-menu-item
+      > .n-menu-item-content:not(.n-menu-item-content--selected):not(.n-menu-item-content--child-active):hover {
+      transform: translateY(-2px);
+      &::before {
+        box-shadow: 6px 6px 14px rgb(140 158 175 / 75%), -6px -6px 14px #ffffff, inset 0 1px 0 #ffffff;
+      }
+    }
+
+    // 选中 / 含激活子项 / 已展开父项：内阴影按压态（下沉 + 覆盖悬浮）
+    .n-menu > .n-menu-item > .n-menu-item-content--selected,
+    .n-menu > .n-submenu > .n-menu-item > .n-menu-item-content--child-active,
+    .n-menu > .n-submenu[aria-expanded='true'] > .n-menu-item > .n-menu-item-content {
+      transform: translateY(2px);
+      &::before {
+        background-image: linear-gradient(145deg, #dfe6ee, #f2f7fb);
+        box-shadow: inset 4px 4px 8px rgb(140 158 175 / 85%), inset -4px -4px 8px rgb(255 255 255 / 95%);
+      }
+    }
+
+    // 一级菜单：文字 + 右侧指示灯（仅一级，二级菜单无指示灯、走左侧圆点）
+    .n-menu > .n-menu-item > .n-menu-item-content > .n-menu-item-content-header,
+    .n-menu > .n-submenu > .n-menu-item > .n-menu-item-content > .n-menu-item-content-header {
+      display: flex;
+      align-items: center;
+      overflow: visible;
+      &::after {
+        content: '';
+        margin-left: auto;
+        flex-shrink: 0;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #c3cfdb;
+        box-shadow: inset 1px 1px 2px rgb(120 140 160 / 95%), inset -1px -1px 1.5px rgb(255 255 255 / 90%);
+        transition: background 0.3s ease, box-shadow 0.3s ease;
+      }
+    }
+
+    // 一级菜单指示灯：选中时点亮（白色呼吸灯）
+    .n-menu > .n-menu-item > .n-menu-item-content--selected > .n-menu-item-content-header::after,
+    .n-menu > .n-submenu > .n-menu-item > .n-menu-item-content--selected > .n-menu-item-content-header::after {
+      background: #ffffff;
+      box-shadow: 0 0 5px #ffffff, 0 0 11px rgb(255 255 255 / 95%), 0 0 18px rgb(255 255 255 / 60%),
+        inset 0 0 3px #ffffff;
+      animation: crm-lamp-pulse 2.4s ease-in-out infinite;
+    }
+
+    // 展开箭头：默认灰、悬浮深灰、展开主题色（旋转动画由 Naive 内建 transform 承担）
+    .n-menu > .n-submenu > .n-menu-item > .n-menu-item-content > .n-menu-item-content__arrow {
+      color: #9dacb9;
+      transition: color 0.22s ease, transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .n-menu > .n-submenu > .n-menu-item > .n-menu-item-content:hover > .n-menu-item-content__arrow {
+      color: #6b7b8b;
+    }
+    .n-menu > .n-submenu[aria-expanded='true'] > .n-menu-item > .n-menu-item-content > .n-menu-item-content__arrow {
+      color: var(--primary-0);
+    }
+
+    // ============ 二级菜单：左侧导轨线 + 圆点项 ============
+    .n-menu > .n-submenu > .n-submenu-children {
+      position: relative;
+      padding: 6px 0;
+      &::before {
+        position: absolute;
+        top: 12px;
+        bottom: 12px;
+        left: 19px;
+        width: 1.5px;
+        border-radius: 2px;
+        background: linear-gradient(
+          180deg,
+          transparent 0%,
+          rgb(140 158 175 / 35%) 12%,
+          rgb(140 158 175 / 35%) 88%,
+          transparent 100%
+        );
+        content: '';
+        pointer-events: none;
+      }
+    }
+
+    // 二级项之间 2px 间距（首项不额外留白）
+    .n-menu > .n-submenu > .n-submenu-children > .n-menu-item {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+    .n-menu > .n-submenu > .n-submenu-children > .n-menu-item + .n-menu-item {
+      margin-top: 2px;
+    }
+    .n-menu > .n-submenu > .n-submenu-children > .n-menu-item > .n-menu-item-content {
+      padding-right: 12px !important;
+      padding-left: 42px !important;
+      height: 36px;
+      border-radius: 9px;
+      color: #4d5c6b;
+      transition: color 0.2s ease, background-color 0.2s ease, background-image 0.2s ease, box-shadow 0.2s ease;
+      &::before {
+        position: absolute;
+        top: 50%;
+        right: auto;
+        bottom: auto;
+        left: 26px;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #b8c4d0;
+        box-shadow: inset 1px 1px 1.5px rgb(120 140 160 / 85%), inset -1px -1px 1px rgb(255 255 255 / 85%);
+        transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.22s ease, box-shadow 0.22s ease;
+        content: '';
+        transform: translateY(-50%) scale(0.55);
+      }
+      &:hover {
+        color: #1f2d3d;
+        background-color: rgb(255 255 255 / 55%);
+        &::before {
+          transform: translateY(-50%) scale(0.8);
+          background: #8fa0b1;
+        }
+      }
+    }
+    .n-menu > .n-submenu > .n-submenu-children > .n-menu-item > .n-menu-item-content--selected {
+      font-weight: 600;
+      color: #0a9c8e;
+      box-shadow: 3px 3px 8px rgb(140 158 175 / 50%), -3px -3px 8px rgb(255 255 255 / 95%), inset 0 1px 0 #ffffff;
+      background-image: linear-gradient(145deg, #ffffff, #eaf6f4);
+      &::before {
+        transform: translateY(-50%) scale(1);
+        background: var(--primary-8);
+        box-shadow: 0 0 6px rgb(15 184 168 / 85%), 0 0 12px rgb(15 184 168 / 50%), inset 0 0 2px #ffffff;
+      }
+    }
+
+    // 图标默认色（选中态由下方全局规则覆盖为主题色）
+    .n-menu-item-content__icon .n-icon {
+      color: #3d4d5c;
+    }
+  }
+
+  @keyframes crm-lamp-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 5px #ffffff, 0 0 11px rgb(255 255 255 / 95%), 0 0 18px rgb(255 255 255 / 60%),
+        inset 0 0 3px #ffffff;
+    }
+    50% {
+      box-shadow: 0 0 7px #ffffff, 0 0 16px rgb(255 255 255 / 100%), 0 0 26px rgb(255 255 255 / 80%),
+        inset 0 0 4px #ffffff;
+    }
+  }
+  .crm-menu-text {
+    display: block;
+    overflow: hidden;
+    min-width: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .n-menu-item-content--selected,
   .n-menu-item-content--child-active {

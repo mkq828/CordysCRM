@@ -7,7 +7,7 @@
           class="shrink-0"
           type="iconicon_crmbot"
           :size="32"
-          color="linear-gradient(180deg, #00A6AB 0%, #3370FF 70.19%)"
+          color="linear-gradient(180deg, #0fb8a8 0%, #3370FF 70.19%)"
         />
         <CrmAvatar v-else :size="32" class="flex-shrink-0 transition-all" />
       </slot>

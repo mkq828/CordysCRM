@@ -143,6 +143,11 @@ export function getThemeOverrides(): GlobalThemeOverrides {
       fontSizeSmall: '12px',
       fontSizeMedium: '14px',
       fontSizeLarge: '16px',
+      // 按钮圆角统一 7px（对齐 DUOMI 设计稿）
+      borderRadiusTiny: '7px',
+      borderRadiusSmall: '7px',
+      borderRadiusMedium: '7px',
+      borderRadiusLarge: '7px',
     },
     Alert: {
       borderRadius: '6px',
@@ -296,7 +301,13 @@ export function getThemeOverrides(): GlobalThemeOverrides {
       buttonWidthLarge: '18px',
     },
     Menu: {
-      itemTextColor: getLessVariableValue('--text-n1'),
+      itemTextColor: '#33424f',
+      itemTextColorHover: '#1f2d3d',
+      // 选中/含激活子项文字色：对齐设计稿 --primary-dark
+      itemTextColorActive: '#0a9c8e',
+      itemTextColorActiveHover: '#0a9c8e',
+      itemTextColorChildActive: '#0a9c8e',
+      itemTextColorChildActiveHover: '#0a9c8e',
       itemColorHover: getLessVariableValue('--primary-7'),
     },
     Scrollbar: {
