@@ -137,6 +137,7 @@
   import { useRoute } from 'vue-router';
   import { DataTableRowKey, NButton, useMessage } from 'naive-ui';
 
+  import { OperatorEnum } from '@lib/shared/enums/commonEnum';
   import { CustomerSearchTypeEnum } from '@lib/shared/enums/customerEnum';
   import { FieldTypeEnum, FormDesignKeyEnum, FormLinkScenarioEnum } from '@lib/shared/enums/formDesignEnum';
   import { ModuleConfigEnum, ReasonTypeEnum } from '@lib/shared/enums/moduleEnum';
@@ -674,6 +675,11 @@
       type: FieldTypeEnum.USER_SELECT,
     },
     {
+      title: t('customer.profileOwnerName'),
+      dataIndex: 'owner',
+      type: FieldTypeEnum.USER_SELECT,
+    },
+    {
       title: t('customer.lastFollowUpDate'),
       dataIndex: 'followTime',
       type: FieldTypeEnum.TIME_RANGE_PICKER,
@@ -779,6 +785,25 @@
     }
   );
 
+  function applyOwnerFilter(ownerId: string) {
+    keyword.value = '';
+    isAdvancedSearchMode.value = true;
+    const filter: FilterResult = {
+      searchMode: 'AND',
+      conditions: [
+        {
+          name: 'owner',
+          operator: OperatorEnum.IN,
+          value: [ownerId],
+          multipleValue: false,
+          type: FieldTypeEnum.USER_SELECT,
+        },
+      ],
+    };
+    setAdvanceFilter(filter);
+    tableAdvanceFilterRef.value?.setAdvancedFilter(filter, true);
+  }
+
   onMounted(() => {
     emit('init', {
       filterConfigList: filterConfigList.value,
@@ -788,6 +813,9 @@
       activeFormKey.value = FormDesignKeyEnum.CUSTOMER;
       activeSourceId.value = route.query.id as string;
       showOverviewDrawer.value = true;
+    }
+    if (route.query.ownerId) {
+      applyOwnerFilter(String(route.query.ownerId));
     }
   });
 
