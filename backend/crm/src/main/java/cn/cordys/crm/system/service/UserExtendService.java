@@ -166,7 +166,9 @@ public class UserExtendService {
         if (organizationUsers.isEmpty()) {
             return ancestorMap;
         }
-        Map<String, String> ownerDepIdMap = organizationUsers.stream().collect(Collectors.toMap(OrganizationUser::getUserId, OrganizationUser::getDepartmentId));
+        Map<String, String> ownerDepIdMap = organizationUsers.stream()
+                .filter(ou -> ou.getUserId() != null && ou.getDepartmentId() != null)
+                .collect(Collectors.toMap(OrganizationUser::getUserId, OrganizationUser::getDepartmentId));
         ownerDepIdMap.forEach((k, v) -> ancestorMap.put(k, getDepAllAncestor(v, deptParentMap)));
         return ancestorMap;
     }
