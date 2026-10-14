@@ -25,4 +25,7 @@ public class CustomerBrief {
 
     @Schema(description = "已核销回款")
     private BigDecimal verifiedAmount;
+
+    @Schema(description = "客户创建时间（毫秒时间戳，用于按时间倒序展示最近客户）")
+    private Long createTime;
 }

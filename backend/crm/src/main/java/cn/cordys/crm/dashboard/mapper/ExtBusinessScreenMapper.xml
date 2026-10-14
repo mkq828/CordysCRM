@@ -155,7 +155,7 @@
     </select>
 
     <select id="selectSalesCustomerList" resultType="cn.cordys.crm.dashboard.dto.response.CustomerBrief">
-        SELECT c.id AS customerId, c.name AS name,
+        SELECT c.id AS customerId, c.name AS name, c.create_time AS createTime,
                COALESCE(t.contractAmount, 0) AS contractAmount,
                COALESCE(t.verifiedAmount, 0) AS verifiedAmount
         FROM customer c
@@ -175,7 +175,8 @@
             GROUP BY ct.customer_id
         ) t ON t.customer_id = c.id
         WHERE c.organization_id = #{orgId} AND c.owner = #{ownerId} AND c.in_shared_pool = 0
-        ORDER BY contractAmount DESC
+        ORDER BY c.create_time DESC
+        LIMIT 20
     </select>
 
     <select id="selectRegionKpi" resultType="cn.cordys.crm.dashboard.dto.response.RegionKpi">
@@ -194,7 +195,7 @@
     </select>
 
     <select id="selectRegionCustomerList" resultType="cn.cordys.crm.dashboard.dto.response.CustomerBrief">
-        SELECT c.id AS customerId, c.name AS name,
+        SELECT c.id AS customerId, c.name AS name, c.create_time AS createTime,
                COALESCE(t.contractAmount, 0) AS contractAmount,
                COALESCE(t.verifiedAmount, 0) AS verifiedAmount
         FROM customer c
@@ -215,7 +216,8 @@
         ) t ON t.customer_id = c.id
         WHERE c.organization_id = #{orgId}
           AND c.id IN (<include refid="regionCustomerIds"/>)
-        ORDER BY contractAmount DESC
+        ORDER BY c.create_time DESC
+        LIMIT 20
     </select>
 
     <select id="selectRegionSalesDist" resultType="cn.cordys.crm.dashboard.dto.response.RankItem">

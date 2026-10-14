@@ -1,23 +1,28 @@
 <template>
   <div class="business-screen">
-    <div class="bs-particles">
-      <ParticleBackground color="#4da3ff" :count="70" />
-    </div>
-
     <TopShimmerBar :height="3" />
 
-    <!-- 头部：标题 + 时钟 -->
-    <header class="bs-header">
-      <div class="bs-header__left">
-        <CrmIcon type="iconicon_precise_monitor" :size="28" color="#4da3ff" />
-        <h1 class="bs-header__title">{{ t('businessScreen.title') }}</h1>
+    <!-- 顶部导航：返回工作台 / AI 经营决策中枢 -->
+    <header class="bs-topbar">
+      <div class="bs-brand">
+        <span class="bs-brand__mark">
+          <CrmIcon type="iconicon_precise_monitor" :size="18" color="#d8d9d4" />
+        </span>
+        <span class="bs-brand__text">{{ t('businessScreen.title') }}</span>
       </div>
-      <div class="bs-header__right">
-        <FlipClock :value="clockStr" />
-        <div class="bs-header__meta">
-          <span class="bs-header__date">{{ dateStr }}</span>
-          <span class="bs-header__refresh">{{ t('businessScreen.refreshHint', { time: lastRefresh }) }}</span>
-        </div>
+      <nav class="bs-nav" aria-label="主导航">
+        <button type="button" class="bs-nav__item" @click="goBack">
+          {{ t('businessScreen.backToWorkbench') }}
+          <em>{{ t('businessScreen.backToWorkbenchSub') }}</em>
+        </button>
+        <button type="button" class="bs-nav__item active" aria-current="page">
+          {{ t('businessScreen.title') }}
+          <em>{{ t('businessScreen.titleSub') }}</em>
+        </button>
+      </nav>
+      <div class="bs-topbar__meta">
+        <span class="bs-topbar__date">{{ dateStr }}</span>
+        <span class="bs-topbar__refresh">{{ t('businessScreen.refreshHint', { time: lastRefresh }) }}</span>
       </div>
     </header>
 
@@ -28,6 +33,7 @@
         :children-by-dimension="childrenByDimension"
         :center-stats="centerStats"
         :active-key="activeKey"
+        :panel-visible="panelVisible"
         @select="handleSelect"
       />
     </div>
@@ -45,7 +51,11 @@
       :stage="stageDetail"
       @close="closePanel"
       @retry="retryDetail"
+      @open-customer-list="openCustomerList"
     />
+
+    <!-- 底部 AI 对话坞 -->
+    <BusinessChat :kpis="chatKpis" />
 
     <!-- 加载 / 错误态 -->
     <div v-if="!overview && loading" class="bs-state">
@@ -60,6 +70,7 @@
 
 <script setup lang="ts">
   import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+  import { useRouter } from 'vue-router';
   import dayjs from 'dayjs';
 
   import chinaJson from './assets/china.json';
@@ -73,9 +84,8 @@
   import { useI18n } from '@lib/shared/hooks/useI18n';
 
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
-  import FlipClock from '@/components/pure/effects/FlipClock.vue';
-  import ParticleBackground from '@/components/pure/effects/ParticleBackground.vue';
   import TopShimmerBar from '@/components/pure/effects/TopShimmerBar.vue';
+  import BusinessChat from './components/BusinessChat.vue';
   import DetailPanel from './components/DetailPanel.vue';
   import NeuralScene, { type SceneDimension, type SceneNode } from './components/NeuralScene.vue';
 
@@ -85,6 +95,9 @@
     businessScreenSalesDetail,
     businessScreenStageDetail,
   } from '@/api/modules';
+  import useOpenNewPage from '@/hooks/useOpenNewPage';
+
+  import { CustomerRouteEnum, WorkbenchRouteEnum } from '@/enums/routeEnum';
 
   interface GeoFeature {
     properties: {
@@ -100,6 +113,13 @@
 
   const { t } = useI18n();
 
+  const router = useRouter();
+  const { openNewPage } = useOpenNewPage();
+
+  function goBack(): void {
+    router.push({ name: WorkbenchRouteEnum.WORKBENCH_BOARD });
+  }
+
   const loading = ref(false);
   const failed = ref(false);
   const overview = ref<BusinessScreenOverview | null>(null);
@@ -114,10 +134,19 @@
   const detailLoading = ref(false);
   const detailFailed = ref(false);
 
+  function openCustomerList(): void {
+    const key = activeKey.value;
+    if (!key?.startsWith('sales:')) {
+      return;
+    }
+    const ownerId = key.slice(6);
+    const rank = overview.value?.salesRank.find((item) => item.owner === ownerId);
+    const ownerName = rank?.ownerName || rank?.owner || ownerId;
+    openNewPage(CustomerRouteEnum.CUSTOMER_INDEX, { ownerId, ownerName });
+  }
+
   // 时钟
-  const now = ref(new Date());
-  const clockStr = computed(() => dayjs(now.value).format('HH:mm:ss'));
-  const dateStr = computed(() => dayjs(now.value).format('YYYY-MM-DD'));
+  const dateStr = dayjs().format('YYYY-MM-DD');
 
   function fmtCount(v?: number): string {
     return Number(v || 0).toLocaleString('zh-CN');
@@ -126,6 +155,16 @@
   function fmtAmount(v?: number): string {
     return Number(v || 0).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
   }
+
+  const chatKpis = computed(() => {
+    const kpi = overview.value?.kpi;
+    return [
+      { label: t('businessScreen.customer'), value: fmtCount(kpi?.customerCount) },
+      { label: t('businessScreen.contract'), value: fmtCount(kpi?.contractCount) },
+      { label: t('businessScreen.contractAmount'), value: fmtAmount(kpi?.totalContractAmount) },
+      { label: t('businessScreen.verifiedAmount'), value: fmtAmount(kpi?.verifiedAmount) },
+    ];
+  });
 
   // 六个分析维度
   const dimensions = computed<SceneDimension[]>(() => [
@@ -331,21 +370,14 @@
     }
   }
 
-  let clockTimer: number | undefined;
   let pollTimer: number | undefined;
 
   onMounted(() => {
     load();
-    clockTimer = window.setInterval(() => {
-      now.value = new Date();
-    }, 1000);
     pollTimer = window.setInterval(() => load(), 30000);
   });
 
   onBeforeUnmount(() => {
-    if (clockTimer !== undefined) {
-      window.clearInterval(clockTimer);
-    }
     if (pollTimer !== undefined) {
       window.clearInterval(pollTimer);
     }
@@ -357,63 +389,110 @@
     position: relative;
     overflow: hidden;
     height: 100%;
-    color: #e6ecf5;
-    background: linear-gradient(160deg, #0b1220 0%, #0f1c33 55%, #0b1220 100%);
+    color: #e8e9e4;
+    background: radial-gradient(
+        ellipse 55% 60% at 50% 52%,
+        rgb(88 90 88 / 24%),
+        rgb(30 31 31 / 26%) 45%,
+        transparent 75%
+      ),
+      radial-gradient(ellipse 120% 90% at 50% 50%, #141515 0%, #090a0a 72%);
   }
-  .bs-particles {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    opacity: 0.5;
-    pointer-events: none;
-  }
-  .bs-header {
+  .bs-topbar {
     position: absolute;
     top: 0;
     right: 0;
     left: 0;
     z-index: 4;
-    display: flex;
-    justify-content: space-between;
+    display: grid;
     align-items: center;
-    padding: 16px 24px;
-    gap: 24px;
+    padding: 0 28px;
+    height: 64px;
+    background: linear-gradient(to bottom, rgb(12 13 13 / 92%), rgb(12 13 13 / 0%));
+    grid-template-columns: 1fr auto 1fr;
     pointer-events: none;
   }
-  .bs-header__left {
+  .bs-brand {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    color: #e8e9e4;
   }
-  .bs-header__title {
-    margin: 0;
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: #e6ecf5;
+  .bs-brand__mark {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgb(236 236 232 / 22%);
+    border-radius: 10px;
+    background: rgb(236 236 232 / 7%);
+    box-shadow: 0 0 18px rgb(236 236 232 / 10%);
+    place-items: center;
   }
-  .bs-header__right {
+  .bs-brand__text {
+    font-size: 14px;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+  }
+  .bs-nav {
     display: flex;
-    align-items: center;
-    gap: 16px;
+    padding: 4px;
+    border: 1px solid rgb(232 232 226 / 11%);
+    border-radius: 999px;
+    background: rgb(26 27 27 / 62%);
+    gap: 4px;
+    backdrop-filter: blur(12px);
+    pointer-events: auto;
   }
-  .bs-header__meta {
+  .bs-nav__item {
+    position: relative;
+    display: grid;
+    padding: 6px 16px;
+    font-size: 13px;
+    border: 0;
+    border-radius: 999px;
+    white-space: nowrap;
+    color: #a5a6a1;
+    background: none;
+    transition: color 0.2s, background 0.2s;
+    cursor: pointer;
+    justify-items: center;
+    line-height: 1.2;
+  }
+  .bs-nav__item em {
+    margin: 1px 0 0;
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-style: normal;
+  }
+  .bs-nav__item.active em {
+    color: #e6cf98;
+  }
+  .bs-nav__item:hover {
+    color: #e8e9e4;
+  }
+  .bs-nav__item.active {
+    color: #e8e9e4;
+    background: linear-gradient(180deg, rgb(236 236 232 / 14%), rgb(236 236 232 / 4%));
+    box-shadow: inset 0 0 0 1px rgb(236 236 232 / 26%), 0 0 22px rgb(236 236 232 / 8%);
+  }
+  .bs-topbar__meta {
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
     gap: 4px;
   }
-  .bs-header__date {
+  .bs-topbar__date {
     font-size: 14px;
     color: #c7d1e0;
   }
-  .bs-header__refresh {
+  .bs-topbar__refresh {
     font-size: 12px;
-    color: #8ea0bd;
+    color: #9a9c96;
   }
   .bs-stage {
     position: absolute;
     inset: 0;
-    z-index: 1;
   }
   .bs-state {
     position: absolute;
@@ -421,7 +500,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background: rgb(11 18 32 / 60%);
+    background: rgb(10 11 11 / 72%);
     inset: 0;
     flex-direction: column;
     gap: 16px;

@@ -67,8 +67,18 @@
 
           <!-- 列表区 -->
           <section v-if="customerList.length > 0" class="detail-panel__list">
-            <div class="detail-panel__list-title">{{ t('businessScreen.customerList') }}</div>
-            <div v-for="row in customerList" :key="row.name" class="detail-panel__list-row">
+            <div class="detail-panel__list-head">
+              <div class="detail-panel__list-title">{{ t('businessScreen.customerList') }}</div>
+              <button
+                v-if="canOpenCustomerList"
+                class="detail-panel__list-more"
+                type="button"
+                @click="emit('openCustomerList')"
+              >
+                {{ t('businessScreen.viewMore') }} ›
+              </button>
+            </div>
+            <div v-for="row in sortedCustomerList" :key="row.customerId || row.name" class="detail-panel__list-row">
               <span class="detail-panel__list-name">{{ row.name }}</span>
               <span class="detail-panel__list-level">{{ row.level }}</span>
               <span class="detail-panel__list-amount">{{ fmtAmount(row.contractAmount) }}</span>
@@ -77,11 +87,29 @@
 
           <section v-if="stageList.length > 0" class="detail-panel__list">
             <div class="detail-panel__list-title">{{ t('businessScreen.stageContractList') }}</div>
-            <div v-for="row in stageList" :key="row.contractId" class="detail-panel__list-row">
-              <span class="detail-panel__list-name">{{ row.customerName }}</span>
-              <span class="detail-panel__list-owner">{{ row.ownerName }}</span>
-              <span class="detail-panel__list-amount">{{ fmtAmount(row.amount) }}</span>
-              <span class="detail-panel__list-date">{{ row.signDate }}</span>
+            <div
+              v-for="row in stageList"
+              :key="row.contractId"
+              class="detail-panel__stage"
+              @click="openContractDetail(row.contractId)"
+            >
+              <div class="detail-panel__stage-main">
+                <span class="detail-panel__stage-name">{{ row.customerName }}</span>
+                <span class="detail-panel__stage-amount"
+                  >{{ fmtAmount(row.amount) }}<small>{{ t('businessScreen.unit') }}</small></span
+                >
+                <span class="detail-panel__stage-view">{{ t('businessScreen.viewDetail') }} ›</span>
+              </div>
+              <div class="detail-panel__stage-sub">
+                <span class="detail-panel__stage-code"
+                  >{{ t('businessScreen.contractNumber') }} {{ row.contractNumber || '-' }}</span
+                >
+                <span class="detail-panel__stage-owner">{{ row.ownerName || '-' }}</span>
+                <span class="detail-panel__stage-paid"
+                  >{{ t('businessScreen.verifiedAmount') }} {{ fmtAmount(row.verifiedAmount) }}</span
+                >
+                <span class="detail-panel__stage-date">{{ row.signDate || '-' }}</span>
+              </div>
             </div>
           </section>
 
@@ -124,6 +152,10 @@
     TrendPoint,
   } from '@lib/shared/api/modules/businessScreen';
   import { useI18n } from '@lib/shared/hooks/useI18n';
+
+  import useOpenNewPage from '@/hooks/useOpenNewPage';
+
+  import { ContractRouteEnum } from '@/enums/routeEnum';
 
   echarts.use([
     LineChart,
@@ -191,9 +223,11 @@
   const emit = defineEmits<{
     (event: 'close'): void;
     (event: 'retry'): void;
+    (event: 'openCustomerList'): void;
   }>();
 
   const { t } = useI18n();
+  const { openNewPage } = useOpenNewPage();
 
   const chartRefs: Record<string, HTMLElement | null> = {};
   const chartMap = new Map<string, echarts.ECharts>();
@@ -209,7 +243,7 @@
   }
 
   const showContractTrend = computed(() => ['overview', 'trend', 'sales'].includes(props.kind));
-  const showPaymentTrend = computed(() => ['overview', 'trend'].includes(props.kind));
+  const showPaymentTrend = computed(() => ['overview', 'trend', 'sales'].includes(props.kind));
   const showStageDist = computed(() => ['stageDist', 'sales'].includes(props.kind));
   const showSalesRank = computed(() => ['salesRank', 'region'].includes(props.kind));
   const showRegionMap = computed(() => props.kind === 'regionMap');
@@ -241,14 +275,36 @@
         { label: t('businessScreen.pendingAmount'), value: fmtAmount(kpi.pendingAmount), unit, accent: '#ffb958' },
         { label: t('businessScreen.contract'), value: fmtCount(kpi.contractCount), unit: '', accent: '#ff9562' },
         { label: t('businessScreen.customer'), value: fmtCount(kpi.customerCount), unit: '', accent: '#7f60f9' },
+        { label: t('businessScreen.clue'), value: fmtCount(kpi.clueCount), unit: '', accent: '#3bc2fc' },
+        { label: t('businessScreen.opportunity'), value: fmtCount(kpi.opportunityCount), unit: '', accent: '#76de74' },
+        {
+          label: t('businessScreen.monthNewCustomer'),
+          value: fmtCount(kpi.monthNewCustomer),
+          unit: '',
+          accent: '#cc71e2',
+        },
+        {
+          label: t('businessScreen.monthNewContract'),
+          value: fmtCount(kpi.monthNewContract),
+          unit: '',
+          accent: '#ffb958',
+        },
+        {
+          label: t('businessScreen.monthNewContractAmount'),
+          value: fmtAmount(kpi.monthNewContractAmount),
+          unit,
+          accent: '#ff9562',
+        },
       ];
     }
     if (props.kind === 'region' && props.region) {
       const { kpi } = props.region;
       return [
         { label: t('businessScreen.customer'), value: fmtCount(kpi.customerCount), unit: '', accent: '#4282ff' },
+        { label: t('businessScreen.contract'), value: fmtCount(kpi.contractCount), unit: '', accent: '#ff9562' },
         { label: t('businessScreen.contractAmount'), value: fmtAmount(kpi.contractAmount), unit, accent: '#37e0cc' },
         { label: t('businessScreen.verifiedAmount'), value: fmtAmount(kpi.verifiedAmount), unit, accent: '#ffb958' },
+        { label: t('businessScreen.pendingAmount'), value: fmtAmount(kpi.pendingAmount), unit, accent: '#7f60f9' },
       ];
     }
     if (props.kind === 'stage' && props.stage) {
@@ -290,6 +346,12 @@
     return [];
   });
 
+  const sortedCustomerList = computed<CustomerBrief[]>(() =>
+    [...customerList.value].sort((a, b) => Number(b.createTime ?? 0) - Number(a.createTime ?? 0)).slice(0, 20)
+  );
+
+  const canOpenCustomerList = computed(() => props.kind === 'sales' && !!props.sales);
+
   const stageList = computed<StageContractItem[]>(() => {
     if (props.kind === 'stage' && props.stage) {
       return props.stage.list ?? [];
@@ -297,13 +359,23 @@
     return [];
   });
 
+  function openContractDetail(contractId: string): void {
+    openNewPage(ContractRouteEnum.CONTRACT_INDEX, { id: contractId });
+  }
+
   const empty = computed(
     () =>
       kpiCards.value.length === 0 && !hasCharts.value && customerList.value.length === 0 && stageList.value.length === 0
   );
 
   function setChartRef(key: string, el: unknown) {
-    chartRefs[key] = (el as HTMLElement) ?? null;
+    const node = (el as HTMLElement) ?? null;
+    const prev = chartRefs[key];
+    if (prev && prev !== node) {
+      chartMap.get(key)?.dispose();
+      chartMap.delete(key);
+    }
+    chartRefs[key] = node;
   }
 
   function mountChart(key: string, option: EChartsOption) {
@@ -378,7 +450,8 @@
       grid: { left: 8, right: 24, top: 8, bottom: 8, containLabel: true },
       xAxis: {
         type: 'value',
-        axisLabel: { color: '#c7d1e0' },
+        // 金额刻度较长，倾斜 30° 避免相邻刻度数字重叠
+        axisLabel: { color: '#c7d1e0', rotate: 30 },
         splitLine: { lineStyle: { color: 'rgba(199,209,224,0.15)', type: 'dashed' } },
       },
       yAxis: {
@@ -494,6 +567,7 @@
         return;
       }
       mountChart('contractTrend', trendOption(data.contractTrend));
+      mountChart('paymentTrend', trendOption(data.paymentTrend));
       mountChart('stageDist', pieOption(data.stageDist));
     }
     if (kind === 'stageDist') {
@@ -681,11 +755,32 @@
   .detail-panel__list {
     margin-top: 14px;
   }
+  .detail-panel__list-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
   .detail-panel__list-title {
     margin-bottom: 8px;
     font-size: 13px;
     font-weight: 600;
     color: #c7d1e0;
+  }
+  .detail-panel__list-more {
+    margin-bottom: 8px;
+    padding: 0;
+    font-size: 12px;
+    border: none;
+    color: #4282ff;
+    background: transparent;
+    transition: color 160ms ease;
+    flex: none;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .detail-panel__list-more:hover {
+    color: #6ba0ff;
   }
   .detail-panel__list-row {
     display: flex;
@@ -708,6 +803,72 @@
     font-variant-numeric: tabular-nums;
   }
   .detail-panel__list-date {
+    color: #8ea0bd;
+    font-variant-numeric: tabular-nums;
+  }
+  .detail-panel__stage {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgb(255 255 255 / 6%);
+    cursor: pointer;
+    transition: background-color 180ms ease;
+  }
+  .detail-panel__stage:hover {
+    background: rgb(66 130 255 / 10%);
+  }
+  .detail-panel__stage-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .detail-panel__stage-name {
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #d6e3f7;
+  }
+  .detail-panel__stage-amount {
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    color: #ffb958;
+    font-variant-numeric: tabular-nums;
+  }
+  .detail-panel__stage-amount small {
+    margin-left: 2px;
+    font-size: 11px;
+    font-weight: 400;
+    color: #8ea0bd;
+  }
+  .detail-panel__stage-view {
+    margin-left: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    color: #37e0cc;
+  }
+  .detail-panel__stage-sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin-top: 6px;
+    font-size: 11px;
+    color: #8ea0bd;
+  }
+  .detail-panel__stage-code {
+    font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    color: #7f9ccf;
+  }
+  .detail-panel__stage-owner {
+    color: #8ea0bd;
+  }
+  .detail-panel__stage-paid {
+    color: #37e0cc;
+    font-variant-numeric: tabular-nums;
+  }
+  .detail-panel__stage-date {
     color: #8ea0bd;
     font-variant-numeric: tabular-nums;
   }

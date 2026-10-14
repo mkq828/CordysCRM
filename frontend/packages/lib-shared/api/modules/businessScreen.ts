@@ -82,6 +82,7 @@ export interface CustomerBrief {
   level: string | null;
   contractAmount: number;
   verifiedAmount: number;
+  createTime?: number;
 }
 
 export interface SalesOverview {
