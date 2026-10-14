@@ -16,6 +16,7 @@ export default {
   'effects.c1': 'Gradient Text',
   'effects.c2': 'Animated Counter',
   'effects.c3': 'Shimmer Text',
+  'effects.c4': 'Mechanical Odometer',
   'effects.d1': 'Shimmer Button',
   'effects.d2': '3D Tilt Card',
   'effects.d3': 'Glass Card',

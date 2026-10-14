@@ -65,6 +65,12 @@
           <ShimmerText size="28px">流光扫字</ShimmerText>
         </div>
       </EffectItem>
+
+      <EffectItem code="C4" :name="t('effects.c4')">
+        <div class="demo-panel flex items-center justify-center bg-[#eef2f6]">
+          <MechanicalCounter :value="87654" />
+        </div>
+      </EffectItem>
     </EffectSection>
 
     <!-- D 交互组件 -->
@@ -200,6 +206,7 @@
   import FlowBorder from '@/components/pure/effects/FlowBorder.vue';
   import GlassCard from '@/components/pure/effects/GlassCard.vue';
   import GradientText from '@/components/pure/effects/GradientText.vue';
+  import MechanicalCounter from '@/components/pure/effects/MechanicalCounter.vue';
   import ParticleBackground from '@/components/pure/effects/ParticleBackground.vue';
   import PulsingBadge from '@/components/pure/effects/PulsingBadge.vue';
   import RingGauge from '@/components/pure/effects/RingGauge.vue';

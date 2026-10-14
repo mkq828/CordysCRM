@@ -16,6 +16,7 @@ export default {
   'effects.c1': '渐变流光文字',
   'effects.c2': '数字滚动',
   'effects.c3': '流光扫字',
+  'effects.c4': '机械滚轮计数器',
   'effects.d1': '流光按钮',
   'effects.d2': '3D 悬浮卡片',
   'effects.d3': '玻璃拟态卡片',
