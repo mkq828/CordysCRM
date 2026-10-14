@@ -17,7 +17,7 @@
         v-for="tool in tools"
         :key="tool.key"
         class="pf-tool"
-        :class="{ 'pf-tool--active': activeKey === tool.key, 'pf-tool--disabled': !tool.wired }"
+        :class="{ 'pf-tool--active': activeKey === tool.key }"
         :style="toolCardStyle(tool)"
         type="button"
         @click="selectTool(tool)"
@@ -27,7 +27,6 @@
         </span>
         <span class="pf-tool__name">{{ tool.name }}</span>
         <span class="pf-tool__desc">{{ tool.desc }}</span>
-        <span v-if="!tool.wired" class="pf-tool__badge">{{ t('aiCreation.comingSoon') }}</span>
       </button>
     </section>
 
@@ -224,18 +223,14 @@
   const Message = useMessage();
   const { openModal } = useModal();
 
-  // 工具定义（key 同时作为 i18n 命名空间，wired=false 为「即将上线」占位）
+  // 工具定义（key 同时作为 i18n 命名空间）
   // color 为图标主色、soft 为图标底色，取亮色系避免工具台显得沉闷
-  const TOOL_DEFS: { key: string; icon: string; wired: boolean; color: string; soft: string }[] = [
-    { key: 'image', icon: 'iconicon_image', wired: true, color: '#7c3aed', soft: '#ede9fe' },
-    { key: 'rewrite', icon: 'iconicon_edit1', wired: true, color: '#0891b2', soft: '#cffafe' },
-    { key: 'title', icon: 'iconicon_hashtag', wired: true, color: '#ea580c', soft: '#ffedd5' },
-    { key: 'script', icon: 'iconicon_sound', wired: true, color: '#db2777', soft: '#fce7f3' },
-    { key: 'transcode', icon: 'iconicon_play', wired: true, color: '#2563eb', soft: '#dbeafe' },
-    { key: 'cutout', icon: 'iconicon_scan', wired: false, color: '#16a34a', soft: '#dcfce7' },
-    { key: 'upscale', icon: 'iconicon_zoom', wired: false, color: '#d97706', soft: '#fef3c7' },
-    { key: 'outpaint', icon: 'iconicon_aiming', wired: false, color: '#0d9488', soft: '#ccfbf1' },
-    { key: 'dewatermark', icon: 'iconicon_picture', wired: false, color: '#e11d48', soft: '#ffe4e6' },
+  const TOOL_DEFS: { key: string; icon: string; color: string; soft: string }[] = [
+    { key: 'image', icon: 'iconicon_image', color: '#7c3aed', soft: '#ede9fe' },
+    { key: 'rewrite', icon: 'iconicon_edit1', color: '#0891b2', soft: '#cffafe' },
+    { key: 'title', icon: 'iconicon_hashtag', color: '#ea580c', soft: '#ffedd5' },
+    { key: 'script', icon: 'iconicon_sound', color: '#db2777', soft: '#fce7f3' },
+    { key: 'transcode', icon: 'iconicon_play', color: '#2563eb', soft: '#dbeafe' },
   ];
 
   const tools = computed(() =>
@@ -556,11 +551,7 @@
     }
   }
 
-  function selectTool(tool: { key: string; wired: boolean }) {
-    if (!tool.wired) {
-      Message.info(t('aiCreation.comingSoon'));
-      return;
-    }
+  function selectTool(tool: { key: string }) {
     if (activeKey.value === tool.key) {
       return;
     }
@@ -798,14 +789,10 @@
     flex-direction: column;
     gap: 8px;
     cursor: pointer;
-    &:hover:not(.pf-tool--disabled) {
+    &:hover {
       transform: translateY(-2px);
       border-color: rgb(17 19 24 / 14%);
       box-shadow: 0 14px 34px rgb(17 19 24 / 10%);
-    }
-    &--disabled {
-      cursor: not-allowed;
-      opacity: 0.62;
     }
     &__icon {
       display: flex;
@@ -824,16 +811,6 @@
       font-size: 12px;
       line-height: 1.5;
       color: var(--pf-muted);
-    }
-    &__badge {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      padding: 2px 8px;
-      font-size: 11px;
-      border-radius: 9999px;
-      color: #8a94a6;
-      background: rgb(138 148 166 / 14%);
     }
   }
 

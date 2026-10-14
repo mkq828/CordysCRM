@@ -1,7 +1,6 @@
 export default {
   'aiCreation.subtitle': '文案 · 图像 · 视频，一站式 AI 创作工具台',
   'aiCreation.upgradeHint': '当前版本未开通工具中心，升级专业版后可解锁全部工具',
-  'aiCreation.comingSoon': '即将上线',
   'aiCreation.back': '返回工具台',
   'aiCreation.pickHint': '从上方工具台选择一个工具，开始创作',
   'aiCreation.generate': '生成',
@@ -20,14 +19,6 @@ export default {
   'aiCreation.tool.scriptDesc': '90~160 字竖屏口播稿',
   'aiCreation.tool.transcode': '视频转格式',
   'aiCreation.tool.transcodeDesc': 'MP4 / MOV / GIF / WEBM 互转',
-  'aiCreation.tool.cutout': '抠图',
-  'aiCreation.tool.cutoutDesc': '一键去除图片背景',
-  'aiCreation.tool.upscale': '图片放大',
-  'aiCreation.tool.upscaleDesc': '提升清晰度与细节',
-  'aiCreation.tool.outpaint': '扩图',
-  'aiCreation.tool.outpaintDesc': '向外延展画面边界',
-  'aiCreation.tool.dewatermark': '去水印',
-  'aiCreation.tool.dewatermarkDesc': '智能清除图片水印',
 
   'aiCreation.text.content': '主题 / 内容',
   'aiCreation.text.option': '风格 / 平台（可选）',

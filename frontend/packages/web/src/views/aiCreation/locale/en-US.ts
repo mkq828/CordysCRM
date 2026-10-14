@@ -1,7 +1,6 @@
 export default {
   'aiCreation.subtitle': 'Copy · Image · Video, an all-in-one AI creation workbench',
   'aiCreation.upgradeHint': 'AI Studio is not enabled for your plan. Upgrade to Pro to unlock all tools.',
-  'aiCreation.comingSoon': 'Coming soon',
   'aiCreation.back': 'Back to tools',
   'aiCreation.pickHint': 'Pick a tool above to start creating',
   'aiCreation.generate': 'Generate',
@@ -20,14 +19,6 @@ export default {
   'aiCreation.tool.scriptDesc': '90–160 word vertical script',
   'aiCreation.tool.transcode': 'Video Transcode',
   'aiCreation.tool.transcodeDesc': 'Convert between MP4 / MOV / GIF / WEBM',
-  'aiCreation.tool.cutout': 'Cutout',
-  'aiCreation.tool.cutoutDesc': 'Remove background in one click',
-  'aiCreation.tool.upscale': 'Upscale',
-  'aiCreation.tool.upscaleDesc': 'Boost resolution and detail',
-  'aiCreation.tool.outpaint': 'Outpaint',
-  'aiCreation.tool.outpaintDesc': 'Extend the canvas outward',
-  'aiCreation.tool.dewatermark': 'Dewatermark',
-  'aiCreation.tool.dewatermarkDesc': 'Remove watermarks smartly',
 
   'aiCreation.text.content': 'Topic / Content',
   'aiCreation.text.option': 'Style / platform (optional)',
