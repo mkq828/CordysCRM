@@ -238,11 +238,18 @@
     });
 
     let assistantPushed = false;
+    // 兜底：SSE 消费超过 60s 未收到 done，视为流中断，主动中止并在 finally 里补可见错误，避免静默失败
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 60_000);
+
     try {
-      const stream = streamAskKnowledge({
-        question: question.value.trim(),
-        conversationId: activeConversationId.value || undefined,
-      });
+      const stream = streamAskKnowledge(
+        {
+          question: question.value.trim(),
+          conversationId: activeConversationId.value || undefined,
+        },
+        { signal: controller.signal }
+      );
 
       // eslint-disable-next-line no-restricted-syntax -- 原生 async generator，无需 regenerator-runtime
       for await (const event of stream) {
@@ -260,10 +267,15 @@
         } else if (event.type === 'done' && !assistantPushed) {
           await finishStreaming();
           const result = (event.data?.payload as AiKnowledgeAnswerResult) || null;
+          const content = streamingText.value || result?.answer || '';
+          // done 到了但无任何内容，视为异常，走 error 兜底，避免渲染空消息
+          if (!content) {
+            throw new Error(t('common.operationFailed'));
+          }
           thread.value.push({
             id: `a_${Date.now()}`,
             role: 'ASSISTANT',
-            content: streamingText.value || result?.answer || '',
+            content,
             time: Date.now(),
             citations: result?.citations || [],
             status: 'done',
@@ -280,11 +292,23 @@
           time: Date.now(),
           status: 'error',
         });
+        assistantPushed = true;
       }
     } finally {
+      window.clearTimeout(timeoutId);
       asking.value = false;
       resetStreaming();
       question.value = '';
+      // 兜底：流正常结束但未渲染出任何答案（如中断/超时），补一条可见错误
+      if (!assistantPushed) {
+        thread.value.push({
+          id: `a_${Date.now()}`,
+          role: 'ASSISTANT',
+          content: t('knowledge.askTimeout'),
+          time: Date.now(),
+          status: 'error',
+        });
+      }
     }
   }
 </script>

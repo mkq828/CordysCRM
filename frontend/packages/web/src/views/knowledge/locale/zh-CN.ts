@@ -25,4 +25,5 @@ export default {
   'knowledge.copied': '已复制',
   'knowledge.snippetMaxLabel': '出处片段长度（字）',
   'knowledge.snippetSaved': '已保存',
+  'knowledge.askTimeout': '回答生成超时，请重试',
 };

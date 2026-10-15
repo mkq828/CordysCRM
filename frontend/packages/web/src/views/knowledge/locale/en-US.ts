@@ -26,4 +26,5 @@ export default {
   'knowledge.copied': 'Copied',
   'knowledge.snippetMaxLabel': 'Citation snippet length (chars)',
   'knowledge.snippetSaved': 'Saved',
+  'knowledge.askTimeout': 'Answer generation timed out, please try again',
 };
