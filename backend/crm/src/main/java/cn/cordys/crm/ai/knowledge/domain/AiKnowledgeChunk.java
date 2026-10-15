@@ -23,4 +23,7 @@ public class AiKnowledgeChunk extends BaseModel {
 
     @Schema(description = "块文本")
     private String content;
+
+    @Schema(description = "块向量(JSON数组，text-embedding-v3 默认1024维)")
+    private String vector;
 }

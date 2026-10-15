@@ -32,4 +32,14 @@ public interface LlmProvider {
     default byte[] generateImage(LlmImageRequest request) throws Exception {
         throw new UnsupportedOperationException("当前模型不支持文生图: " + name());
     }
+
+    /**
+     * 文本向量化（OpenAI 兼容 {@code /embeddings}）。仅支持向量化的 provider 覆盖实现，
+     * 其余 provider 默认不支持，调用即抛异常。
+     *
+     * @return 文本向量（浮点数组）
+     */
+    default float[] embed(LlmEmbedRequest request) throws Exception {
+        throw new UnsupportedOperationException("当前模型不支持向量化: " + name());
+    }
 }

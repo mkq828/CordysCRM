@@ -21,4 +21,10 @@ public interface ExtAiKnowledgeChunkMapper {
 
     /** 按文档删除其全部分块（同租户校验） */
     int deleteByDocId(@Param("orgId") String orgId, @Param("docId") String docId);
+
+    /** 加载租户下已向量化的分块（仅 id/content/vector 等必要字段），供内存余弦检索 */
+    List<AiKnowledgeChunk> selectVectorizedByOrg(@Param("orgId") String orgId);
+
+    /** 更新单个分块的向量（懒加载回填用） */
+    int updateVector(@Param("id") String id, @Param("vector") String vector);
 }

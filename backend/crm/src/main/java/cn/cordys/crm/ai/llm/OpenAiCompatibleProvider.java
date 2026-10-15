@@ -166,6 +166,41 @@ public abstract class OpenAiCompatibleProvider implements LlmProvider {
         throw new RuntimeException(name() + " 文生图未返回图片: " + response.body());
     }
 
+    @Override
+    public float[] embed(LlmEmbedRequest request) throws Exception {
+        String url = request.getBaseUrl() + "/embeddings";
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", request.getModel());
+        body.put("input", request.getText());
+
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(REQUEST_TIMEOUT)
+                .header("Authorization", "Bearer " + request.getApiKey())
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(JSON.toJSONString(body), StandardCharsets.UTF_8))
+                .build();
+        HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            log.error("{} 向量化失败，status={}, body={}", name(), response.statusCode(), response.body());
+            throw new RuntimeException(name() + " 向量化失败(" + response.statusCode() + ")");
+        }
+
+        JsonNode data = JSON.MAPPER.readTree(response.body()).path("data");
+        if (data.isArray() && !data.isEmpty()) {
+            JsonNode embedding = data.get(0).path("embedding");
+            if (embedding.isArray()) {
+                float[] vector = new float[embedding.size()];
+                for (int i = 0; i < embedding.size(); i++) {
+                    vector[i] = (float) embedding.get(i).asDouble();
+                }
+                return vector;
+            }
+        }
+        throw new RuntimeException(name() + " 向量化未返回向量: " + response.body());
+    }
+
     /** 下载文生图返回的临时 URL（已签名，通常 24 小时内有效，需及时下载） */
     private byte[] downloadImage(String imageUrl) throws Exception {
         HttpRequest request = HttpRequest.newBuilder(URI.create(imageUrl))

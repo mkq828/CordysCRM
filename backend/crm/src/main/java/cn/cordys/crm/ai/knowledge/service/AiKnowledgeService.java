@@ -4,6 +4,7 @@ import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.pager.PageUtils;
 import cn.cordys.common.pager.Pager;
 import cn.cordys.common.uid.IDGenerator;
+import cn.cordys.common.util.JSON;
 import cn.cordys.crm.ai.constant.AiQuotaConstant;
 import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
 import cn.cordys.crm.ai.dto.response.AiStreamResult;
@@ -19,6 +20,7 @@ import cn.cordys.crm.ai.knowledge.mapper.ExtAiKnowledgeDocMapper;
 import cn.cordys.crm.ai.knowledge.parser.DocumentChunker;
 import cn.cordys.crm.ai.knowledge.parser.DocumentTextExtractor;
 import cn.cordys.crm.ai.llm.LlmChatRequest;
+import cn.cordys.crm.ai.llm.LlmEmbedRequest;
 import cn.cordys.crm.ai.llm.LlmMessage;
 import cn.cordys.crm.ai.llm.LlmProvider;
 import cn.cordys.crm.ai.llm.LlmProviderFactory;
@@ -39,6 +41,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -81,6 +85,16 @@ public class AiKnowledgeService {
     private static final int DEFAULT_SNIPPET_MAX = 200;
 
     private static final String SNIPPET_MAX_PARAM_KEY = "ai.kb.snippet_max";
+
+    /** embedding 模型名（sys_parameter ai.kb.embedding_model 可配，默认 text-embedding-v3） */
+    private static final String EMBEDDING_MODEL_PARAM_KEY = "ai.kb.embedding_model";
+    private static final String DEFAULT_EMBEDDING_MODEL = "text-embedding-v3";
+
+    /** 向量检索最小余弦相似度阈值，低于该值视为不相关，避免低相关片段被当作出处引用 */
+    private static final double MIN_SIMILARITY = 0.5;
+
+    /** 懒加载回填每批上限：避免老数据首查时批量向量化拖慢响应 */
+    private static final int BACKFILL_BATCH_LIMIT = 5;
 
     /** 提问分词时过滤的常见停用词 */
     private static final Set<String> STOP_WORDS = Set.of(
@@ -159,6 +173,9 @@ public class AiKnowledgeService {
         doc.setUpdateTime(now);
         docMapper.insert(doc);
 
+        AgentModel embedAgent = agentModelService.resolveEmbeddingModel(orgId);
+        String embedModel = embeddingModelName();
+
         for (int i = 0; i < chunkTexts.size(); i++) {
             AiKnowledgeChunk chunk = new AiKnowledgeChunk();
             chunk.setId(IDGenerator.nextStr());
@@ -166,6 +183,7 @@ public class AiKnowledgeService {
             chunk.setDocId(docId);
             chunk.setSeq(i);
             chunk.setContent(chunkTexts.get(i));
+            chunk.setVector(embedVector(chunkTexts.get(i), embedModel, embedAgent));
             chunk.setCreateUser(userId);
             chunk.setUpdateUser(userId);
             chunk.setCreateTime(now);
@@ -203,8 +221,8 @@ public class AiKnowledgeService {
         String question = request.getQuestion().trim();
         List<String> keywords = tokenizeKeywords(question);
 
-        List<AiKnowledgeChunk> chunks = retrieveChunks(orgId, keywords);
-        if (chunks.isEmpty()) {
+        List<AiKnowledgeChunk> chunks = retrieveChunks(orgId, question, keywords);
+        if (chunks.isEmpty() && !hasAnyChunk(orgId)) {
             throw new GenericException("知识库为空，请先上传文档");
         }
         Map<String, String> docNames = buildDocNameMap(chunks);
@@ -267,7 +285,7 @@ public class AiKnowledgeService {
             return "";
         }
         List<String> keywords = tokenizeKeywords(question.trim());
-        List<AiKnowledgeChunk> chunks = retrieveChunks(orgId, keywords, false);
+        List<AiKnowledgeChunk> chunks = retrieveChunks(orgId, question.trim(), keywords);
         if (chunks.isEmpty()) {
             return "";
         }
@@ -280,21 +298,180 @@ public class AiKnowledgeService {
 
     // ==================== 内部方法 ====================
 
-    /** 关键词粗筛：先按命中块召回并按命中数排序；无命中时兜底取最近上传文档的最新块 */
-    private List<AiKnowledgeChunk> retrieveChunks(String orgId, List<String> keywords) {
-        return retrieveChunks(orgId, keywords, true);
-    }
-
-    /** 关键词粗筛召回；{@code fallbackToRecent} 为 false 时不走「最近文档兜底」，供编排层只注入相关片段 */
-    private List<AiKnowledgeChunk> retrieveChunks(String orgId, List<String> keywords, boolean fallbackToRecent) {
-        List<AiKnowledgeChunk> matched = keywords.isEmpty()
+    /**
+     * 检索召回：向量检索（语义，覆盖同义不同词）与关键词检索（字面，覆盖无向量的老数据）结果合并去重，
+     * 按综合分排序（关键词命中率×2 + 向量相似度），兼顾「字面强命中」与「语义强相关」两类信号。
+     * 无相关命中返回空，由调用方区分「知识库为空」与「检索无命中」。
+     */
+    private List<AiKnowledgeChunk> retrieveChunks(String orgId, String question, List<String> keywords) {
+        // 1) 向量检索（语义召回，带相似度）
+        List<ScoredChunk> vectorHits = retrieveByVector(orgId, question, CHUNK_CANDIDATE_LIMIT);
+        // 2) 关键词检索（字面召回，能覆盖无向量的老数据）
+        List<AiKnowledgeChunk> keywordHits = keywords.isEmpty()
                 ? List.of()
                 : extChunkMapper.selectByKeywords(orgId, keywords, KEYWORD_CANDIDATE_LIMIT);
-        if (matched.isEmpty()) {
-            return fallbackToRecent ? extChunkMapper.selectRecent(orgId, CHUNK_CANDIDATE_LIMIT) : List.of();
+
+        // 合并去重，并保留向量命中块的相似度供融合排序
+        Map<String, AiKnowledgeChunk> merged = new LinkedHashMap<>();
+        Map<String, Double> simOf = new HashMap<>();
+        for (ScoredChunk sc : vectorHits) {
+            merged.put(sc.chunk().getId(), sc.chunk());
+            simOf.put(sc.chunk().getId(), sc.similarity());
         }
-        matched.sort((a, b) -> Integer.compare(countHits(b.getContent(), keywords), countHits(a.getContent(), keywords)));
-        return new ArrayList<>(matched.subList(0, Math.min(CHUNK_CANDIDATE_LIMIT, matched.size())));
+        for (AiKnowledgeChunk chunk : keywordHits) {
+            merged.putIfAbsent(chunk.getId(), chunk);
+        }
+        if (merged.isEmpty()) {
+            return List.of();
+        }
+
+        List<AiKnowledgeChunk> candidates = new ArrayList<>(merged.values());
+        candidates.sort((a, b) -> Double.compare(
+                AiKnowledgeFusionScorer.fusionScore(b.getContent(), keywords, simOf.getOrDefault(b.getId(), 0.0)),
+                AiKnowledgeFusionScorer.fusionScore(a.getContent(), keywords, simOf.getOrDefault(a.getId(), 0.0))));
+        List<AiKnowledgeChunk> result = new ArrayList<>(candidates.subList(0, Math.min(CHUNK_CANDIDATE_LIMIT, candidates.size())));
+        // 3) 懒加载回填：命中块缺向量时现场补（老文档逐渐向量化，零停机）
+        backfillVectors(orgId, result);
+        return result;
+    }
+
+    /** 判断租户知识库是否存在任意分块，用于区分「知识库为空」与「检索无相关命中」 */
+    private boolean hasAnyChunk(String orgId) {
+        return !extChunkMapper.selectRecent(orgId, 1).isEmpty();
+    }
+
+    /** 向量命中块 + 相似度（融合排序用） */
+    private record ScoredChunk(AiKnowledgeChunk chunk, double similarity) {}
+
+    /** 向量检索：提问向量化后与租户已向量化分块做内存余弦相似度取 top-K；embedding 不可用或失败返回空 */
+    private List<ScoredChunk> retrieveByVector(String orgId, String question, int topK) {
+        AgentModel embedAgent = agentModelService.resolveEmbeddingModel(orgId);
+        if (embedAgent == null) {
+            return List.of();
+        }
+        float[] query;
+        try {
+            query = embedToVector(question, embeddingModelName(), embedAgent);
+        } catch (Exception e) {
+            log.warn("知识库提问向量化失败，降级关键词检索: {}", e.getMessage());
+            return List.of();
+        }
+        List<AiKnowledgeChunk> candidates = extChunkMapper.selectVectorizedByOrg(orgId);
+        if (candidates.isEmpty()) {
+            return List.of();
+        }
+        List<ScoredChunk> scored = new ArrayList<>();
+        for (AiKnowledgeChunk chunk : candidates) {
+            float[] vec = parseVector(chunk.getVector());
+            if (vec == null || vec.length != query.length) {
+                continue;
+            }
+            scored.add(new ScoredChunk(chunk, cosineSimilarity(query, vec)));
+        }
+        if (scored.isEmpty()) {
+            return List.of();
+        }
+        scored.sort((a, b) -> Double.compare(b.similarity(), a.similarity()));
+        // 已按相似度降序：首个低于阈值即视为无相关命中，后续更低无需再看
+        List<ScoredChunk> hits = new ArrayList<>();
+        for (ScoredChunk sc : scored) {
+            if (sc.similarity() < MIN_SIMILARITY) {
+                break;
+            }
+            hits.add(sc);
+            if (hits.size() >= topK) {
+                break;
+            }
+        }
+        return hits;
+    }
+
+    /** 懒加载回填：对缺向量的候选块现场向量化落库（老文档逐渐向量化，零停机），失败静默 */
+    private void backfillVectors(String orgId, List<AiKnowledgeChunk> chunks) {
+        AgentModel embedAgent = agentModelService.resolveEmbeddingModel(orgId);
+        if (embedAgent == null) {
+            return;
+        }
+        String embedModel = embeddingModelName();
+        int filled = 0;
+        for (AiKnowledgeChunk chunk : chunks) {
+            if (StringUtils.isNotBlank(chunk.getVector())) {
+                continue;
+            }
+            String vector = embedVector(chunk.getContent(), embedModel, embedAgent);
+            if (vector != null) {
+                extChunkMapper.updateVector(chunk.getId(), vector);
+                if (++filled >= BACKFILL_BATCH_LIMIT) {
+                    break;
+                }
+            }
+        }
+    }
+
+    /** 调用 provider 向量化（抛异常由调用方处理） */
+    private float[] embedToVector(String text, String embedModel, AgentModel embedAgent) throws Exception {
+        LlmProvider provider = llmProviderFactory.get(embedAgent.getProvider());
+        LlmEmbedRequest req = new LlmEmbedRequest();
+        req.setModel(embedModel);
+        req.setBaseUrl(embedAgent.getApiUrl());
+        req.setApiKey(embedAgent.getApiKey());
+        req.setText(text);
+        return provider.embed(req);
+    }
+
+    /** 向量化并序列化为 JSON 字符串；模型未配置或调用失败返回 null（该块降级关键词检索） */
+    private String embedVector(String text, String embedModel, AgentModel embedAgent) {
+        if (embedAgent == null || StringUtils.isBlank(embedModel)) {
+            return null;
+        }
+        try {
+            return JSON.MAPPER.writeValueAsString(embedToVector(text, embedModel, embedAgent));
+        } catch (Exception e) {
+            log.warn("知识库分块向量化失败，该块降级关键词检索: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /** 读取 embedding 模型名（sys_parameter ai.kb.embedding_model），未配置或非法时回退默认 */
+    private String embeddingModelName() {
+        try {
+            Parameter param = parameterMapper.selectByPrimaryKey(EMBEDDING_MODEL_PARAM_KEY);
+            if (param != null && StringUtils.isNotBlank(param.getParamValue())) {
+                return param.getParamValue().trim();
+            }
+        } catch (Exception e) {
+            log.warn("解析 embedding 模型名参数失败，使用默认 {}", DEFAULT_EMBEDDING_MODEL, e);
+        }
+        return DEFAULT_EMBEDDING_MODEL;
+    }
+
+    /** 解析分块向量 JSON 为浮点数组；非法或为空返回 null */
+    private float[] parseVector(String vectorJson) {
+        if (StringUtils.isBlank(vectorJson)) {
+            return null;
+        }
+        try {
+            return JSON.MAPPER.readValue(vectorJson, float[].class);
+        } catch (Exception e) {
+            log.warn("解析分块向量失败，跳过该块: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /** 余弦相似度（调用方已保证维度一致） */
+    private double cosineSimilarity(float[] a, float[] b) {
+        double dot = 0;
+        double normA = 0;
+        double normB = 0;
+        for (int i = 0; i < a.length; i++) {
+            dot += (double) a[i] * b[i];
+            normA += (double) a[i] * a[i];
+            normB += (double) b[i] * b[i];
+        }
+        if (normA == 0 || normB == 0) {
+            return 0;
+        }
+        return dot / (Math.sqrt(normA) * Math.sqrt(normB));
     }
 
     /**
@@ -345,19 +522,6 @@ public class AiKnowledgeService {
         keywords.add(kw);
     }
 
-    private int countHits(String content, List<String> keywords) {
-        if (content == null) {
-            return 0;
-        }
-        int hits = 0;
-        for (String kw : keywords) {
-            if (content.contains(kw)) {
-                hits++;
-            }
-        }
-        return hits;
-    }
-
     private Map<String, String> buildDocNameMap(List<AiKnowledgeChunk> chunks) {
         Set<String> docIds = chunks.stream().map(c -> c.getDocId()).collect(Collectors.toSet());
         if (docIds.isEmpty()) {
@@ -373,8 +537,12 @@ public class AiKnowledgeService {
         messages.add(new LlmMessage("system", SYSTEM_PROMPT));
         StringBuilder sb = new StringBuilder();
         sb.append("问题：").append(question).append("\n\n参考资料：\n");
-        for (int i = 0; i < chunks.size(); i++) {
-            sb.append(i + 1).append(". ").append(chunks.get(i).getContent()).append('\n');
+        if (chunks.isEmpty()) {
+            sb.append("（无相关参考资料）\n");
+        } else {
+            for (int i = 0; i < chunks.size(); i++) {
+                sb.append(i + 1).append(". ").append(chunks.get(i).getContent()).append('\n');
+            }
         }
         sb.append("\n请仅依据上述资料回答。");
         messages.add(new LlmMessage("user", sb.toString()));
@@ -413,7 +581,7 @@ public class AiKnowledgeService {
             String[] sentences = text.split("(?<=[。！？!?；;])");
             StringBuilder sb = new StringBuilder();
             for (String sentence : sentences) {
-                if (StringUtils.isNotBlank(sentence) && countHits(sentence, keywords) > 0) {
+                if (StringUtils.isNotBlank(sentence) && AiKnowledgeFusionScorer.countHits(sentence, keywords) > 0) {
                     if (sb.length() > 0) {
                         sb.append(" ");
                     }

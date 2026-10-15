@@ -250,6 +250,37 @@ public class AgentModelService {
     }
 
     /**
+     * 解析「向量化(embedding)」模型：取阿里云（千问）provider 下第一个启用且已填 apiKey 的模型，
+     * 复用其 baseUrl/apiKey 调 text-embedding-v3。未配置时返回 null，知识库降级关键词检索。
+     */
+    public AgentModel resolveEmbeddingModel(String orgId) {
+        AgentModel criteria = new AgentModel();
+        criteria.setOrganizationId(orgId);
+        criteria.setProvider("阿里云");
+        criteria.setEnable(true);
+        AgentModel fallback = null;
+        for (AgentModel model : agentModelMapper.select(criteria)) {
+            if (StringUtils.isBlank(model.getApiKey())) {
+                continue;
+            }
+            // text-embedding-v3 只挂在 DashScope 百炼端点，优先取真正走百炼的模型，
+            // 避免误取 provider 记为「阿里云」但 apiUrl 指向其它 OpenAI 兼容口（如 MiniMax）的模型
+            if (isDashScopeUrl(model.getApiUrl())) {
+                return model;
+            }
+            if (fallback == null) {
+                fallback = model;
+            }
+        }
+        return fallback;
+    }
+
+    /** 是否 DashScope 百炼兼容端点（text-embedding-v3 的宿主） */
+    private boolean isDashScopeUrl(String apiUrl) {
+        return StringUtils.isNotBlank(apiUrl) && apiUrl.contains("dashscope.aliyuncs.com");
+    }
+
+    /**
      * 解析「声音克隆」目标模型名：阿里云 provider 下第一条已配置 voiceCloneModel 的启用模型；
      * 未配置时回退默认 {@link AliyunVoiceCloneConstant#QWEN_TTS_VC_MODEL}。
      * 阿里复刻模型会随版本下线，admin 在「模型设置」改声音克隆模型名即可，无需改代码重发版。
