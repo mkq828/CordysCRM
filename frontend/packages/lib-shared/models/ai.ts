@@ -343,6 +343,9 @@ export interface AiKnowledgeDoc {
   name?: string;
   fileType?: string;
   fileSize?: number;
+  version?: string;
+  effectiveDate?: string;
+  revoked?: number;
   status?: string;
   chunkCount?: number;
   errorMsg?: string;
@@ -376,9 +379,10 @@ export interface AiKnowledgeAnswerResult {
   citations?: AiKnowledgeCitation[];
 }
 
-/** 企业知识库-出处片段长度设置 */
+/** 企业知识库-设置（出处片段长度、rerank 模型名） */
 export interface AiKnowledgeConfig {
-  snippetMax: number;
+  snippetMax?: number;
+  rerankModel?: string;
 }
 
 /** AI 员工-角色目录-部门导航项 */

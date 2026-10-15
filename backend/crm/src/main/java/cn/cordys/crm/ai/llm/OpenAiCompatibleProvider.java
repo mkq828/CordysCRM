@@ -201,6 +201,46 @@ public abstract class OpenAiCompatibleProvider implements LlmProvider {
         throw new RuntimeException(name() + " 向量化未返回向量: " + response.body());
     }
 
+    @Override
+    public List<Integer> rerank(LlmRerankRequest request) throws Exception {
+        // qwen3-rerank 走 Cohere 兼容端点 /compatible-api/v1/reranks，baseUrl 由调用方转好路径
+        String url = request.getBaseUrl() + "/reranks";
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", request.getModel());
+        body.put("query", request.getQuery());
+        body.put("documents", request.getDocuments());
+        if (request.getTopN() != null) {
+            body.put("top_n", request.getTopN());
+        }
+
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(REQUEST_TIMEOUT)
+                .header("Authorization", "Bearer " + request.getApiKey())
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(JSON.toJSONString(body), StandardCharsets.UTF_8))
+                .build();
+        HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            log.error("{} rerank 失败，status={}, body={}", name(), response.statusCode(), response.body());
+            throw new RuntimeException(name() + " rerank 失败(" + response.statusCode() + ")");
+        }
+
+        // Cohere 兼容：results 已按 relevance_score 降序，逐项取 index 即得重排后的原始文档下标
+        JsonNode results = JSON.MAPPER.readTree(response.body()).path("results");
+        List<Integer> order = new ArrayList<>();
+        if (results.isArray()) {
+            for (JsonNode r : results) {
+                int index = r.path("index").asInt(-1);
+                if (index >= 0) {
+                    order.add(index);
+                }
+            }
+        }
+        return order;
+    }
+
     /** 下载文生图返回的临时 URL（已签名，通常 24 小时内有效，需及时下载） */
     private byte[] downloadImage(String imageUrl) throws Exception {
         HttpRequest request = HttpRequest.newBuilder(URI.create(imageUrl))

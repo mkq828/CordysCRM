@@ -11,6 +11,20 @@
           @search="search"
         />
         <div class="flex-1" />
+        <n-input
+          v-model:value="uploadVersion"
+          class="!w-[180px]"
+          clearable
+          :placeholder="t('knowledge.versionPlaceholder')"
+        />
+        <CrmDatePicker
+          v-model:value="uploadEffectiveDate"
+          type="date"
+          value-format="yyyy-MM-dd"
+          clearable
+          class="!w-[180px]"
+          :placeholder="t('knowledge.effectiveDatePlaceholder')"
+        />
         <n-upload :show-file-list="false" accept=".pdf,.docx,.md,.txt" multiple :custom-request="handleUpload">
           <n-button type="primary">{{ t('knowledge.upload') }}</n-button>
         </n-upload>
@@ -34,7 +48,7 @@
 
 <script setup lang="ts">
   import { h } from 'vue';
-  import { NButton, NTag, NUpload, useMessage } from 'naive-ui';
+  import { NButton, NInput, NTag, NUpload, useMessage } from 'naive-ui';
 
   import { TableKeyEnum } from '@lib/shared/enums/tableEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -42,6 +56,7 @@
   import type { AiKnowledgeDoc } from '@lib/shared/models/ai';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
+  import CrmDatePicker from '@/components/pure/crm-date-picker/index.vue';
   import type { ActionsItem } from '@/components/pure/crm-more-action/type';
   import CrmSearchInput from '@/components/pure/crm-search-input/index.vue';
   import CrmTable from '@/components/pure/crm-table/index.vue';
@@ -59,6 +74,8 @@
   const { openModal } = useModal();
 
   const keyword = ref('');
+  const uploadVersion = ref('');
+  const uploadEffectiveDate = ref<string | null>(null);
 
   const groupList: ActionsItem[] = [{ label: t('common.delete'), key: 'delete', danger: true }];
 
@@ -71,10 +88,12 @@
       options.onError();
       return;
     }
-    uploadKnowledgeDoc(file)
+    uploadKnowledgeDoc(file, uploadVersion.value || undefined, uploadEffectiveDate.value || undefined)
       .then(() => {
         options.onFinish();
         Message.success(t('common.addSuccess'));
+        uploadVersion.value = '';
+        uploadEffectiveDate.value = null;
         tableRefreshId.value += 1;
       })
       .catch((error) => {
@@ -115,6 +134,16 @@
     }
   }
 
+  function renderStatus(row: AiKnowledgeDoc) {
+    if (row.revoked === 1) {
+      return h(NTag, { size: 'small', type: 'warning', bordered: false }, { default: () => t('knowledge.revoked') });
+    }
+    if (row.status === 'FAILED') {
+      return h(NTag, { size: 'small', type: 'error', bordered: false }, { default: () => t('knowledge.statusFailed') });
+    }
+    return h(NTag, { size: 'small', type: 'success', bordered: false }, { default: () => t('knowledge.statusReady') });
+  }
+
   const columns: CrmDataTableColumn<AiKnowledgeDoc>[] = [
     {
       title: t('knowledge.docName'),
@@ -139,6 +168,18 @@
       render: (row: AiKnowledgeDoc) => (row.fileSize != null ? formatFileSize(row.fileSize) : '-'),
     },
     {
+      title: t('knowledge.version'),
+      key: 'version',
+      width: 110,
+      render: (row: AiKnowledgeDoc) => row.version || '-',
+    },
+    {
+      title: t('knowledge.effectiveDate'),
+      key: 'effectiveDate',
+      width: 110,
+      render: (row: AiKnowledgeDoc) => row.effectiveDate || t('knowledge.effectiveToday'),
+    },
+    {
       title: t('knowledge.chunkCount'),
       key: 'chunkCount',
       width: 90,
@@ -148,10 +189,7 @@
       title: t('knowledge.status'),
       key: 'status',
       width: 100,
-      render: (row: AiKnowledgeDoc) =>
-        row.status === 'FAILED'
-          ? h(NTag, { size: 'small', type: 'error', bordered: false }, { default: () => t('knowledge.statusFailed') })
-          : h(NTag, { size: 'small', type: 'success', bordered: false }, { default: () => t('knowledge.statusReady') }),
+      render: (row: AiKnowledgeDoc) => renderStatus(row),
     },
     {
       title: t('knowledge.errorMsg'),

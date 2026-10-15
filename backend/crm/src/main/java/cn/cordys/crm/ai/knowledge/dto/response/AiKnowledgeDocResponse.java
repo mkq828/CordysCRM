@@ -3,6 +3,8 @@ package cn.cordys.crm.ai.knowledge.dto.response;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 /**
  * 企业知识库文档列表/详情响应。
  */
@@ -20,6 +22,15 @@ public class AiKnowledgeDocResponse {
 
     @Schema(description = "文件大小（字节）")
     private Long fileSize;
+
+    @Schema(description = "版本号（自由文本，如 V1.2）")
+    private String version;
+
+    @Schema(description = "生效日期，NULL=立即生效")
+    private LocalDate effectiveDate;
+
+    @Schema(description = "是否废止（1=已废止）")
+    private Integer revoked;
 
     @Schema(description = "解析状态（READY/FAILED）")
     private String status;

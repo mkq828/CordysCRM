@@ -1,5 +1,6 @@
 package cn.cordys.crm.ai.llm;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -41,5 +42,15 @@ public interface LlmProvider {
      */
     default float[] embed(LlmEmbedRequest request) throws Exception {
         throw new UnsupportedOperationException("当前模型不支持向量化: " + name());
+    }
+
+    /**
+     * 文本精排（Cohere 兼容 {@code /reranks}）。仅支持 rerank 的 provider 覆盖实现，
+     * 其余 provider 默认不支持，调用即抛异常。
+     *
+     * @return 按相关性降序排列的原始文档下标列表
+     */
+    default List<Integer> rerank(LlmRerankRequest request) throws Exception {
+        throw new UnsupportedOperationException("当前模型不支持 rerank 精排: " + name());
     }
 }

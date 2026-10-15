@@ -9,6 +9,9 @@
             name,
             file_type,
             file_size,
+            version,
+            effective_date,
+            revoked,
             status,
             chunk_count,
             error_msg,
@@ -21,5 +24,14 @@
         </if>
         order by update_time desc
     </select>
+
+    <update id="revokeSameName">
+        update ai_knowledge_doc
+        set revoked = 1
+        where organization_id = #{orgId}
+          and name = #{name}
+          and revoked = 0
+          and id != #{docId}
+    </update>
 
 </mapper>

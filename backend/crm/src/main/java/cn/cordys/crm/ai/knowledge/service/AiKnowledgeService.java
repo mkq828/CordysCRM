@@ -22,6 +22,7 @@ import cn.cordys.crm.ai.knowledge.parser.DocumentTextExtractor;
 import cn.cordys.crm.ai.llm.LlmChatRequest;
 import cn.cordys.crm.ai.llm.LlmEmbedRequest;
 import cn.cordys.crm.ai.llm.LlmMessage;
+import cn.cordys.crm.ai.llm.LlmRerankRequest;
 import cn.cordys.crm.ai.llm.LlmProvider;
 import cn.cordys.crm.ai.llm.LlmProviderFactory;
 import cn.cordys.crm.ai.llm.LlmUsage;
@@ -40,6 +41,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -90,6 +92,13 @@ public class AiKnowledgeService {
     private static final String EMBEDDING_MODEL_PARAM_KEY = "ai.kb.embedding_model";
     private static final String DEFAULT_EMBEDDING_MODEL = "text-embedding-v3";
 
+    /** rerank 模型名（sys_parameter ai.kb.rerank_model 可配，默认 qwen3-rerank） */
+    private static final String RERANK_MODEL_PARAM_KEY = "ai.kb.rerank_model";
+    private static final String DEFAULT_RERANK_MODEL = "qwen3-rerank";
+
+    /** rerank 精排的候选块上限：只对融合排序前 N 个做精排，控制调用成本 */
+    private static final int RERANK_CANDIDATE_LIMIT = 10;
+
     /** 向量检索最小余弦相似度阈值，低于该值视为不相关，避免低相关片段被当作出处引用 */
     private static final double MIN_SIMILARITY = 0.5;
 
@@ -138,7 +147,8 @@ public class AiKnowledgeService {
 
     /** 上传并同步解析：抽文本 + 分块 + 落库。解析失败直接抛异常，不落脏数据。 */
     @Transactional(rollbackFor = Exception.class)
-    public AiKnowledgeDocResponse upload(MultipartFile file, String orgId, String userId) {
+    public AiKnowledgeDocResponse upload(MultipartFile file, String orgId, String userId,
+            String version, LocalDate effectiveDate) {
         if (file == null || file.isEmpty()) {
             throw new GenericException("请上传文档");
         }
@@ -165,6 +175,9 @@ public class AiKnowledgeService {
         doc.setName(name);
         doc.setFileType(fileType);
         doc.setFileSize(file.getSize());
+        doc.setVersion(StringUtils.isBlank(version) ? null : version.trim());
+        doc.setEffectiveDate(effectiveDate);
+        doc.setRevoked(0);
         doc.setStatus(STATUS_READY);
         doc.setChunkCount(chunkTexts.size());
         doc.setCreateUser(userId);
@@ -172,6 +185,8 @@ public class AiKnowledgeService {
         doc.setCreateTime(now);
         doc.setUpdateTime(now);
         docMapper.insert(doc);
+        // 同名新版本上传后自动废止旧版（排除自身），旧版不再参与检索
+        extDocMapper.revokeSameName(orgId, name, docId);
 
         AgentModel embedAgent = agentModelService.resolveEmbeddingModel(orgId);
         String embedModel = embeddingModelName();
@@ -330,7 +345,9 @@ public class AiKnowledgeService {
                 AiKnowledgeFusionScorer.fusionScore(b.getContent(), keywords, simOf.getOrDefault(b.getId(), 0.0)),
                 AiKnowledgeFusionScorer.fusionScore(a.getContent(), keywords, simOf.getOrDefault(a.getId(), 0.0))));
         List<AiKnowledgeChunk> result = new ArrayList<>(candidates.subList(0, Math.min(CHUNK_CANDIDATE_LIMIT, candidates.size())));
-        // 3) 懒加载回填：命中块缺向量时现场补（老文档逐渐向量化，零停机）
+        // 3) rerank 精排（可选，模型未配置或失败时自动降级回融合排序）
+        result = rerank(result, question, orgId);
+        // 4) 懒加载回填：命中块缺向量时现场补（老文档逐渐向量化，零停机）
         backfillVectors(orgId, result);
         return result;
     }
@@ -384,6 +401,60 @@ public class AiKnowledgeService {
             }
         }
         return hits;
+    }
+
+    /**
+     * rerank 精排：复用阿里云百炼凭证（与 embedding 同一端点），把融合排序后的前 RERANK_CANDIDATE_LIMIT 个
+     * 候选交给 qwen3-rerank 按与提问的相关性重排并替换原顺序。模型未配置 / 调用失败 / 结果异常时返回原列表（降级）。
+     */
+    private List<AiKnowledgeChunk> rerank(List<AiKnowledgeChunk> candidates, String question, String orgId) {
+        if (candidates.size() <= 1) {
+            return candidates;
+        }
+        AgentModel rerankAgent = agentModelService.resolveEmbeddingModel(orgId);
+        if (rerankAgent == null) {
+            return candidates;
+        }
+        String model = rerankModelName();
+        if (StringUtils.isBlank(model)) {
+            return candidates;
+        }
+        int n = Math.min(RERANK_CANDIDATE_LIMIT, candidates.size());
+        List<AiKnowledgeChunk> head = new ArrayList<>(candidates.subList(0, n));
+        try {
+            LlmProvider provider = llmProviderFactory.get(rerankAgent.getProvider());
+            LlmRerankRequest req = new LlmRerankRequest();
+            req.setModel(model);
+            req.setBaseUrl(rerankBaseUrl(rerankAgent.getApiUrl()));
+            req.setApiKey(rerankAgent.getApiKey());
+            req.setQuery(question);
+            req.setDocuments(head.stream().map(AiKnowledgeChunk::getContent).toList());
+            req.setTopN(n);
+            List<Integer> order = provider.rerank(req);
+            if (order == null || order.size() != n) {
+                return candidates;
+            }
+            List<AiKnowledgeChunk> reranked = new ArrayList<>(n);
+            for (int idx : order) {
+                if (idx < 0 || idx >= n) {
+                    return candidates;
+                }
+                reranked.add(head.get(idx));
+            }
+            reranked.addAll(candidates.subList(n, candidates.size()));
+            return reranked;
+        } catch (Exception e) {
+            log.warn("知识库 rerank 精排失败，降级融合排序: {}", e.getMessage());
+            return candidates;
+        }
+    }
+
+    /** 阿里云 apiUrl 是 OpenAI 兼容的 /compatible-mode/v1，rerank 走 Cohere 兼容 /compatible-api/v1，替换路径段 */
+    private String rerankBaseUrl(String apiUrl) {
+        if (StringUtils.isNotBlank(apiUrl) && apiUrl.contains("compatible-mode")) {
+            return apiUrl.replace("compatible-mode", "compatible-api");
+        }
+        return apiUrl;
     }
 
     /** 懒加载回填：对缺向量的候选块现场向量化落库（老文档逐渐向量化，零停机），失败静默 */
@@ -443,6 +514,19 @@ public class AiKnowledgeService {
             log.warn("解析 embedding 模型名参数失败，使用默认 {}", DEFAULT_EMBEDDING_MODEL, e);
         }
         return DEFAULT_EMBEDDING_MODEL;
+    }
+
+    /** 读取 rerank 模型名（sys_parameter ai.kb.rerank_model），未配置或非法时回退默认 */
+    private String rerankModelName() {
+        try {
+            Parameter param = parameterMapper.selectByPrimaryKey(RERANK_MODEL_PARAM_KEY);
+            if (param != null && StringUtils.isNotBlank(param.getParamValue())) {
+                return param.getParamValue().trim();
+            }
+        } catch (Exception e) {
+            log.warn("解析 rerank 模型名参数失败，使用默认 {}", DEFAULT_RERANK_MODEL, e);
+        }
+        return DEFAULT_RERANK_MODEL;
     }
 
     /** 解析分块向量 JSON 为浮点数组；非法或为空返回 null */
@@ -634,6 +718,22 @@ public class AiKnowledgeService {
         parameterMapper.insert(param);
     }
 
+    /** 读取 rerank 模型名（sys_parameter ai.kb.rerank_model），供前端设置回显 */
+    public String getRerankModel() {
+        return rerankModelName();
+    }
+
+    /** 更新 rerank 模型名，写入系统参数 sys_parameter（留空回退默认 qwen3-rerank） */
+    public void updateRerankModel(String model) {
+        String value = StringUtils.isBlank(model) ? DEFAULT_RERANK_MODEL : model.trim();
+        parameterMapper.deleteByPrimaryKey(RERANK_MODEL_PARAM_KEY);
+        Parameter param = new Parameter();
+        param.setParamKey(RERANK_MODEL_PARAM_KEY);
+        param.setParamValue(value);
+        param.setType("text");
+        parameterMapper.insert(param);
+    }
+
     private AiKnowledgeDoc checkDoc(String id, String orgId) {
         AiKnowledgeDoc doc = docMapper.selectByPrimaryKey(id);
         if (doc == null || !orgId.equals(doc.getOrganizationId())) {
@@ -648,6 +748,9 @@ public class AiKnowledgeService {
         resp.setName(doc.getName());
         resp.setFileType(doc.getFileType());
         resp.setFileSize(doc.getFileSize());
+        resp.setVersion(doc.getVersion());
+        resp.setEffectiveDate(doc.getEffectiveDate());
+        resp.setRevoked(doc.getRevoked());
         resp.setStatus(doc.getStatus());
         resp.setChunkCount(doc.getChunkCount());
         resp.setErrorMsg(doc.getErrorMsg());

@@ -55,6 +55,26 @@
         :title="t('system.business.modelSettings.featureUsageTitle')"
       >
         <div class="flex h-full flex-col px-[24px] pt-[16px]">
+          <div class="mb-[12px] flex items-center gap-[12px]">
+            <span class="shrink-0 text-[13px]">{{ t('system.business.modelSettings.rerankModel') }}</span>
+            <n-input
+              v-model:value="rerankModel"
+              class="!w-[220px]"
+              clearable
+              :disabled="!canUpdateModelSettings"
+              :placeholder="t('system.business.modelSettings.rerankModelPlaceholder')"
+            />
+            <n-button
+              size="small"
+              type="primary"
+              :disabled="!canUpdateModelSettings"
+              :loading="savingRerank"
+              @click="saveRerank"
+            >
+              {{ t('common.save') }}
+            </n-button>
+            <span class="text-xs text-orange-500">{{ t('system.business.modelSettings.rerankModelTip') }}</span>
+          </div>
           <n-tabs v-model:value="activeRouteTab" type="line" size="small" class="route-tabs">
             <n-tab v-for="tab in routeTabs" :key="tab.key" :name="tab.key">
               {{ tab.label }}
@@ -85,7 +105,7 @@
 
 <script setup lang="ts">
   import { computed, h, onMounted, ref, watch } from 'vue';
-  import { NButton, NDataTable, NEmpty, NSwitch, NTab, NTabs, NTooltip, useMessage } from 'naive-ui';
+  import { NButton, NDataTable, NEmpty, NInput, NSwitch, NTab, NTabs, NTooltip, useMessage } from 'naive-ui';
 
   import { SpecialColumnEnum, TableKeyEnum } from '@lib/shared/enums/tableEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -105,9 +125,11 @@
 
   import {
     deleteAiModel,
+    getAiKnowledgeConfig,
     getAiModelDetail,
     getAiModelFeatureUsage,
     getAiModelList,
+    saveAiKnowledgeConfig,
     updateAiModelStatus,
   } from '@/api/modules';
   import useModal from '@/hooks/useModal';
@@ -495,8 +517,44 @@
     }
   }
 
+  // rerank 精排模型名：知识库问答检索精排用，凭证复用阿里云 embedding 模型，未配置走默认 qwen3-rerank
+  const rerankModel = ref('');
+  const savingRerank = ref(false);
+
+  async function loadRerankModel() {
+    try {
+      const config = await getAiKnowledgeConfig();
+      if (config?.rerankModel) {
+        rerankModel.value = config.rerankModel;
+      }
+    } catch (error) {
+      // 读取失败时保留空值，不打断模型设置主流程
+      // eslint-disable-next-line no-console
+      console.log(error);
+    }
+  }
+
+  async function saveRerank() {
+    const value = rerankModel.value.trim();
+    if (!value) {
+      Message.warning(t('common.notNull', { value: t('system.business.modelSettings.rerankModel') }));
+      return;
+    }
+    savingRerank.value = true;
+    try {
+      await saveAiKnowledgeConfig({ rerankModel: value });
+      Message.success(t('common.saveSuccess'));
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.log(error);
+    } finally {
+      savingRerank.value = false;
+    }
+  }
+
   onMounted(() => {
     loadList();
     loadFeatureUsage();
+    loadRerankModel();
   });
 </script>

@@ -70,6 +70,10 @@ export default {
   'system.business.modelSettings.routeTts': 'Voiceover',
   'system.business.modelSettings.routeVoiceClone': 'Voice Clone',
   'system.business.modelSettings.routeOther': 'Other',
+  'system.business.modelSettings.rerankModel': 'Rerank model',
+  'system.business.modelSettings.rerankModelPlaceholder': 'e.g. qwen3-rerank',
+  'system.business.modelSettings.rerankModelTip':
+    'Rerank for KB retrieval, reuses Aliyun embedding credentials; leave blank for default',
   'system.business.globalTask.taskList': 'Task List',
   'system.business.globalTask.executionRecord': 'Execution Records',
   'system.business.globalTask.executionRecordList': 'Execution Record List',

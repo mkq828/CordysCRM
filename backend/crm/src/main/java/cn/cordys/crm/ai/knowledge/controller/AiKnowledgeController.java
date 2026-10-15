@@ -22,17 +22,20 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.io.PrintWriter;
 import java.util.List;
 import java.util.Map;
@@ -59,8 +62,11 @@ public class AiKnowledgeController extends BaseAiStreamController {
 
     @PostMapping("/doc/upload")
     @Operation(summary = "知识库-上传并解析文档")
-    public AiKnowledgeDocResponse upload(@RequestPart("file") MultipartFile file) {
-        return aiKnowledgeService.upload(file, OrganizationContext.getOrganizationId(), SessionUtils.getUserId());
+    public AiKnowledgeDocResponse upload(@RequestPart("file") MultipartFile file,
+            @RequestParam(required = false) String version,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveDate) {
+        return aiKnowledgeService.upload(file, OrganizationContext.getOrganizationId(), SessionUtils.getUserId(),
+                version, effectiveDate);
     }
 
     @GetMapping("/doc/delete/{id}")
@@ -76,16 +82,20 @@ public class AiKnowledgeController extends BaseAiStreamController {
     }
 
     @GetMapping("/config")
-    @Operation(summary = "知识库-读取出处片段长度设置")
+    @Operation(summary = "知识库-读取设置（出处片段长度、rerank 模型名）")
     public AiKnowledgeConfigResponse config() {
-        return new AiKnowledgeConfigResponse(aiKnowledgeService.getSnippetMax());
+        return new AiKnowledgeConfigResponse(aiKnowledgeService.getSnippetMax(), aiKnowledgeService.getRerankModel());
     }
 
     @PostMapping("/config")
-    @Operation(summary = "知识库-更新出处片段长度设置")
+    @Operation(summary = "知识库-更新设置（出处片段长度、rerank 模型名）")
     public void updateConfig(@RequestBody AiKnowledgeConfigRequest request) {
-        int max = request.getSnippetMax() == null ? 0 : request.getSnippetMax();
-        aiKnowledgeService.updateSnippetMax(max);
+        if (request.getSnippetMax() != null) {
+            aiKnowledgeService.updateSnippetMax(request.getSnippetMax());
+        }
+        if (request.getRerankModel() != null) {
+            aiKnowledgeService.updateRerankModel(request.getRerankModel());
+        }
     }
 
     @PostMapping(value = "/ask/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

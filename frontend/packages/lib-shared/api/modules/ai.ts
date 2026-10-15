@@ -622,8 +622,12 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post<CommonList<AiKnowledgeDoc>>({ url: AiKnowledgeDocPageUrl, data });
   }
 
-  function uploadKnowledgeDoc(file: File) {
-    return CDR.uploadFile({ url: AiKnowledgeDocUploadUrl }, { fileList: [file] }, 'file');
+  function uploadKnowledgeDoc(file: File, version?: string, effectiveDate?: string) {
+    return CDR.uploadFile(
+      { url: AiKnowledgeDocUploadUrl, params: { version, effectiveDate } },
+      { fileList: [file] },
+      'file'
+    );
   }
 
   function deleteAiKnowledgeDoc(id: string) {
