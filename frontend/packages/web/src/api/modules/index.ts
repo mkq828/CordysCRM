@@ -693,6 +693,7 @@ export const {
   deleteAiModel,
   getAiModelRouteStrategy,
   updateAiModelRouteStrategy,
+  getAiModelFeatureUsage,
   getAgentTaskList,
   getAgentTaskExecutionRecordList,
   stopAgentTaskExecutionRecord,

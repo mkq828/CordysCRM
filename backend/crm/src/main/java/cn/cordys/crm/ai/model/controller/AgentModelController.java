@@ -5,8 +5,10 @@ import cn.cordys.common.pager.Pager;
 import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.ai.model.dto.request.AgentModelPageRequest;
 import cn.cordys.crm.ai.model.dto.request.AgentModelSaveRequest;
+import cn.cordys.crm.ai.model.dto.response.AgentModelFeatureUsageResponse;
 import cn.cordys.crm.ai.model.dto.response.AgentModelOptionResponse;
 import cn.cordys.crm.ai.model.dto.response.AgentModelResponse;
+import cn.cordys.crm.ai.model.service.AgentModelFeatureService;
 import cn.cordys.crm.ai.model.service.AgentModelService;
 import cn.cordys.security.SessionUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +35,9 @@ public class AgentModelController {
     @Resource
     private AgentModelService agentModelService;
 
+    @Resource
+    private AgentModelFeatureService agentModelFeatureService;
+
     @PostMapping("/page")
     @RequiresPermissions(PermissionConstants.SYSTEM_SETTING_READ)
     @Operation(summary = "模型设置-列表查询")
@@ -52,6 +57,13 @@ public class AgentModelController {
     @Operation(summary = "模型设置-查询可用模型选项")
     public List<AgentModelOptionResponse> options() {
         return agentModelService.options(OrganizationContext.getOrganizationId());
+    }
+
+    @GetMapping("/feature-usage")
+    @RequiresPermissions(PermissionConstants.SYSTEM_SETTING_READ)
+    @Operation(summary = "模型设置-模型应用场景矩阵")
+    public List<AgentModelFeatureUsageResponse> featureUsage() {
+        return agentModelFeatureService.listFeatureUsage(OrganizationContext.getOrganizationId());
     }
 
     @PostMapping("/add")

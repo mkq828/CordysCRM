@@ -1,62 +1,96 @@
 <template>
-  <CrmCard hide-footer no-content-padding :special-height="licenseStore.expiredDuring ? 128 : 64">
-    <div class="h-full px-[24px] pt-[24px]">
-      <CrmTable
-        ref="crmTableRef"
-        v-bind="propsRes"
-        class="model-settings-table"
-        @page-change="propsEvent.pageChange"
-        @page-size-change="propsEvent.pageSizeChange"
-        @sorter-change="propsEvent.sorterChange"
-        @filter-change="propsEvent.filterChange"
-        @refresh="searchData"
-      >
-        <template #tableTop>
-          <div class="flex gap-[12px]">
-            <n-button v-permission="['SYSTEM_SETTING:ADD']" type="primary" @click="openAddDrawer">
-              {{ t('system.business.modelSettings.addModel') }}
-            </n-button>
-            <n-tooltip trigger="hover" :disabled="!isRouteStrategyDisabled">
-              <template #trigger>
-                <span>
-                  <n-button
-                    class="n-btn-outline-primary"
-                    type="primary"
-                    ghost
-                    :disabled="isRouteStrategyDisabled"
-                    @click="openRouteModal"
-                  >
-                    <template #icon>
-                      <CrmIcon type="iconicon_set_up" :size="16" />
-                    </template>
-                    {{ t('system.business.modelSettings.routeStrategy') }}
-                  </n-button>
-                </span>
-              </template>
-              {{ t('system.business.modelSettings.addModelBeforeRoute') }}
-            </n-tooltip>
-          </div>
-        </template>
-        <template #actionRight>
-          <CrmSearchInput v-model:value="keyword" :placeholder="t('common.searchByName')" @search="searchData" />
-        </template>
-      </CrmTable>
+  <div class="flex min-h-0 flex-1 flex-col gap-[16px]">
+    <div class="min-h-0 flex-1">
+      <CrmCard hide-footer no-content-padding class="h-full">
+        <div class="h-full px-[24px] pt-[24px]">
+          <CrmTable
+            ref="crmTableRef"
+            v-bind="propsRes"
+            class="model-settings-table"
+            @page-change="propsEvent.pageChange"
+            @page-size-change="propsEvent.pageSizeChange"
+            @sorter-change="propsEvent.sorterChange"
+            @filter-change="propsEvent.filterChange"
+            @refresh="searchData"
+          >
+            <template #tableTop>
+              <div class="flex gap-[12px]">
+                <n-button v-permission="['SYSTEM_SETTING:ADD']" type="primary" @click="openAddDrawer">
+                  {{ t('system.business.modelSettings.addModel') }}
+                </n-button>
+                <n-tooltip trigger="hover" :disabled="!isRouteStrategyDisabled">
+                  <template #trigger>
+                    <span>
+                      <n-button
+                        class="n-btn-outline-primary"
+                        type="primary"
+                        ghost
+                        :disabled="isRouteStrategyDisabled"
+                        @click="openRouteModal"
+                      >
+                        <template #icon>
+                          <CrmIcon type="iconicon_set_up" :size="16" />
+                        </template>
+                        {{ t('system.business.modelSettings.routeStrategy') }}
+                      </n-button>
+                    </span>
+                  </template>
+                  {{ t('system.business.modelSettings.addModelBeforeRoute') }}
+                </n-tooltip>
+              </div>
+            </template>
+            <template #actionRight>
+              <CrmSearchInput v-model:value="keyword" :placeholder="t('common.searchByName')" @search="searchData" />
+            </template>
+          </CrmTable>
+        </div>
+      </CrmCard>
     </div>
-  </CrmCard>
+
+    <div class="min-h-0 flex-1">
+      <CrmCard
+        hide-footer
+        no-content-padding
+        class="h-full"
+        :title="t('system.business.modelSettings.featureUsageTitle')"
+      >
+        <div class="flex h-full flex-col px-[24px] pt-[16px]">
+          <n-tabs v-model:value="activeRouteTab" type="line" size="small" class="route-tabs">
+            <n-tab v-for="tab in routeTabs" :key="tab.key" :name="tab.key">
+              {{ tab.label }}
+            </n-tab>
+          </n-tabs>
+          <n-data-table
+            :columns="featureColumns"
+            :data="activeTabRows"
+            flex-height
+            class="flex-1"
+            size="small"
+            :bordered="false"
+            :single-line="false"
+          >
+            <template #empty>
+              <n-empty :description="t('common.noData')" :show-icon="false" />
+            </template>
+          </n-data-table>
+        </div>
+      </CrmCard>
+    </div>
+  </div>
 
   <ModelSettingsDrawer v-model:show="drawerVisible" :model="editingModel" @saved="handleModelSaved" />
 
-  <RouteStrategyModal v-model:show="routeModalVisible" :readonly="!canUpdateModelSettings" />
+  <RouteStrategyModal v-model:show="routeModalVisible" :readonly="!canUpdateModelSettings" @saved="loadFeatureUsage" />
 </template>
 
 <script setup lang="ts">
   import { computed, h, onMounted, ref, watch } from 'vue';
-  import { NButton, NSwitch, NTooltip, useMessage } from 'naive-ui';
+  import { NButton, NDataTable, NEmpty, NSwitch, NTab, NTabs, NTooltip, useMessage } from 'naive-ui';
 
   import { SpecialColumnEnum, TableKeyEnum } from '@lib/shared/enums/tableEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import { characterLimit, formatThousands } from '@lib/shared/method';
-  import type { AiModelItem } from '@lib/shared/models/system/aiModel';
+  import type { AiModelFeatureUsage, AiModelFeatureUsageModel, AiModelItem } from '@lib/shared/models/system/aiModel';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
@@ -69,10 +103,18 @@
   import ModelSettingsDrawer from './modelSettingsDrawer.vue';
   import RouteStrategyModal from './routeStrategyModal.vue';
 
-  import { deleteAiModel, getAiModelDetail, getAiModelList, updateAiModelStatus } from '@/api/modules';
+  import {
+    deleteAiModel,
+    getAiModelDetail,
+    getAiModelFeatureUsage,
+    getAiModelList,
+    updateAiModelStatus,
+  } from '@/api/modules';
   import useModal from '@/hooks/useModal';
   import useLicenseStore from '@/store/modules/setting/license';
   import { hasAnyPermission } from '@/utils/permission';
+
+  import type { DataTableColumns } from 'naive-ui';
 
   const { t } = useI18n();
   const Message = useMessage();
@@ -336,7 +378,125 @@
     }
   );
 
+  // 「模型应用场景」只读矩阵：每个 AI 功能 → 当前解析到的模型（首选 + 备用链）
+  const featureUsage = ref<AiModelFeatureUsage[]>([]);
+
+  interface FeatureRow {
+    featureName: string;
+    models: AiModelFeatureUsageModel[];
+    remark: string;
+    noRoute: boolean;
+  }
+
+  type RouteTabKey = 'CHAT' | 'TASK' | 'IMAGE' | 'VIDEO' | 'TTS' | 'VOICE_CLONE' | 'OTHER';
+
+  const routeTabs = computed<{ key: RouteTabKey; label: string }[]>(() => [
+    { key: 'CHAT', label: t('system.business.modelSettings.routeChat') },
+    { key: 'TASK', label: t('system.business.modelSettings.routeTask') },
+    { key: 'IMAGE', label: t('system.business.modelSettings.routeImage') },
+    { key: 'VIDEO', label: t('system.business.modelSettings.routeVideo') },
+    { key: 'TTS', label: t('system.business.modelSettings.routeTts') },
+    { key: 'VOICE_CLONE', label: t('system.business.modelSettings.routeVoiceClone') },
+    { key: 'OTHER', label: t('system.business.modelSettings.routeOther') },
+  ]);
+
+  const activeRouteTab = ref<RouteTabKey>('CHAT');
+
+  // 按用途路由分组：同一功能多用途时会在多个 tab 各出现一次；无模型功能归入「其他」
+  const rowsByTab = computed<Record<string, FeatureRow[]>>(() => {
+    const map: Record<string, FeatureRow[]> = {
+      CHAT: [],
+      TASK: [],
+      IMAGE: [],
+      VIDEO: [],
+      TTS: [],
+      VOICE_CLONE: [],
+      OTHER: [],
+    };
+    featureUsage.value.forEach((feature) => {
+      const remark = feature.remark || '';
+      if (!feature.usages?.length) {
+        map.OTHER.push({ featureName: feature.featureName, models: [], remark, noRoute: true });
+        return;
+      }
+      feature.usages.forEach((usage) => {
+        const bucket = map[usage.route];
+        if (bucket) {
+          bucket.push({ featureName: feature.featureName, models: usage.models || [], remark, noRoute: false });
+        }
+      });
+    });
+    return map;
+  });
+
+  const activeTabRows = computed<FeatureRow[]>(() => rowsByTab.value[activeRouteTab.value] || []);
+
+  function renderModels(row: FeatureRow) {
+    const { models, noRoute } = row;
+    if (!models.length) {
+      return h(
+        'span',
+        { class: 'text-[var(--text-n4)]' },
+        noRoute ? '—' : t('system.business.modelSettings.notConfigured')
+      );
+    }
+    const [first, ...rest] = models;
+    const children = [
+      h('span', { class: 'font-semibold text-[var(--text-n1)]' }, first.displayName || first.modelName || '-'),
+    ];
+    if (rest.length) {
+      children.push(
+        h(
+          'span',
+          { class: 'text-[var(--text-n4)]' },
+          `${t('system.business.modelSettings.backupPrefix')}${rest
+            .map((m) => m.displayName || m.modelName)
+            .join('、')}`
+        )
+      );
+    }
+    return h('div', { class: 'flex flex-col gap-[2px]' }, children);
+  }
+
+  const featureColumns: DataTableColumns<FeatureRow> = [
+    {
+      title: t('system.business.modelSettings.featureName'),
+      key: 'featureName',
+      width: 180,
+      ellipsis: { tooltip: true },
+    },
+    {
+      title: t('system.business.modelSettings.currentModel'),
+      key: 'models',
+      render: (row) => renderModels(row),
+    },
+    {
+      title: t('system.business.modelSettings.provider'),
+      key: 'provider',
+      width: 120,
+      render: (row) => row.models[0]?.provider || '—',
+    },
+    {
+      title: t('system.business.modelSettings.remark'),
+      key: 'remark',
+      width: 180,
+      ellipsis: { tooltip: true },
+      render: (row) => row.remark || '—',
+    },
+  ];
+
+  async function loadFeatureUsage() {
+    try {
+      featureUsage.value = await getAiModelFeatureUsage();
+    } catch (error) {
+      // 读取失败时静默降级，矩阵留空，不打断模型列表主流程
+      // eslint-disable-next-line no-console
+      console.log(error);
+    }
+  }
+
   onMounted(() => {
     loadList();
+    loadFeatureUsage();
   });
 </script>

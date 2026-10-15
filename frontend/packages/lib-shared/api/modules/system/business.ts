@@ -24,6 +24,7 @@ import {
   GetAgentTaskExecutionRecordListUrl,
   GetAgentTaskListUrl,
   GetAiModelDetailUrl,
+  GetAiModelFeatureUsageUrl,
   GetAiModelListUrl,
   GetAiModelOptionsUrl,
   GetAiModelRouteStrategyUrl,
@@ -83,6 +84,7 @@ import type { CommonList, ImportUploadParams, TableQueryParams } from '@lib/shar
 import { CustomerFollowPlanTableParams, FollowDetailItem } from '@lib/shared/models/customer';
 import type { AgentTaskExecutionRecordItem, AgentTaskItem, AgentTaskParams } from '@lib/shared/models/system/agentTask';
 import type {
+  AiModelFeatureUsage,
   AiModelItem,
   AiModelOption,
   AiModelRouteStrategy,
@@ -408,6 +410,11 @@ export default function useProductApi(CDR: CordysAxios) {
     return CDR.post({ url: UpdateAiModelRouteStrategyUrl, data });
   }
 
+  // 模型设置-模型应用场景矩阵
+  function getAiModelFeatureUsage() {
+    return CDR.get<AiModelFeatureUsage[]>({ url: GetAiModelFeatureUsageUrl });
+  }
+
   // 全局任务-分页查询任务列表
   function getAgentTaskList(data: TableQueryParams) {
     return CDR.post<CommonList<AgentTaskItem>>({ url: GetAgentTaskListUrl, data });
@@ -593,6 +600,7 @@ export default function useProductApi(CDR: CordysAxios) {
     deleteAiModel,
     getAiModelRouteStrategy,
     updateAiModelRouteStrategy,
+    getAiModelFeatureUsage,
     getAgentTaskList,
     getAgentTaskExecutionRecordList,
     stopAgentTaskExecutionRecord,

@@ -65,6 +65,7 @@ export const DeleteAiModelUrl = '/agent-model/delete'; // 模型设置-删除模
 export const UpdateAiModelStatusUrl = '/agent-model/switch'; // 模型设置-更新模型状态
 export const GetAiModelRouteStrategyUrl = '/agent-model-strategy/get'; // 模型设置-获取路由策略
 export const UpdateAiModelRouteStrategyUrl = '/agent-model-strategy/config'; // 模型设置-更新路由策略
+export const GetAiModelFeatureUsageUrl = '/agent-model/feature-usage'; // 模型设置-模型应用场景矩阵
 
 // 全局任务
 export const AddAgentTaskUrl = '/agent-task/add'; // 全局任务-添加任务

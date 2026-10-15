@@ -55,3 +55,25 @@ export interface AiModelRouteStrategy {
   ttsModels?: string[];
   fallback: boolean;
 }
+
+/** 模型应用场景矩阵：单个模型摘要（不暴露密钥） */
+export interface AiModelFeatureUsageModel {
+  displayName: string;
+  modelName?: string;
+  provider: string;
+}
+
+/** 模型应用场景矩阵：单个用途及解析到的模型候选链 */
+export interface AiModelFeatureUsageRoute {
+  route: string;
+  routeName: string;
+  models: AiModelFeatureUsageModel[];
+}
+
+/** 模型应用场景矩阵：单个 AI 功能 → 用途列表 */
+export interface AiModelFeatureUsage {
+  featureCode: string;
+  featureName: string;
+  remark?: string;
+  usages: AiModelFeatureUsageRoute[];
+}

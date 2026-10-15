@@ -107,6 +107,10 @@
     }
   );
 
+  const emit = defineEmits<{
+    (e: 'saved'): void;
+  }>();
+
   const { t } = useI18n();
   const Message = useMessage();
 
@@ -190,6 +194,7 @@
       loading.value = true;
       await updateAiModelRouteStrategy(getStrategyParams());
       Message.success(t('common.saveSuccess'));
+      emit('saved');
       showModal.value = false;
     } catch (error) {
       // eslint-disable-next-line no-console
