@@ -14,6 +14,7 @@ import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -30,28 +31,31 @@ public class BusinessScreenController {
     @GetMapping("/overview")
     @CsPermission(PermissionConstants.DASHBOARD_READ)
     @Operation(summary = "经营大屏总览")
-    public BusinessScreenOverviewResponse overview() {
-        return businessScreenService.overview(OrganizationContext.getOrganizationId());
+    public BusinessScreenOverviewResponse overview(@RequestParam(required = false) String range) {
+        return businessScreenService.overview(OrganizationContext.getOrganizationId(), range);
     }
 
     @GetMapping("/sales/{ownerId}")
     @CsPermission(PermissionConstants.DASHBOARD_READ)
     @Operation(summary = "经营大屏下钻：销售个人明细")
-    public SalesOverviewResponse salesDetail(@PathVariable String ownerId) {
-        return businessScreenService.salesDetail(OrganizationContext.getOrganizationId(), ownerId);
+    public SalesOverviewResponse salesDetail(@PathVariable String ownerId,
+                                             @RequestParam(required = false) String range) {
+        return businessScreenService.salesDetail(OrganizationContext.getOrganizationId(), ownerId, range);
     }
 
     @GetMapping("/region/{adcode}")
     @CsPermission(PermissionConstants.DASHBOARD_READ)
     @Operation(summary = "经营大屏下钻：省级区域明细")
-    public RegionDetailResponse regionDetail(@PathVariable String adcode) {
-        return businessScreenService.regionDetail(OrganizationContext.getOrganizationId(), adcode);
+    public RegionDetailResponse regionDetail(@PathVariable String adcode,
+                                             @RequestParam(required = false) String range) {
+        return businessScreenService.regionDetail(OrganizationContext.getOrganizationId(), adcode, range);
     }
 
     @GetMapping("/stage/{stage}")
     @CsPermission(PermissionConstants.DASHBOARD_READ)
     @Operation(summary = "经营大屏下钻：合同阶段明细")
-    public StageDetailResponse stageDetail(@PathVariable String stage) {
-        return businessScreenService.stageDetail(OrganizationContext.getOrganizationId(), stage);
+    public StageDetailResponse stageDetail(@PathVariable String stage,
+                                           @RequestParam(required = false) String range) {
+        return businessScreenService.stageDetail(OrganizationContext.getOrganizationId(), stage, range);
     }
 }

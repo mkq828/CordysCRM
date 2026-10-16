@@ -1,6 +1,8 @@
 package cn.cordys.crm.ai.bi.controller;
 
+import cn.cordys.common.constants.PermissionConstants;
 import cn.cordys.common.exception.GenericException;
+import cn.cordys.common.permission.CsPermission;
 import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.ai.bi.dto.request.AskBiQueryRequest;
 import cn.cordys.crm.ai.bi.dto.response.AskBiQueryResponse;
@@ -52,6 +54,13 @@ public class AskBiController {
         String orgId = OrganizationContext.getOrganizationId();
         checkAvailable(orgId);
         return askBiService.query(orgId, request);
+    }
+
+    @PostMapping("/screen-query")
+    @CsPermission(PermissionConstants.DASHBOARD_READ)
+    @Operation(summary = "数据大屏「AI 经营助手」只读问数（免费全租户，不计量额度）")
+    public AskBiQueryResponse screenQuery(@Valid @RequestBody AskBiQueryRequest request) {
+        return askBiService.queryFree(OrganizationContext.getOrganizationId(), request);
     }
 
     private void checkAvailable(String orgId) {

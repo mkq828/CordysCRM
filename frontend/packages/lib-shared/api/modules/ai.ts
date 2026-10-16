@@ -117,6 +117,7 @@ import {
   AiBiAvailableUrl,
   AiBiCatalogUrl,
   AiBiQueryUrl,
+  AiBiScreenQueryUrl,
   AiContentGenerateStreamUrl,
   AiContentGenerateUrl,
   AiDramaAddEpisodeUrl,
@@ -976,6 +977,10 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post<AskBiQueryResult>({ url: AiBiQueryUrl, data });
   }
 
+  function askBiScreenQuery(data: AskBiQueryParams) {
+    return CDR.post<AskBiQueryResult>({ url: AiBiScreenQueryUrl, data });
+  }
+
   function getAiToolAvailable() {
     return CDR.get<boolean>({ url: AiToolAvailableUrl });
   }
@@ -1183,6 +1188,7 @@ export default function useAiApi(CDR: CordysAxios) {
     getAiBiAvailable,
     getAiBiCatalog,
     askBiQuery,
+    askBiScreenQuery,
     deleteAiVideoTask,
     setAiVideoCover,
     setAiVideoFirstShotCover,

@@ -80,6 +80,7 @@ export const AiDramaFragmentVoicePreviewUrl = '/agent/drama/fragments'; // AI �
 export const AiBiAvailableUrl = '/agent/bi/available'; // AI 问数 BI-版本开关查询
 export const AiBiCatalogUrl = '/agent/bi/catalog'; // AI 问数 BI-可查指标/示例问题/提示
 export const AiBiQueryUrl = '/agent/bi/query'; // AI 问数 BI-大白话查数（返回结果+图表+SQL）
+export const AiBiScreenQueryUrl = '/agent/bi/screen-query'; // 数据大屏「AI 经营助手」只读问数（免费全租户，不计量）
 export const AiToolAvailableUrl = '/agent/tool/available'; // AI 工具中心-版本开关查询
 export const AiToolTextStreamUrl = '/agent/tool/text/stream'; // AI 工具中心-文案类工具流式生成
 export const AiToolImageUrl = '/agent/tool/image'; // AI 工具中心-文生图（POST 提交）

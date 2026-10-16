@@ -3,6 +3,9 @@
     <aside v-if="visible" class="detail-panel">
       <header class="detail-panel__header">
         <div class="detail-panel__heading">
+          <button v-if="canGoBack" class="detail-panel__back" type="button" @click="emit('back')">
+            ‹ {{ t('businessScreen.back') }}
+          </button>
           <span class="detail-panel__bar"></span>
           <h2 class="detail-panel__title">{{ title }}</h2>
         </div>
@@ -21,6 +24,86 @@
         </div>
 
         <template v-else>
+          <!-- 主动预警 -->
+          <section v-if="kind === 'alert'" class="detail-panel__alert">
+            <div v-if="alertList.length === 0" class="detail-panel__state">
+              <span>{{ t('businessScreen.alertsEmpty') }}</span>
+            </div>
+            <button
+              v-for="item in alertList"
+              :key="`${item.type}-${item.entityId || item.targetKey || item.title}`"
+              type="button"
+              class="detail-panel__alert-card"
+              @click="emit('openAlert', item)"
+            >
+              <div class="detail-panel__alert-head">
+                <span class="detail-panel__alert-level" :class="alertLevelClass(item.level)">
+                  {{ alertTypeLabel(item.type) }}
+                </span>
+                <span class="detail-panel__alert-go">{{ t('businessScreen.viewDetail') }} ›</span>
+              </div>
+              <div class="detail-panel__alert-title">{{ item.title }}</div>
+              <div class="detail-panel__alert-desc">{{ item.desc }}</div>
+            </button>
+          </section>
+
+          <!-- 督办看板 -->
+          <section v-else-if="kind === 'supervision'" class="detail-panel__supervise">
+            <form class="detail-panel__supervise-form" @submit.prevent="submitSupervision">
+              <div class="detail-panel__field">
+                <label class="detail-panel__label">{{ t('businessScreen.supervisionAssignee') }}</label>
+                <select v-model="svAssignee" class="detail-panel__select">
+                  <option value="" disabled>{{ t('businessScreen.supervisionAssignee') }}</option>
+                  <option v-for="o in assigneeList" :key="o.owner" :value="o.owner">
+                    {{ o.ownerName || o.owner }}
+                  </option>
+                </select>
+              </div>
+              <div class="detail-panel__field">
+                <label class="detail-panel__label">{{ t('businessScreen.supervisionContent') }}</label>
+                <textarea
+                  v-model="svContent"
+                  class="detail-panel__textarea"
+                  rows="3"
+                  :placeholder="t('businessScreen.supervisionContentPlaceholder')"
+                ></textarea>
+              </div>
+              <div class="detail-panel__field">
+                <label class="detail-panel__label">{{ t('businessScreen.supervisionDeadline') }}</label>
+                <input v-model="svDeadline" type="datetime-local" class="detail-panel__input" />
+              </div>
+              <button class="detail-panel__submit" type="submit">
+                {{ t('businessScreen.supervisionSubmit') }}
+              </button>
+            </form>
+
+            <div v-if="supervisionList.length === 0" class="detail-panel__state detail-panel__state--sm">
+              <span>{{ t('businessScreen.supervisionEmpty') }}</span>
+            </div>
+            <div v-for="task in supervisionList" :key="task.id" class="detail-panel__task">
+              <div class="detail-panel__task-head">
+                <span class="detail-panel__task-assignee">{{ task.assigneeName || task.assignee }}</span>
+                <span class="detail-panel__task-status" :class="taskStatusClass(task.status)">
+                  {{ taskStatusLabel(task.status) }}
+                </span>
+              </div>
+              <div class="detail-panel__task-content">{{ task.content }}</div>
+              <div class="detail-panel__task-foot">
+                <span class="detail-panel__task-deadline">
+                  {{ t('businessScreen.supervisionDeadline') }} {{ fmtDeadline(task.deadline) }}
+                </span>
+                <button
+                  v-if="task.status !== 'DONE'"
+                  class="detail-panel__task-done"
+                  type="button"
+                  @click="emit('markSupervisionDone', task.id)"
+                >
+                  {{ t('businessScreen.supervisionMarkDone') }}
+                </button>
+              </div>
+            </div>
+          </section>
+
           <!-- KPI 指标 -->
           <section v-if="kpiCards.length > 0" class="detail-panel__kpis">
             <div v-for="card in kpiCards" :key="card.label" class="detail-panel__kpi">
@@ -28,6 +111,39 @@
               <span class="detail-panel__kpi-value" :style="{ color: card.accent }">
                 {{ card.value }}<small v-if="card.unit">{{ card.unit }}</small>
               </span>
+            </div>
+          </section>
+
+          <!-- AI 诊断 -->
+          <section v-if="showAiDiagnosis" class="detail-panel__ai">
+            <div class="detail-panel__ai-head">
+              <span class="detail-panel__ai-title">{{ t('businessScreen.aiDiagnosis') }}</span>
+              <button class="detail-panel__ai-regen" type="button" @click="emit('regenerateAi')">
+                {{ t('businessScreen.aiDiagnosisRegenerate') }}
+              </button>
+            </div>
+            <div v-if="aiLoading" class="detail-panel__ai-loading">
+              {{ t('businessScreen.aiDiagnosisLoading') }}
+            </div>
+            <div v-else-if="ai" class="detail-panel__ai-body">
+              <template v-if="aiSections">
+                <div class="detail-panel__ai-sec">
+                  <span class="detail-panel__ai-tag detail-panel__ai-tag--status">{{
+                    t('businessScreen.aiDiagnosisStatus')
+                  }}</span>
+                  <div class="detail-panel__ai-md" v-html="aiStatusHtml"></div>
+                </div>
+                <div class="detail-panel__ai-sec">
+                  <span class="detail-panel__ai-tag detail-panel__ai-tag--suggestion">{{
+                    t('businessScreen.aiDiagnosisSuggestion')
+                  }}</span>
+                  <div class="detail-panel__ai-md" v-html="aiSuggestionHtml"></div>
+                </div>
+              </template>
+              <div v-else class="detail-panel__ai-md" v-html="aiHtml"></div>
+            </div>
+            <div v-else class="detail-panel__ai-empty">
+              {{ t('businessScreen.aiDiagnosisEmpty') }}
             </div>
           </section>
 
@@ -138,7 +254,10 @@
 
   import chinaJson from '../assets/china.json';
 
+  import { renderMarkdown } from '@lib/shared/ai-chat';
   import type {
+    AlertItem,
+    AssigneeOption,
     BusinessScreenOverview,
     CustomerBrief,
     DistributionItem,
@@ -149,6 +268,7 @@
     SalesOverview,
     StageContractItem,
     StageDetail,
+    SupervisionItem,
     TrendPoint,
   } from '@lib/shared/api/modules/businessScreen';
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -209,6 +329,12 @@
       sales?: SalesOverview | null;
       region?: RegionDetail | null;
       stage?: StageDetail | null;
+      alerts?: AlertItem[] | null;
+      supervision?: SupervisionItem[] | null;
+      assignees?: AssigneeOption[] | null;
+      ai?: string | null;
+      aiLoading?: boolean;
+      canGoBack?: boolean;
     }>(),
     {
       loading: false,
@@ -217,13 +343,24 @@
       sales: null,
       region: null,
       stage: null,
+      alerts: null,
+      supervision: null,
+      assignees: null,
+      ai: null,
+      aiLoading: false,
+      canGoBack: false,
     }
   );
 
   const emit = defineEmits<{
     (event: 'close'): void;
+    (event: 'back'): void;
     (event: 'retry'): void;
     (event: 'openCustomerList'): void;
+    (event: 'regenerateAi'): void;
+    (event: 'openAlert', item: AlertItem): void;
+    (event: 'submitSupervision', payload: { assignee: string; content: string; deadline: number }): void;
+    (event: 'markSupervisionDone', id: string): void;
   }>();
 
   const { t } = useI18n();
@@ -240,6 +377,96 @@
 
   function fmtAmount(v?: number): string {
     return Number(v || 0).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+  }
+
+  const alertList = computed<AlertItem[]>(() => props.alerts ?? []);
+  const supervisionList = computed<SupervisionItem[]>(() => props.supervision ?? []);
+  const assigneeList = computed<AssigneeOption[]>(() => props.assignees ?? []);
+
+  // 打开即显示「AI 诊断」区块：分析中 / 有结论 / 失败 三种状态在同一区块内切换，
+  // 避免结论返回后区块才弹出、打开瞬间只有图表没有 AI 的观感。
+  const showAiDiagnosis = computed(() => !['alert', 'supervision'].includes(props.kind));
+
+  // 后端按「现状：… 建议：…」两段式输出；前端据此拆分出层次分明的现状 / 建议两块。
+  interface AiSection {
+    status: string;
+    suggestion: string;
+  }
+
+  function splitAi(content: string | null | undefined): AiSection | null {
+    if (!content) {
+      return null;
+    }
+    const text = content.trim();
+    const match = text.match(/建议[:：]\s*/);
+    if (!match || match.index === undefined) {
+      return null;
+    }
+    const status = text
+      .slice(0, match.index)
+      .replace(/^现状[:：]\s*/, '')
+      .trim();
+    const suggestion = text.slice(match.index + match[0].length).trim();
+    if (!status && !suggestion) {
+      return null;
+    }
+    return { status, suggestion };
+  }
+
+  const aiSections = computed(() => splitAi(props.ai));
+  const aiStatusHtml = computed(() => (aiSections.value ? renderMarkdown(aiSections.value.status) : ''));
+  const aiSuggestionHtml = computed(() => (aiSections.value ? renderMarkdown(aiSections.value.suggestion) : ''));
+  const aiHtml = computed(() => renderMarkdown(props.ai ?? ''));
+
+  // —— 督办表单（第一版用原生控件，避免日期浮层在玻璃面板内被裁剪） ——
+  const svAssignee = ref('');
+  const svContent = ref('');
+  const svDeadline = ref('');
+
+  function toDatetimeLocal(timestamp: number): string {
+    const d = new Date(timestamp);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(
+      d.getMinutes()
+    )}`;
+  }
+
+  function fmtDeadline(timestamp: number): string {
+    return toDatetimeLocal(timestamp).replace('T', ' ');
+  }
+
+  function taskStatusLabel(status: string): string {
+    if (status === 'DONE') return t('businessScreen.supervisionStatusDone');
+    if (status === 'OVERDUE') return t('businessScreen.supervisionStatusOverdue');
+    return t('businessScreen.supervisionStatusPending');
+  }
+
+  function taskStatusClass(status: string): string {
+    return `is-${status.toLowerCase()}`;
+  }
+
+  function submitSupervision(): void {
+    const assignee = svAssignee.value;
+    const content = svContent.value.trim();
+    if (!assignee || !content || !svDeadline.value) {
+      return;
+    }
+    const deadline = new Date(svDeadline.value).getTime();
+    emit('submitSupervision', { assignee, content, deadline });
+    svAssignee.value = '';
+    svContent.value = '';
+    svDeadline.value = '';
+  }
+
+  function alertLevelClass(level: string): string {
+    return `lv-${(level || 'warning').toLowerCase()}`;
+  }
+
+  function alertTypeLabel(type: string): string {
+    if (type === 'CONTRACT_DROP') return t('businessScreen.alertTypeContractDrop');
+    if (type === 'STALE_BIG_CUSTOMER') return t('businessScreen.alertTypeStaleBigCustomer');
+    if (type === 'STALE_OWNER') return t('businessScreen.alertTypeStaleOwner');
+    return type;
   }
 
   const showContractTrend = computed(() => ['overview', 'trend', 'sales'].includes(props.kind));
@@ -365,7 +592,11 @@
 
   const empty = computed(
     () =>
-      kpiCards.value.length === 0 && !hasCharts.value && customerList.value.length === 0 && stageList.value.length === 0
+      !['alert', 'supervision'].includes(props.kind) &&
+      kpiCards.value.length === 0 &&
+      !hasCharts.value &&
+      customerList.value.length === 0 &&
+      stageList.value.length === 0
   );
 
   function setChartRef(key: string, el: unknown) {
@@ -673,6 +904,24 @@
     border-color: rgb(120 180 255 / 40%);
     color: #ffffff;
   }
+  .detail-panel__back {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    font-size: 12px;
+    border: 1px solid rgb(120 180 255 / 25%);
+    border-radius: 6px;
+    white-space: nowrap;
+    color: #8ea0bd;
+    background: rgb(255 255 255 / 4%);
+    transition: border-color 160ms ease, color 160ms ease;
+    flex: none;
+    cursor: pointer;
+  }
+  .detail-panel__back:hover {
+    border-color: rgb(120 180 255 / 50%);
+    color: #e6ecf5;
+  }
   .detail-panel__body {
     overflow-y: auto;
     padding: 14px 16px;
@@ -880,5 +1129,306 @@
   .panel-leave-to {
     transform: translateX(24px);
     opacity: 0;
+  }
+
+  // —— AI 诊断 ——
+  .detail-panel__ai {
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid rgb(66 130 255 / 22%);
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgb(66 130 255 / 10%), rgb(55 224 204 / 6%));
+  }
+  .detail-panel__ai-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .detail-panel__ai-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e6ecf5;
+  }
+  .detail-panel__ai-regen {
+    padding: 2px 10px;
+    font-size: 11px;
+    border: 1px solid rgb(66 130 255 / 45%);
+    border-radius: 6px;
+    color: #6ba0ff;
+    background: rgb(66 130 255 / 10%);
+    cursor: pointer;
+  }
+  .detail-panel__ai-regen:hover {
+    color: #ffffff;
+    background: rgb(66 130 255 / 20%);
+  }
+  .detail-panel__ai-loading {
+    font-size: 13px;
+    color: #8ea0bd;
+    animation: detail-panel-pulse 1.2s ease-in-out infinite;
+  }
+  .detail-panel__ai-empty {
+    font-size: 13px;
+    color: #8ea0bd;
+  }
+  .detail-panel__ai-body {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #d6e3f7;
+  }
+  .detail-panel__ai-sec {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .detail-panel__ai-sec + .detail-panel__ai-sec {
+    margin-top: 10px;
+  }
+  .detail-panel__ai-tag {
+    padding: 1px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 6px;
+    align-self: flex-start;
+  }
+  .detail-panel__ai-tag--status {
+    color: #6ba0ff;
+    background: rgb(66 130 255 / 14%);
+  }
+  .detail-panel__ai-tag--suggestion {
+    color: #76de74;
+    background: rgb(118 222 116 / 14%);
+  }
+  .detail-panel__ai-md {
+    color: #d6e3f7;
+    :deep(p) {
+      margin: 0;
+    }
+    :deep(ol),
+    :deep(ul) {
+      margin: 0;
+      padding-left: 18px;
+    }
+    :deep(ol) {
+      list-style: decimal;
+    }
+    :deep(ul) {
+      list-style: disc;
+    }
+    :deep(li + li) {
+      margin-top: 2px;
+    }
+    :deep(strong) {
+      font-weight: 600;
+      color: #ffb958;
+    }
+    :deep(.ai-table-wrapper) {
+      overflow-x: auto;
+      margin: 6px 0;
+    }
+    :deep(table) {
+      width: 100%;
+      font-size: 12px;
+      border-collapse: collapse;
+      background: rgb(255 255 255 / 3%);
+    }
+    :deep(th),
+    :deep(td) {
+      padding: 6px 8px;
+      border: 1px solid rgb(120 180 255 / 14%);
+      text-align: left;
+    }
+    :deep(th) {
+      color: #c7d1e0;
+      background: rgb(66 130 255 / 10%);
+    }
+    :deep(td) {
+      color: #d6e3f7;
+    }
+  }
+
+  // —— 主动预警 ——
+  .detail-panel__alert {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .detail-panel__alert-card {
+    display: flex;
+    padding: 12px;
+    border: 1px solid rgb(255 255 255 / 8%);
+    border-radius: 10px;
+    text-align: left;
+    background: rgb(255 255 255 / 3%);
+    transition: border-color 160ms ease, background-color 160ms ease;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .detail-panel__alert-card:hover {
+    border-color: rgb(255 93 93 / 45%);
+    background: rgb(255 93 93 / 8%);
+  }
+  .detail-panel__alert-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .detail-panel__alert-level {
+    padding: 2px 8px;
+    font-size: 11px;
+    border-radius: 6px;
+    color: #ffb958;
+    background: rgb(255 185 88 / 12%);
+  }
+  .detail-panel__alert-level.lv-critical {
+    color: #ff5d5d;
+    background: rgb(255 93 93 / 12%);
+  }
+  .detail-panel__alert-go {
+    font-size: 11px;
+    color: #37e0cc;
+  }
+  .detail-panel__alert-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #d6e3f7;
+  }
+  .detail-panel__alert-desc {
+    font-size: 12px;
+    line-height: 1.6;
+    color: #8ea0bd;
+  }
+
+  // —— 督办看板 ——
+  .detail-panel__supervise-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 12px;
+    border: 1px solid rgb(255 255 255 / 8%);
+    border-radius: 10px;
+    background: rgb(255 255 255 / 2%);
+  }
+  .detail-panel__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .detail-panel__label {
+    font-size: 12px;
+    color: #8ea0bd;
+  }
+  .detail-panel__select,
+  .detail-panel__input,
+  .detail-panel__textarea {
+    padding: 8px 10px;
+    width: 100%;
+    font-size: 13px;
+    border: 1px solid rgb(255 255 255 / 12%);
+    border-radius: 8px;
+    color: #d6e3f7;
+    background: rgb(11 18 32 / 70%);
+    outline: none;
+    resize: vertical;
+  }
+  .detail-panel__select option {
+    color: #d6e3f7;
+    background: #0b1220;
+  }
+  .detail-panel__select:focus,
+  .detail-panel__input:focus,
+  .detail-panel__textarea:focus {
+    border-color: rgb(66 130 255 / 55%);
+  }
+  .detail-panel__submit {
+    align-self: flex-end;
+    padding: 7px 18px;
+    font-size: 13px;
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #4282ff, #37e0cc);
+    cursor: pointer;
+  }
+  .detail-panel__state--sm {
+    min-height: 80px;
+  }
+  .detail-panel__task {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgb(255 255 255 / 6%);
+  }
+  .detail-panel__task-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .detail-panel__task-assignee {
+    font-size: 13px;
+    font-weight: 600;
+    color: #d6e3f7;
+  }
+  .detail-panel__task-status {
+    flex: none;
+    padding: 2px 8px;
+    font-size: 11px;
+    border-radius: 6px;
+  }
+  .detail-panel__task-status.is-pending {
+    color: #ffb958;
+    background: rgb(255 185 88 / 12%);
+  }
+  .detail-panel__task-status.is-done {
+    color: #37e0cc;
+    background: rgb(55 224 204 / 12%);
+  }
+  .detail-panel__task-status.is-overdue {
+    color: #ff5d5d;
+    background: rgb(255 93 93 / 12%);
+  }
+  .detail-panel__task-content {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #d6e3f7;
+  }
+  .detail-panel__task-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .detail-panel__task-deadline {
+    font-size: 11px;
+    color: #8ea0bd;
+    font-variant-numeric: tabular-nums;
+  }
+  .detail-panel__task-done {
+    flex: none;
+    padding: 3px 12px;
+    font-size: 12px;
+    border: 1px solid rgb(55 224 204 / 45%);
+    border-radius: 6px;
+    color: #37e0cc;
+    background: rgb(55 224 204 / 10%);
+    cursor: pointer;
+  }
+  .detail-panel__task-done:hover {
+    color: #ffffff;
+    background: rgb(55 224 204 / 22%);
+  }
+
+  @keyframes detail-panel-pulse {
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 1;
+    }
   }
 </style>

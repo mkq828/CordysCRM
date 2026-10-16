@@ -476,10 +476,12 @@
   }));
 
   // —— 布局目标 ——
+  // 展开态把选中维度放到扇叶序列中间，其余维度均匀分布在其两侧（维度数量可扩展，不写死 6 个槽位）。
   function slotOf(key: string): number {
     const list = dims.value.map((d) => d.key);
     const others = list.filter((k) => k !== selectedDim.value);
-    const order = [others[0], others[1], others[2], selectedDim.value, others[3], others[4]].filter((v): v is string =>
+    const middle = Math.floor(others.length / 2);
+    const order = [...others.slice(0, middle), selectedDim.value, ...others.slice(middle)].filter((v): v is string =>
       Boolean(v)
     );
     return order.indexOf(key);
@@ -977,14 +979,6 @@
       rgb(0 0 0 / 20%) calc(var(--orb-m0) + (100% - var(--orb-m0)) * 0.8),
       transparent 100%
     );
-    mask-image: radial-gradient(
-      circle closest-side at 50% 50%,
-      #000000 var(--orb-m0),
-      rgb(0 0 0 / 82%) calc(var(--orb-m0) + (100% - var(--orb-m0)) * 0.3),
-      rgb(0 0 0 / 50%) calc(var(--orb-m0) + (100% - var(--orb-m0)) * 0.56),
-      rgb(0 0 0 / 20%) calc(var(--orb-m0) + (100% - var(--orb-m0)) * 0.8),
-      transparent 100%
-    );
     filter: brightness(0.86) contrast(1.1);
   }
   .orb-halo {
@@ -1095,7 +1089,6 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    mask-image: radial-gradient(ellipse 62% 64% at 50% 46%, #000000 55%, transparent 100%);
     mask-image: radial-gradient(ellipse 62% 64% at 50% 46%, #000000 55%, transparent 100%);
   }
   .jelly:hover,

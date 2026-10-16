@@ -74,14 +74,29 @@ public class AskBiService {
     }
 
     public AskBiQueryResponse query(String orgId, AskBiQueryRequest request) {
+        return doQuery(orgId, request, true);
+    }
+
+    /**
+     * 数据大屏「AI 经营助手」只读问数：复用同一语义层（BiCatalog + SQL 编译），
+     * 但免费全租户、不计量额度——只做模型调用与查询，不检查企业版 featureCode / 额度 / 模型日限额。
+     * 权限在 Controller 层由 DASHBOARD_READ 门控。
+     */
+    public AskBiQueryResponse queryFree(String orgId, AskBiQueryRequest request) {
+        return doQuery(orgId, request, false);
+    }
+
+    private AskBiQueryResponse doQuery(String orgId, AskBiQueryRequest request, boolean metered) {
         String question = request.getQuestion();
         if (StringUtils.isBlank(question)) {
             throw new GenericException("请输入您想问的数据问题");
         }
         String userId = SessionUtils.getUserId();
-        AiQuotaRecordResult quota = aiQuotaService.checkQuota(orgId);
-        if (isBlocked(quota.getStatus())) {
-            throw new GenericException(blockedMessage(quota.getStatus()));
+        if (metered) {
+            AiQuotaRecordResult quota = aiQuotaService.checkQuota(orgId);
+            if (isBlocked(quota.getStatus())) {
+                throw new GenericException(blockedMessage(quota.getStatus()));
+            }
         }
 
         List<AgentModel> models = agentModelService.resolveChatModels(orgId);
@@ -93,7 +108,9 @@ public class AskBiService {
         AtomicBoolean consumed = new AtomicBoolean(false);
         for (AgentModel model : models) {
             try {
-                aiQuotaService.checkModelDailyLimit(orgId, model, userId);
+                if (metered) {
+                    aiQuotaService.checkModelDailyLimit(orgId, model, userId);
+                }
                 LlmProvider provider = llmProviderFactory.get(model.getProvider());
                 LlmChatRequest llmRequest = new LlmChatRequest();
                 llmRequest.setModel(model.getModelName());
@@ -105,8 +122,10 @@ public class AskBiService {
                 StringBuilder sb = new StringBuilder();
                 LlmUsage usage = provider.chatStream(llmRequest, sb::append);
                 consumed.set(true);
-                aiQuotaService.record(orgId, AiQuotaConstant.AI_ASK_BI, model.getModelName(),
-                        usage.getInputTokens(), usage.getOutputTokens(), userId);
+                if (metered) {
+                    aiQuotaService.record(orgId, AiQuotaConstant.AI_ASK_BI, model.getModelName(),
+                            usage.getInputTokens(), usage.getOutputTokens(), userId);
+                }
 
                 BiQueryIntent intent = parseIntent(sb.toString());
                 return compileAndExecute(orgId, intent);

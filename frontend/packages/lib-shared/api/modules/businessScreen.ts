@@ -1,10 +1,15 @@
 import type { CordysAxios } from '@lib/shared/api/http/Axios';
 
 import {
+  BusinessScreenAlertsUrl,
+  BusinessScreenAttributionUrl,
+  BusinessScreenBriefingGenerateUrl,
+  BusinessScreenBriefingLatestUrl,
   BusinessScreenOverviewUrl,
   BusinessScreenRegionDetailUrl,
   BusinessScreenSalesDetailUrl,
   BusinessScreenStageDetailUrl,
+  BusinessScreenSupervisionUrl,
 } from '../requrls/businessScreen';
 
 export interface BusinessScreenKpi {
@@ -126,21 +131,112 @@ export interface StageDetail {
   list: StageContractItem[];
 }
 
+export interface AlertItem {
+  type: string;
+  level: string;
+  title: string;
+  desc: string;
+  targetKind: string;
+  targetKey?: string;
+  entityId?: string;
+  entityName?: string;
+  lastFollowTime?: number | null;
+  currentAmount?: number;
+  previousAmount?: number;
+}
+
+export interface AlertResponse {
+  items: AlertItem[];
+}
+
+export interface AttributionRequest {
+  kind: string;
+  key?: string;
+  range?: string;
+}
+
+export interface AttributionResponse {
+  content: string;
+}
+
+export interface SupervisionCreateRequest {
+  assignee: string;
+  content: string;
+  deadline: number;
+}
+
+export interface SupervisionItem {
+  id: string;
+  assignee: string;
+  assigneeName: string;
+  content: string;
+  deadline: number;
+  status: string;
+  createUser: string;
+  createTime: number;
+}
+
+export interface AssigneeOption {
+  owner: string;
+  ownerName: string;
+}
+
+export interface SupervisionBoardResponse {
+  items: SupervisionItem[];
+  assignees: AssigneeOption[];
+}
+
+export interface BriefingResponse {
+  id: string;
+  type: string;
+  period: string;
+  content: string;
+  createTime: number;
+}
+
 export default function useBusinessScreenApi(CDR: CordysAxios) {
-  function businessScreenOverview() {
-    return CDR.get<BusinessScreenOverview>({ url: BusinessScreenOverviewUrl });
+  function businessScreenOverview(range?: string) {
+    return CDR.get<BusinessScreenOverview>({ url: BusinessScreenOverviewUrl, params: { range } });
   }
 
-  function businessScreenSalesDetail(ownerId: string) {
-    return CDR.get<SalesOverview>({ url: `${BusinessScreenSalesDetailUrl}/${ownerId}` });
+  function businessScreenSalesDetail(ownerId: string, range?: string) {
+    return CDR.get<SalesOverview>({ url: `${BusinessScreenSalesDetailUrl}/${ownerId}`, params: { range } });
   }
 
-  function businessScreenRegionDetail(adcode: string) {
-    return CDR.get<RegionDetail>({ url: `${BusinessScreenRegionDetailUrl}/${adcode}` });
+  function businessScreenRegionDetail(adcode: string, range?: string) {
+    return CDR.get<RegionDetail>({ url: `${BusinessScreenRegionDetailUrl}/${adcode}`, params: { range } });
   }
 
-  function businessScreenStageDetail(stage: string) {
-    return CDR.get<StageDetail>({ url: `${BusinessScreenStageDetailUrl}/${stage}` });
+  function businessScreenStageDetail(stage: string, range?: string) {
+    return CDR.get<StageDetail>({ url: `${BusinessScreenStageDetailUrl}/${stage}`, params: { range } });
+  }
+
+  function businessScreenAlerts() {
+    return CDR.get<AlertResponse>({ url: BusinessScreenAlertsUrl });
+  }
+
+  function businessScreenAttribution(payload: AttributionRequest) {
+    return CDR.post<AttributionResponse>({ url: BusinessScreenAttributionUrl, data: payload });
+  }
+
+  function businessScreenSupervisionBoard() {
+    return CDR.get<SupervisionBoardResponse>({ url: BusinessScreenSupervisionUrl });
+  }
+
+  function businessScreenSupervisionCreate(payload: SupervisionCreateRequest) {
+    return CDR.post<SupervisionItem>({ url: BusinessScreenSupervisionUrl, data: payload });
+  }
+
+  function businessScreenSupervisionDone(id: string) {
+    return CDR.put({ url: `${BusinessScreenSupervisionUrl}/${id}/done` });
+  }
+
+  function businessScreenBriefingLatest() {
+    return CDR.get<BriefingResponse | null>({ url: BusinessScreenBriefingLatestUrl });
+  }
+
+  function businessScreenBriefingGenerate(type: string) {
+    return CDR.post<BriefingResponse>({ url: BusinessScreenBriefingGenerateUrl, params: { type } });
   }
 
   return {
@@ -148,5 +244,12 @@ export default function useBusinessScreenApi(CDR: CordysAxios) {
     businessScreenSalesDetail,
     businessScreenRegionDetail,
     businessScreenStageDetail,
+    businessScreenAlerts,
+    businessScreenAttribution,
+    businessScreenSupervisionBoard,
+    businessScreenSupervisionCreate,
+    businessScreenSupervisionDone,
+    businessScreenBriefingLatest,
+    businessScreenBriefingGenerate,
   };
 }

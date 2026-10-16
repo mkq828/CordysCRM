@@ -969,6 +969,7 @@ export const {
   getAiBiAvailable,
   getAiBiCatalog,
   askBiQuery,
+  askBiScreenQuery,
   deleteAiVideoTask,
   setAiVideoCover,
   setAiVideoFirstShotCover,
@@ -1131,6 +1132,13 @@ export const {
   businessScreenSalesDetail,
   businessScreenRegionDetail,
   businessScreenStageDetail,
+  businessScreenAlerts,
+  businessScreenAttribution,
+  businessScreenSupervisionBoard,
+  businessScreenSupervisionCreate,
+  businessScreenSupervisionDone,
+  businessScreenBriefingLatest,
+  businessScreenBriefingGenerate,
 } = businessScreenApi;
 
 export const {

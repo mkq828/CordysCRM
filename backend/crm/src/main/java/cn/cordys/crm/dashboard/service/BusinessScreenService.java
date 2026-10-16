@@ -14,6 +14,7 @@ import cn.cordys.crm.dashboard.dto.response.SalesKpi;
 import cn.cordys.crm.dashboard.dto.response.SalesOverviewResponse;
 import cn.cordys.crm.dashboard.dto.response.StageContractItem;
 import cn.cordys.crm.dashboard.dto.response.StageDetailResponse;
+import cn.cordys.crm.dashboard.TimeRange;
 import cn.cordys.crm.dashboard.dto.response.TrendPoint;
 import cn.cordys.crm.dashboard.mapper.ExtBusinessScreenMapper;
 import jakarta.annotation.Resource;
@@ -44,13 +45,18 @@ public class BusinessScreenService {
     @Resource
     private BaseService baseService;
 
-    public BusinessScreenOverviewResponse overview(String orgId) {
+    public BusinessScreenOverviewResponse overview(String orgId, String range) {
         ZoneId zone = ZoneId.systemDefault();
         YearMonth current = YearMonth.now(zone);
         long monthStart = current.atDay(1).atStartOfDay(zone).toInstant().toEpochMilli();
-        long trendSince = current.minusMonths(TREND_MONTHS - 1).atDay(1).atStartOfDay(zone).toInstant().toEpochMilli();
 
-        BusinessScreenKpi kpi = extBusinessScreenMapper.selectKpi(orgId, monthStart);
+        TimeRange timeRange = TimeRange.from(range);
+        long startMillis = timeRange.startMillis(zone);
+        long trendSince = timeRange.trendSinceMillis(zone);
+        String granularity = timeRange.granularity();
+        List<String> trendLabels = timeRange.trendLabels(zone);
+
+        BusinessScreenKpi kpi = extBusinessScreenMapper.selectKpi(orgId, monthStart, startMillis);
         if (kpi == null) {
             kpi = new BusinessScreenKpi();
         }
@@ -58,22 +64,21 @@ public class BusinessScreenService {
         kpi.setVerifiedAmount(zeroIfNull(kpi.getVerifiedAmount()));
         kpi.setPendingAmount(kpi.getTotalContractAmount().subtract(kpi.getVerifiedAmount()));
 
-        List<String> months = months(current);
-        List<TrendPoint> contractTrend = fillTrend(months, extBusinessScreenMapper.selectContractTrend(orgId, trendSince));
-        List<TrendPoint> paymentTrend = fillTrend(months, extBusinessScreenMapper.selectPaymentTrend(orgId, trendSince));
+        List<TrendPoint> contractTrend = fillTrend(trendLabels, extBusinessScreenMapper.selectContractTrend(orgId, trendSince, granularity));
+        List<TrendPoint> paymentTrend = fillTrend(trendLabels, extBusinessScreenMapper.selectPaymentTrend(orgId, trendSince, granularity));
 
-        List<RankItem> salesRank = extBusinessScreenMapper.selectSalesRank(orgId);
+        List<RankItem> salesRank = extBusinessScreenMapper.selectSalesRank(orgId, startMillis);
         if (salesRank == null) {
             salesRank = new ArrayList<>();
         }
         enrichOwnerNames(salesRank);
 
-        List<DistributionItem> contractStageDist = extBusinessScreenMapper.selectContractStageDist(orgId);
+        List<DistributionItem> contractStageDist = extBusinessScreenMapper.selectContractStageDist(orgId, startMillis);
         if (contractStageDist == null) {
             contractStageDist = new ArrayList<>();
         }
 
-        List<RegionItem> customerRegionDist = extBusinessScreenMapper.selectCustomerRegionDist(orgId);
+        List<RegionItem> customerRegionDist = extBusinessScreenMapper.selectCustomerRegionDist(orgId, startMillis);
         if (customerRegionDist == null) {
             customerRegionDist = new ArrayList<>();
         }
@@ -96,13 +101,15 @@ public class BusinessScreenService {
         return response;
     }
 
-    public SalesOverviewResponse salesDetail(String orgId, String ownerId) {
+    public SalesOverviewResponse salesDetail(String orgId, String ownerId, String range) {
         ZoneId zone = ZoneId.systemDefault();
         YearMonth current = YearMonth.now(zone);
         long monthStart = current.atDay(1).atStartOfDay(zone).toInstant().toEpochMilli();
-        long trendSince = current.minusMonths(TREND_MONTHS - 1).atDay(1).atStartOfDay(zone).toInstant().toEpochMilli();
+        long startMillis = TimeRange.from(range).startMillis(zone);
+        long trendSince = startMillis > 0 ? startMillis
+                : current.minusMonths(TREND_MONTHS - 1).atDay(1).atStartOfDay(zone).toInstant().toEpochMilli();
 
-        SalesKpi kpi = extBusinessScreenMapper.selectSalesKpi(orgId, ownerId, monthStart);
+        SalesKpi kpi = extBusinessScreenMapper.selectSalesKpi(orgId, ownerId, monthStart, startMillis);
         if (kpi == null) {
             kpi = new SalesKpi();
         }
@@ -115,12 +122,12 @@ public class BusinessScreenService {
         List<TrendPoint> contractTrend = fillTrend(months, extBusinessScreenMapper.selectSalesContractTrend(orgId, ownerId, trendSince));
         List<TrendPoint> paymentTrend = fillTrend(months, extBusinessScreenMapper.selectSalesPaymentTrend(orgId, ownerId, trendSince));
 
-        List<DistributionItem> stageDist = extBusinessScreenMapper.selectSalesStageDist(orgId, ownerId);
+        List<DistributionItem> stageDist = extBusinessScreenMapper.selectSalesStageDist(orgId, ownerId, startMillis);
         if (stageDist == null) {
             stageDist = new ArrayList<>();
         }
 
-        List<CustomerBrief> customerList = extBusinessScreenMapper.selectSalesCustomerList(orgId, ownerId);
+        List<CustomerBrief> customerList = extBusinessScreenMapper.selectSalesCustomerList(orgId, ownerId, startMillis);
         if (customerList == null) {
             customerList = new ArrayList<>();
         }
@@ -134,8 +141,9 @@ public class BusinessScreenService {
         return response;
     }
 
-    public RegionDetailResponse regionDetail(String orgId, String adcode) {
-        RegionKpi kpi = extBusinessScreenMapper.selectRegionKpi(orgId, adcode);
+    public RegionDetailResponse regionDetail(String orgId, String adcode, String range) {
+        long startMillis = TimeRange.from(range).startMillis(ZoneId.systemDefault());
+        RegionKpi kpi = extBusinessScreenMapper.selectRegionKpi(orgId, adcode, startMillis);
         if (kpi == null) {
             kpi = new RegionKpi();
         }
@@ -143,12 +151,12 @@ public class BusinessScreenService {
         kpi.setVerifiedAmount(zeroIfNull(kpi.getVerifiedAmount()));
         kpi.setPendingAmount(kpi.getContractAmount().subtract(kpi.getVerifiedAmount()));
 
-        List<CustomerBrief> customerList = extBusinessScreenMapper.selectRegionCustomerList(orgId, adcode);
+        List<CustomerBrief> customerList = extBusinessScreenMapper.selectRegionCustomerList(orgId, adcode, startMillis);
         if (customerList == null) {
             customerList = new ArrayList<>();
         }
 
-        List<RankItem> salesDist = extBusinessScreenMapper.selectRegionSalesDist(orgId, adcode);
+        List<RankItem> salesDist = extBusinessScreenMapper.selectRegionSalesDist(orgId, adcode, startMillis);
         if (salesDist == null) {
             salesDist = new ArrayList<>();
         }
@@ -161,13 +169,14 @@ public class BusinessScreenService {
         return response;
     }
 
-    public StageDetailResponse stageDetail(String orgId, String stage) {
+    public StageDetailResponse stageDetail(String orgId, String stage, String range) {
+        long startMillis = TimeRange.from(range).startMillis(ZoneId.systemDefault());
         String stageName = extBusinessScreenMapper.selectStageName(orgId, stage);
         if (StringUtils.isBlank(stageName)) {
             stageName = stage;
         }
 
-        List<StageContractItem> list = extBusinessScreenMapper.selectStageContractList(orgId, stage);
+        List<StageContractItem> list = extBusinessScreenMapper.selectStageContractList(orgId, stage, startMillis);
         if (list == null) {
             list = new ArrayList<>();
         }
@@ -195,18 +204,18 @@ public class BusinessScreenService {
         return list;
     }
 
-    private List<TrendPoint> fillTrend(List<String> months, List<TrendPoint> rows) {
-        Map<String, BigDecimal> byMonth = new HashMap<>();
+    private List<TrendPoint> fillTrend(List<String> labels, List<TrendPoint> rows) {
+        Map<String, BigDecimal> byLabel = new HashMap<>();
         if (rows != null) {
             for (TrendPoint row : rows) {
-                byMonth.put(row.getMonth(), zeroIfNull(row.getAmount()));
+                byLabel.put(row.getMonth(), zeroIfNull(row.getAmount()));
             }
         }
-        List<TrendPoint> result = new ArrayList<>(months.size());
-        for (String month : months) {
+        List<TrendPoint> result = new ArrayList<>(labels.size());
+        for (String label : labels) {
             TrendPoint point = new TrendPoint();
-            point.setMonth(month);
-            point.setAmount(byMonth.getOrDefault(month, BigDecimal.ZERO));
+            point.setMonth(label);
+            point.setAmount(byLabel.getOrDefault(label, BigDecimal.ZERO));
             result.add(point);
         }
         return result;

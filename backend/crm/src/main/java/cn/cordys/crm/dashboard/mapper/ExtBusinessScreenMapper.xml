@@ -4,17 +4,24 @@
 
     <select id="selectKpi" resultType="cn.cordys.crm.dashboard.dto.response.BusinessScreenKpi">
         SELECT
-            (SELECT COUNT(*) FROM customer WHERE organization_id = #{orgId} AND in_shared_pool = 0) AS customerCount,
+            (SELECT COUNT(*) FROM customer WHERE organization_id = #{orgId} AND in_shared_pool = 0
+             <if test="startMillis > 0">AND create_time &gt;= #{startMillis}</if>) AS customerCount,
             (SELECT COUNT(*) FROM clue WHERE organization_id = #{orgId} AND in_shared_pool = 0
-             AND (transition_type IS NULL OR transition_type != 'CUSTOMER')) AS clueCount,
-            (SELECT COUNT(*) FROM opportunity WHERE organization_id = #{orgId}) AS opportunityCount,
-            (SELECT COUNT(*) FROM sales_order WHERE organization_id = #{orgId}) AS orderCount,
+             AND (transition_type IS NULL OR transition_type != 'CUSTOMER')
+             <if test="startMillis > 0">AND create_time &gt;= #{startMillis}</if>) AS clueCount,
+            (SELECT COUNT(*) FROM opportunity WHERE organization_id = #{orgId}
+             <if test="startMillis > 0">AND create_time &gt;= #{startMillis}</if>) AS opportunityCount,
+            (SELECT COUNT(*) FROM sales_order WHERE organization_id = #{orgId}
+             <if test="startMillis > 0">AND create_time &gt;= #{startMillis}</if>) AS orderCount,
             (SELECT COUNT(*) FROM contract WHERE organization_id = #{orgId}
-             AND (void_reason IS NULL OR void_reason = '')) AS contractCount,
+             AND (void_reason IS NULL OR void_reason = '')
+             <if test="startMillis > 0">AND start_time &gt;= #{startMillis}</if>) AS contractCount,
             (SELECT COALESCE(SUM(amount), 0) FROM contract WHERE organization_id = #{orgId}
-             AND (void_reason IS NULL OR void_reason = '')) AS totalContractAmount,
+             AND (void_reason IS NULL OR void_reason = '')
+             <if test="startMillis > 0">AND start_time &gt;= #{startMillis}</if>) AS totalContractAmount,
             (SELECT COALESCE(SUM(record_amount), 0) FROM contract_payment_record WHERE organization_id = #{orgId}
-             AND verification_status = 'DONE') AS verifiedAmount,
+             AND verification_status = 'DONE'
+             <if test="startMillis > 0">AND record_end_time &gt;= #{startMillis}</if>) AS verifiedAmount,
             (SELECT COUNT(*) FROM customer WHERE organization_id = #{orgId} AND in_shared_pool = 0
              AND create_time &gt;= #{monthStart}) AS monthNewCustomer,
             (SELECT COUNT(*) FROM clue WHERE organization_id = #{orgId} AND in_shared_pool = 0
@@ -23,25 +30,53 @@
     </select>
 
     <select id="selectContractTrend" resultType="cn.cordys.crm.dashboard.dto.response.TrendPoint">
-        SELECT DATE_FORMAT(FROM_UNIXTIME(start_time / 1000), '%Y-%m') AS month,
-               COALESCE(SUM(amount), 0) AS amount
-        FROM contract
-        WHERE organization_id = #{orgId}
-          AND (void_reason IS NULL OR void_reason = '')
-          AND start_time &gt;= #{sinceMillis}
-        GROUP BY DATE_FORMAT(FROM_UNIXTIME(start_time / 1000), '%Y-%m')
-        ORDER BY month ASC
+        <choose>
+            <when test="granularity == 'DAY'">
+                SELECT DATE_FORMAT(FROM_UNIXTIME(start_time / 1000), '%Y-%m-%d') AS month,
+                       COALESCE(SUM(amount), 0) AS amount
+                FROM contract
+                WHERE organization_id = #{orgId}
+                  AND (void_reason IS NULL OR void_reason = '')
+                  AND start_time &gt;= #{sinceMillis}
+                GROUP BY DATE_FORMAT(FROM_UNIXTIME(start_time / 1000), '%Y-%m-%d')
+                ORDER BY month ASC
+            </when>
+            <otherwise>
+                SELECT DATE_FORMAT(FROM_UNIXTIME(start_time / 1000), '%Y-%m') AS month,
+                       COALESCE(SUM(amount), 0) AS amount
+                FROM contract
+                WHERE organization_id = #{orgId}
+                  AND (void_reason IS NULL OR void_reason = '')
+                  AND start_time &gt;= #{sinceMillis}
+                GROUP BY DATE_FORMAT(FROM_UNIXTIME(start_time / 1000), '%Y-%m')
+                ORDER BY month ASC
+            </otherwise>
+        </choose>
     </select>
 
     <select id="selectPaymentTrend" resultType="cn.cordys.crm.dashboard.dto.response.TrendPoint">
-        SELECT DATE_FORMAT(FROM_UNIXTIME(record_end_time / 1000), '%Y-%m') AS month,
-               COALESCE(SUM(record_amount), 0) AS amount
-        FROM contract_payment_record
-        WHERE organization_id = #{orgId}
-          AND verification_status = 'DONE'
-          AND record_end_time &gt;= #{sinceMillis}
-        GROUP BY DATE_FORMAT(FROM_UNIXTIME(record_end_time / 1000), '%Y-%m')
-        ORDER BY month ASC
+        <choose>
+            <when test="granularity == 'DAY'">
+                SELECT DATE_FORMAT(FROM_UNIXTIME(record_end_time / 1000), '%Y-%m-%d') AS month,
+                       COALESCE(SUM(record_amount), 0) AS amount
+                FROM contract_payment_record
+                WHERE organization_id = #{orgId}
+                  AND verification_status = 'DONE'
+                  AND record_end_time &gt;= #{sinceMillis}
+                GROUP BY DATE_FORMAT(FROM_UNIXTIME(record_end_time / 1000), '%Y-%m-%d')
+                ORDER BY month ASC
+            </when>
+            <otherwise>
+                SELECT DATE_FORMAT(FROM_UNIXTIME(record_end_time / 1000), '%Y-%m') AS month,
+                       COALESCE(SUM(record_amount), 0) AS amount
+                FROM contract_payment_record
+                WHERE organization_id = #{orgId}
+                  AND verification_status = 'DONE'
+                  AND record_end_time &gt;= #{sinceMillis}
+                GROUP BY DATE_FORMAT(FROM_UNIXTIME(record_end_time / 1000), '%Y-%m')
+                ORDER BY month ASC
+            </otherwise>
+        </choose>
     </select>
 
     <select id="selectSalesRank" resultType="cn.cordys.crm.dashboard.dto.response.RankItem">
@@ -54,18 +89,21 @@
             SELECT owner, COALESCE(SUM(amount), 0) AS contractAmount, COUNT(*) AS contractCount
             FROM contract
             WHERE organization_id = #{orgId} AND (void_reason IS NULL OR void_reason = '')
+            <if test="startMillis > 0">AND start_time &gt;= #{startMillis}</if>
             GROUP BY owner
         ) t
         LEFT JOIN (
             SELECT owner, COALESCE(SUM(record_amount), 0) AS verifiedAmount
             FROM contract_payment_record
             WHERE organization_id = #{orgId} AND verification_status = 'DONE'
+            <if test="startMillis > 0">AND record_end_time &gt;= #{startMillis}</if>
             GROUP BY owner
         ) p ON p.owner = t.owner
         LEFT JOIN (
             SELECT owner, COUNT(*) AS customerCount
             FROM customer
             WHERE organization_id = #{orgId} AND in_shared_pool = 0
+            <if test="startMillis > 0">AND create_time &gt;= #{startMillis}</if>
             GROUP BY owner
         ) c ON c.owner = t.owner
         ORDER BY t.contractAmount DESC
@@ -78,6 +116,7 @@
         LEFT JOIN contract_stage_config s ON s.id = c.stage AND s.organization_id = c.organization_id
         WHERE c.organization_id = #{orgId}
           AND (c.void_reason IS NULL OR c.void_reason = '')
+          <if test="startMillis > 0">AND c.start_time &gt;= #{startMillis}</if>
         GROUP BY c.stage, s.name
         ORDER BY value DESC
     </select>
@@ -87,7 +126,9 @@
         FROM customer_field cf
         JOIN sys_module_field f ON f.id = cf.field_id AND f.internal_key = 'customerArea'
         JOIN sys_module_form m ON m.id = f.form_id AND m.form_key = 'customer' AND m.organization_id = #{orgId}
+        JOIN customer c ON c.id = cf.resource_id AND c.organization_id = #{orgId}
         WHERE cf.field_value IS NOT NULL AND cf.field_value != ''
+          <if test="startMillis > 0">AND c.create_time &gt;= #{startMillis}</if>
         GROUP BY CONCAT(LEFT(cf.field_value, 2), '0000')
         ORDER BY value DESC
     </select>
@@ -97,23 +138,31 @@
         FROM customer_field cf
         JOIN sys_module_field f ON f.id = cf.field_id AND f.internal_key = 'customerArea'
         JOIN sys_module_form m ON m.id = f.form_id AND m.form_key = 'customer' AND m.organization_id = #{orgId}
+        JOIN customer c ON c.id = cf.resource_id AND c.organization_id = #{orgId}
         WHERE cf.field_value IS NOT NULL AND cf.field_value != ''
           AND CONCAT(LEFT(cf.field_value, 2), '0000') = #{adcode}
+          <if test="startMillis > 0">AND c.create_time &gt;= #{startMillis}</if>
     </sql>
 
     <select id="selectSalesKpi" resultType="cn.cordys.crm.dashboard.dto.response.SalesKpi">
         SELECT
             (SELECT COALESCE(SUM(amount), 0) FROM contract WHERE organization_id = #{orgId} AND owner = #{ownerId}
-             AND (void_reason IS NULL OR void_reason = '')) AS contractAmount,
+             AND (void_reason IS NULL OR void_reason = '')
+             <if test="startMillis > 0">AND start_time &gt;= #{startMillis}</if>) AS contractAmount,
             (SELECT COUNT(*) FROM contract WHERE organization_id = #{orgId} AND owner = #{ownerId}
-             AND (void_reason IS NULL OR void_reason = '')) AS contractCount,
+             AND (void_reason IS NULL OR void_reason = '')
+             <if test="startMillis > 0">AND start_time &gt;= #{startMillis}</if>) AS contractCount,
             (SELECT COALESCE(SUM(record_amount), 0) FROM contract_payment_record WHERE organization_id = #{orgId}
-             AND owner = #{ownerId} AND verification_status = 'DONE') AS verifiedAmount,
+             AND owner = #{ownerId} AND verification_status = 'DONE'
+             <if test="startMillis > 0">AND record_end_time &gt;= #{startMillis}</if>) AS verifiedAmount,
             (SELECT COUNT(*) FROM customer WHERE organization_id = #{orgId} AND owner = #{ownerId}
-             AND in_shared_pool = 0) AS customerCount,
+             AND in_shared_pool = 0
+             <if test="startMillis > 0">AND create_time &gt;= #{startMillis}</if>) AS customerCount,
             (SELECT COUNT(*) FROM clue WHERE organization_id = #{orgId} AND owner = #{ownerId}
-             AND in_shared_pool = 0 AND (transition_type IS NULL OR transition_type != 'CUSTOMER')) AS clueCount,
-            (SELECT COUNT(*) FROM opportunity WHERE organization_id = #{orgId} AND owner = #{ownerId}) AS opportunityCount,
+             AND in_shared_pool = 0 AND (transition_type IS NULL OR transition_type != 'CUSTOMER')
+             <if test="startMillis > 0">AND create_time &gt;= #{startMillis}</if>) AS clueCount,
+            (SELECT COUNT(*) FROM opportunity WHERE organization_id = #{orgId} AND owner = #{ownerId}
+             <if test="startMillis > 0">AND create_time &gt;= #{startMillis}</if>) AS opportunityCount,
             (SELECT COUNT(*) FROM customer WHERE organization_id = #{orgId} AND owner = #{ownerId}
              AND in_shared_pool = 0 AND create_time &gt;= #{monthStart}) AS monthNewCustomer,
             (SELECT COUNT(*) FROM contract WHERE organization_id = #{orgId} AND owner = #{ownerId}
@@ -150,6 +199,7 @@
         LEFT JOIN contract_stage_config s ON s.id = c.stage AND s.organization_id = c.organization_id
         WHERE c.organization_id = #{orgId} AND c.owner = #{ownerId}
           AND (c.void_reason IS NULL OR c.void_reason = '')
+          <if test="startMillis > 0">AND c.start_time &gt;= #{startMillis}</if>
         GROUP BY c.stage, s.name
         ORDER BY value DESC
     </select>
@@ -168,13 +218,16 @@
                 SELECT contract_id, COALESCE(SUM(record_amount), 0) AS verified
                 FROM contract_payment_record
                 WHERE verification_status = 'DONE' AND organization_id = #{orgId}
+                  <if test="startMillis > 0">AND record_end_time &gt;= #{startMillis}</if>
                 GROUP BY contract_id
             ) pv ON pv.contract_id = ct.id
             WHERE ct.organization_id = #{orgId} AND ct.owner = #{ownerId}
               AND (ct.void_reason IS NULL OR ct.void_reason = '')
+              <if test="startMillis > 0">AND ct.start_time &gt;= #{startMillis}</if>
             GROUP BY ct.customer_id
         ) t ON t.customer_id = c.id
         WHERE c.organization_id = #{orgId} AND c.owner = #{ownerId} AND c.in_shared_pool = 0
+          <if test="startMillis > 0">AND c.create_time &gt;= #{startMillis}</if>
         ORDER BY c.create_time DESC
         LIMIT 20
     </select>
@@ -184,13 +237,16 @@
             (SELECT COUNT(*) FROM (<include refid="regionCustomerIds"/>) rc) AS customerCount,
             (SELECT COALESCE(SUM(amount), 0) FROM contract
              WHERE organization_id = #{orgId} AND (void_reason IS NULL OR void_reason = '')
+               <if test="startMillis > 0">AND start_time &gt;= #{startMillis}</if>
                AND customer_id IN (<include refid="regionCustomerIds"/>)) AS contractAmount,
             (SELECT COUNT(*) FROM contract
              WHERE organization_id = #{orgId} AND (void_reason IS NULL OR void_reason = '')
+               <if test="startMillis > 0">AND start_time &gt;= #{startMillis}</if>
                AND customer_id IN (<include refid="regionCustomerIds"/>)) AS contractCount,
             (SELECT COALESCE(SUM(p.record_amount), 0) FROM contract_payment_record p
              JOIN contract t ON t.id = p.contract_id AND t.organization_id = #{orgId}
              WHERE p.organization_id = #{orgId} AND p.verification_status = 'DONE'
+               <if test="startMillis > 0">AND p.record_end_time &gt;= #{startMillis}</if>
                AND t.customer_id IN (<include refid="regionCustomerIds"/>)) AS verifiedAmount
     </select>
 
@@ -208,10 +264,12 @@
                 SELECT contract_id, COALESCE(SUM(record_amount), 0) AS verified
                 FROM contract_payment_record
                 WHERE verification_status = 'DONE' AND organization_id = #{orgId}
+                  <if test="startMillis > 0">AND record_end_time &gt;= #{startMillis}</if>
                 GROUP BY contract_id
             ) pv ON pv.contract_id = ct.id
             WHERE ct.organization_id = #{orgId}
               AND (ct.void_reason IS NULL OR ct.void_reason = '')
+              <if test="startMillis > 0">AND ct.start_time &gt;= #{startMillis}</if>
             GROUP BY ct.customer_id
         ) t ON t.customer_id = c.id
         WHERE c.organization_id = #{orgId}
@@ -238,6 +296,7 @@
             SELECT owner, COALESCE(SUM(amount), 0) AS contractAmount, COUNT(*) AS contractCount
             FROM contract
             WHERE organization_id = #{orgId} AND (void_reason IS NULL OR void_reason = '')
+              <if test="startMillis > 0">AND start_time &gt;= #{startMillis}</if>
               AND customer_id IN (<include refid="regionCustomerIds"/>)
             GROUP BY owner
         ) t ON t.owner = c.owner
@@ -246,6 +305,7 @@
             FROM contract_payment_record p2
             JOIN contract ct2 ON ct2.id = p2.contract_id AND ct2.organization_id = #{orgId}
             WHERE p2.organization_id = #{orgId} AND p2.verification_status = 'DONE'
+              <if test="startMillis > 0">AND p2.record_end_time &gt;= #{startMillis}</if>
               AND ct2.customer_id IN (<include refid="regionCustomerIds"/>)
             GROUP BY p2.owner
         ) p ON p.owner = c.owner
@@ -267,16 +327,65 @@
             SELECT contract_id, COALESCE(SUM(record_amount), 0) AS verifiedAmount
             FROM contract_payment_record
             WHERE verification_status = 'DONE' AND organization_id = #{orgId}
+              <if test="startMillis > 0">AND record_end_time &gt;= #{startMillis}</if>
             GROUP BY contract_id
         ) p ON p.contract_id = c.id
         WHERE c.organization_id = #{orgId}
           AND c.stage = #{stage}
           AND (c.void_reason IS NULL OR c.void_reason = '')
+          <if test="startMillis > 0">AND c.start_time &gt;= #{startMillis}</if>
         ORDER BY c.start_time DESC
     </select>
 
     <select id="selectStageName" resultType="java.lang.String">
         SELECT name FROM contract_stage_config WHERE id = #{stage} AND organization_id = #{orgId} LIMIT 1
+    </select>
+
+    <select id="selectStaleBigCustomer" resultType="cn.cordys.crm.dashboard.dto.response.StaleBigCustomerRow">
+        SELECT c.id AS customerId,
+               c.name AS customerName,
+               c.owner AS owner,
+               c.follow_time AS followTime,
+               t.contractAmount AS contractAmount
+        FROM customer c
+        JOIN (
+            SELECT customer_id, COALESCE(SUM(amount), 0) AS contractAmount
+            FROM contract
+            WHERE organization_id = #{orgId} AND (void_reason IS NULL OR void_reason = '')
+            GROUP BY customer_id
+            HAVING SUM(amount) &gt;= #{amountThreshold}
+        ) t ON t.customer_id = c.id
+        WHERE c.organization_id = #{orgId}
+          AND c.in_shared_pool = 0
+          AND (c.follow_time IS NULL OR c.follow_time &lt; #{staleBefore})
+        ORDER BY t.contractAmount DESC
+        LIMIT 20
+    </select>
+
+    <select id="selectStaleOwner" resultType="cn.cordys.crm.dashboard.dto.response.StaleOwnerRow">
+        SELECT o.owner AS owner, COALESCE(m.lastFollowTime, 0) AS lastFollowTime
+        FROM (
+            SELECT DISTINCT owner
+            FROM customer
+            WHERE organization_id = #{orgId} AND in_shared_pool = 0
+              AND owner IS NOT NULL AND owner != ''
+        ) o
+        LEFT JOIN (
+            SELECT owner, MAX(follow_time) AS lastFollowTime
+            FROM follow_up_record
+            WHERE organization_id = #{orgId}
+            GROUP BY owner
+        ) m ON m.owner = o.owner
+        WHERE m.lastFollowTime IS NULL OR m.lastFollowTime &lt; #{staleBefore}
+        ORDER BY lastFollowTime ASC
+        LIMIT 20
+    </select>
+
+    <select id="selectOwnerIds" resultType="java.lang.String">
+        SELECT DISTINCT owner
+        FROM customer
+        WHERE organization_id = #{orgId} AND in_shared_pool = 0
+          AND owner IS NOT NULL AND owner != ''
     </select>
 
 </mapper>

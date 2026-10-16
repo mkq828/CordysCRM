@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 
 import java.beans.Transient;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -176,6 +177,10 @@ public class EntityTableMapper {
         List<Field> fields = new ArrayList<>();
         while (clazz != null && clazz != Object.class) {
             for (Field field : clazz.getDeclaredFields()) {
+                // 静态字段（如 public static final String 常量）不是数据库列，跳过，避免被当作列名生成 SELECT/INSERT
+                if (Modifier.isStatic(field.getModifiers())) {
+                    continue;
+                }
                 if (fieldFilter == null || fieldFilter.test(field)) {
                     fields.add(field);
                 }
