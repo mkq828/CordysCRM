@@ -20,6 +20,7 @@ import type {
   AiCloneVoiceSubmitParams,
   AiContentGenerateParams,
   AiContentGenerateResult,
+  AiEmployeeAction,
   AiEmployeeAgent,
   AiEmployeeAgentSaveParams,
   AiEmployeeChatParams,
@@ -132,6 +133,10 @@ import {
   AiDramaScriptUrl,
   AiDramaSeedAssetsUrl,
   AiDramaVoicesUrl,
+  AiEmployeeActionApproveUrl,
+  AiEmployeeActionRejectUrl,
+  AiEmployeeActionScanUrl,
+  AiEmployeeActionsUrl,
   AiEmployeeAgentAddUrl,
   AiEmployeeAgentDeleteUrl,
   AiEmployeeAgentsUrl,
@@ -687,6 +692,22 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post({ url: `${AiEmployeeTaskApplyUrl}/${agentId}/task/apply`, data });
   }
 
+  function getAiEmployeeActions() {
+    return CDR.get<AiEmployeeAction[]>({ url: AiEmployeeActionsUrl });
+  }
+
+  function approveAiEmployeeAction(id: string) {
+    return CDR.post({ url: `${AiEmployeeActionApproveUrl}/${id}/approve` });
+  }
+
+  function rejectAiEmployeeAction(id: string) {
+    return CDR.post({ url: `${AiEmployeeActionRejectUrl}/${id}/reject` });
+  }
+
+  function scanAiEmployeeActions() {
+    return CDR.post<number>({ url: AiEmployeeActionScanUrl });
+  }
+
   function generateAiMeetingMinutes(data: AiMeetingMinutesGenerateParams) {
     return CDR.post<AiMeetingMinutes>({ url: AiMeetingMinutesUrl, data });
   }
@@ -1131,6 +1152,10 @@ export default function useAiApi(CDR: CordysAxios) {
     streamAiEmployeeChat,
     streamAiEmployeeTask,
     applyAiEmployeeTask,
+    getAiEmployeeActions,
+    approveAiEmployeeAction,
+    rejectAiEmployeeAction,
+    scanAiEmployeeActions,
     generateAiMeetingMinutes,
     getAiMeetingMinutes,
     getAiMeetingMinutesDetail,

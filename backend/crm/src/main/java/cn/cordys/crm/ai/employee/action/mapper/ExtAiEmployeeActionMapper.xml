@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.cordys.crm.ai.employee.action.mapper.ExtAiEmployeeActionMapper">
+
+    <select id="selectStaleCustomers" resultType="cn.cordys.crm.ai.employee.action.dto.StaleCustomerRow">
+        SELECT c.id AS customerId,
+               c.name AS customerName,
+               c.owner AS owner,
+               c.follow_time AS followTime,
+               COALESCE(t.contractAmount, 0) AS contractAmount
+        FROM customer c
+        LEFT JOIN (
+            SELECT customer_id, COALESCE(SUM(amount), 0) AS contractAmount
+            FROM contract
+            WHERE organization_id = #{orgId} AND (void_reason IS NULL OR void_reason = '')
+            GROUP BY customer_id
+        ) t ON t.customer_id = c.id
+        WHERE c.organization_id = #{orgId}
+          AND c.in_shared_pool = 0
+          AND c.owner IS NOT NULL AND c.owner != ''
+          AND (c.follow_time IS NULL OR c.follow_time &lt; #{staleBefore})
+        ORDER BY COALESCE(t.contractAmount, 0) DESC, c.follow_time ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectPending" resultType="cn.cordys.crm.ai.employee.action.domain.AiEmployeeAction">
+        SELECT id,
+               organization_id AS organizationId,
+               action_type AS actionType,
+               agent_id AS agentId,
+               customer_id AS customerId,
+               customer_name AS customerName,
+               owner_id AS ownerId,
+               payload,
+               status,
+               result,
+               confirm_user AS confirmUser,
+               confirm_time AS confirmTime,
+               create_user AS createUser,
+               update_user AS updateUser,
+               create_time AS createTime,
+               update_time AS updateTime
+        FROM ai_employee_action
+        WHERE organization_id = #{orgId} AND status = 'PENDING'
+    </select>
+
+    <select id="selectQuietCustomers" resultType="java.lang.String">
+        SELECT customer_id
+        FROM ai_employee_action
+        WHERE organization_id = #{orgId}
+          AND status = 'REJECTED'
+          AND confirm_time IS NOT NULL
+          AND confirm_time &gt; #{quietBefore}
+        GROUP BY customer_id
+    </select>
+
+</mapper>

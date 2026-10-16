@@ -437,6 +437,24 @@ export interface AiEmployeeAgentSaveParams {
   sort?: number;
 }
 
+/** AI 员工-待确认动作（自动跟进闭环：定时扫描久未联系客户生成的待确认跟进建议） */
+export interface AiEmployeeAction {
+  id: string;
+  actionType: string;
+  customerId: string;
+  customerName?: string;
+  ownerId?: string;
+  ownerName?: string;
+  /** 跟进话术草稿 */
+  content?: string;
+  /** 建议跟进方式（电话/到访） */
+  followMethod?: string;
+  /** 补充建议 */
+  suggestion?: string;
+  status: string;
+  createTime?: number;
+}
+
 /** AI 员工-岗位 Agent 对话请求 */
 export interface AiEmployeeChatParams {
   message: string;

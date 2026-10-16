@@ -144,6 +144,60 @@
                   </div>
                 </div>
               </n-tab-pane>
+
+              <n-tab-pane name="actions" :tab="t('aiEmployee.actionsTab')">
+                <div class="actions-list-pane flex h-full flex-col overflow-y-auto px-[16px] pb-[16px]">
+                  <div class="flex shrink-0 items-center justify-between pb-[8px] pt-[12px]">
+                    <span class="text-[12px] text-orange-500">{{ t('aiEmployee.actionsDesc') }}</span>
+                    <n-button size="tiny" type="primary" secondary :loading="scanning" @click="scanActions">
+                      {{ scanning ? t('aiEmployee.actionsScanning') : t('aiEmployee.actionsScan') }}
+                    </n-button>
+                  </div>
+                  <n-spin :show="loadingActions">
+                    <template v-if="actions.length === 0 && !loadingActions">
+                      <n-empty :description="t('aiEmployee.actionsEmpty')" class="mt-[48px]" />
+                    </template>
+                    <div v-else class="flex flex-col gap-[10px]">
+                      <div
+                        v-for="a in actions"
+                        :key="a.id"
+                        class="action-card shrink-0 rounded-[8px] border border-[var(--divider-color)] p-[12px] transition-colors hover:border-[var(--primary-8)]"
+                      >
+                        <div class="flex flex-wrap items-center gap-[8px]">
+                          <span class="truncate text-[13px] font-semibold text-[var(--text-n1)]">{{
+                            a.customerName
+                          }}</span>
+                          <span class="text-[12px] text-[var(--text-n3)]"
+                            >{{ t('aiEmployee.actionsOwner') }}：{{ a.ownerName || '-' }}</span
+                          >
+                          <span class="text-[12px] text-[var(--text-n3)]"
+                            >{{ t('aiEmployee.actionsMethod') }}：{{ a.followMethod || '-' }}</span
+                          >
+                        </div>
+                        <div class="mt-[8px] break-words text-[12px] leading-[1.6] text-[var(--text-n2)]">{{
+                          a.content
+                        }}</div>
+                        <div v-if="a.suggestion" class="mt-[6px] break-words text-[12px] leading-[1.5] text-orange-500">
+                          {{ t('aiEmployee.actionsSuggestion') }}：{{ a.suggestion }}
+                        </div>
+                        <div class="mt-[10px] flex justify-end gap-[8px]">
+                          <n-button
+                            size="tiny"
+                            type="primary"
+                            :loading="processingId === a.id"
+                            @click="approveAction(a)"
+                          >
+                            {{ t('aiEmployee.actionsApprove') }}
+                          </n-button>
+                          <n-button size="tiny" :disabled="processingId === a.id" @click="rejectAction(a)">
+                            {{ t('aiEmployee.actionsReject') }}
+                          </n-button>
+                        </div>
+                      </div>
+                    </div>
+                  </n-spin>
+                </div>
+              </n-tab-pane>
             </n-tabs>
           </div>
         </template>
@@ -234,6 +288,7 @@
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import type {
+    AiEmployeeAction,
     AiEmployeeAgent,
     AiEmployeeDetail,
     AiEmployeeDivision,
@@ -250,12 +305,16 @@
 
   import {
     addAiEmployeeAgent,
+    approveAiEmployeeAction,
     deleteAiEmployeeAgent,
+    getAiEmployeeActions,
     getAiEmployeeAgents,
     getAiEmployeeCatalog,
     getAiEmployeeDetail,
     getAiEmployeeDivisions,
     getAiMeetingMinutes,
+    rejectAiEmployeeAction,
+    scanAiEmployeeActions,
     updateAiEmployeeAgent,
   } from '@/api/modules';
   import useModal from '@/hooks/useModal';
@@ -318,7 +377,7 @@
   const Message = useMessage();
   const { openModal } = useModal();
 
-  const activeTab = ref<'catalog' | 'agents' | 'minutes'>('catalog');
+  const activeTab = ref<'catalog' | 'agents' | 'minutes' | 'actions'>('catalog');
   const splitSize = ref(0.42);
   const divisions = ref<AiEmployeeDivision[]>([]);
   const selectedDivision = ref('');
@@ -344,6 +403,11 @@
   const minutesList = ref<AiMeetingMinutes[]>([]);
   const minutesModalVisible = ref(false);
   const currentMinutes = ref<AiMeetingMinutes | null>(null);
+
+  const actions = ref<AiEmployeeAction[]>([]);
+  const loadingActions = ref(false);
+  const scanning = ref(false);
+  const processingId = ref('');
 
   function divisionLabel(division: string): string {
     return DIVISION_LABELS[division] || division;
@@ -543,10 +607,68 @@
     loadMinutes();
   }
 
+  async function loadActions() {
+    loadingActions.value = true;
+    try {
+      actions.value = await getAiEmployeeActions();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    } finally {
+      loadingActions.value = false;
+    }
+  }
+
+  async function approveAction(action: AiEmployeeAction) {
+    processingId.value = action.id;
+    try {
+      await approveAiEmployeeAction(action.id);
+      Message.success(t('aiEmployee.actionsApproved'));
+      await loadActions();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      Message.error((error as Error)?.message || t('common.operationFailed'));
+    } finally {
+      processingId.value = '';
+    }
+  }
+
+  async function rejectAction(action: AiEmployeeAction) {
+    processingId.value = action.id;
+    try {
+      await rejectAiEmployeeAction(action.id);
+      Message.success(t('aiEmployee.actionsRejected'));
+      await loadActions();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      Message.error((error as Error)?.message || t('common.operationFailed'));
+    } finally {
+      processingId.value = '';
+    }
+  }
+
+  async function scanActions() {
+    scanning.value = true;
+    try {
+      const count = await scanAiEmployeeActions();
+      Message.success(t('aiEmployee.actionsScanned', { count }));
+      await loadActions();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      Message.error((error as Error)?.message || t('common.operationFailed'));
+    } finally {
+      scanning.value = false;
+    }
+  }
+
   onMounted(() => {
     loadDivisions();
     loadAgents();
     loadMinutes();
+    loadActions();
   });
 </script>
 

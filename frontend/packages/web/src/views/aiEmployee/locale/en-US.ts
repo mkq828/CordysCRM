@@ -63,4 +63,18 @@ export default {
   'aiEmployee.updateConfirm': 'Confirm',
   'aiEmployee.updateCancel': 'Cancel',
   'aiEmployee.updateApplied': 'Updated',
+  'aiEmployee.actionsTab': 'To Confirm',
+  'aiEmployee.actionsEmpty': 'No AI follow-up suggestions pending confirmation',
+  'aiEmployee.actionsScan': 'Scan Now',
+  'aiEmployee.actionsScanning': 'Scanning…',
+  'aiEmployee.actionsApprove': 'Confirm',
+  'aiEmployee.actionsReject': 'Reject',
+  'aiEmployee.actionsOwner': 'Owner',
+  'aiEmployee.actionsMethod': 'Method',
+  'aiEmployee.actionsSuggestion': 'Suggestion',
+  'aiEmployee.actionsApproved': 'Executed',
+  'aiEmployee.actionsRejected': 'Rejected',
+  'aiEmployee.actionsDesc':
+    'AI employees periodically scan customers who have not been contacted for a while and draft follow-up suggestions for your confirmation.',
+  'aiEmployee.actionsScanned': 'Scan complete, {count} new suggestion(s)',
 };
