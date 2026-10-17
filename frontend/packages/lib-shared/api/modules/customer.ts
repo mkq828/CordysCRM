@@ -23,6 +23,9 @@ import {
   CancelCustomerFollowPlanUrl,
   CheckOpportunityContactUrl,
   ContactListUnderCustomerUrl,
+  CustomerTagBatchUrl,
+  CustomerTagListUrl,
+  CustomerTagOfCustomerUrl,
   DeleteAccountPoolViewUrl,
   DeleteContactViewUrl,
   DeleteCustomerCollaborationUrl,
@@ -167,6 +170,7 @@ import type {
   CustomerProfileResponse,
   CustomerTabHidden,
   CustomerTableParams,
+  CustomerTag,
   FollowDetailItem,
   MergeAccountParams,
   MoveToPublicPoolParams,
@@ -224,6 +228,26 @@ export default function useProductApi(CDR: CordysAxios) {
   // 获取客户画像（360° 只读聚合 + AI 洞察）
   function getCustomerProfile(id: string) {
     return CDR.get<CustomerProfileResponse>({ url: `${GetCustomerProfileUrl}/${id}` });
+  }
+
+  // 客户标签-租户标签字典列表
+  function getCustomerTagList() {
+    return CDR.get<CustomerTag[]>({ url: CustomerTagListUrl });
+  }
+
+  // 客户标签-客户已打标签列表
+  function getCustomerTags(customerId: string) {
+    return CDR.get<CustomerTag[]>({ url: `${CustomerTagOfCustomerUrl}/${customerId}` });
+  }
+
+  // 客户标签-人工打标签
+  function tagCustomer(customerId: string, tagName: string) {
+    return CDR.post({ url: `${CustomerTagOfCustomerUrl}/${customerId}`, params: { tagName } });
+  }
+
+  // 客户标签-批量查询客户的已打标签（列表页标签列）
+  function getCustomerTagsBatch(customerIds: string[]) {
+    return CDR.post<Record<string, CustomerTag[]>>({ url: CustomerTagBatchUrl, data: { customerIds } });
   }
 
   // 删除客户
@@ -840,6 +864,10 @@ export default function useProductApi(CDR: CordysAxios) {
     getCustomerFormConfig,
     getCustomer,
     getCustomerProfile,
+    getCustomerTagList,
+    getCustomerTags,
+    getCustomerTagsBatch,
+    tagCustomer,
     deleteCustomer,
     getGlobalCustomerList,
     getGlobalOpenSeaCustomerList,

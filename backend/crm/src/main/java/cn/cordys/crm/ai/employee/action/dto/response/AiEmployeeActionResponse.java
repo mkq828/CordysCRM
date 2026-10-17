@@ -15,6 +15,15 @@ public class AiEmployeeActionResponse {
     @Schema(description = "动作类型")
     private String actionType;
 
+    @Schema(description = "资源类型（CUSTOMER/CONTRACT/PAYMENT_PLAN/CLUE）")
+    private String resourceType;
+
+    @Schema(description = "资源ID")
+    private String resourceId;
+
+    @Schema(description = "资源名称")
+    private String resourceName;
+
     @Schema(description = "客户ID")
     private String customerId;
 
@@ -30,11 +39,14 @@ public class AiEmployeeActionResponse {
     @Schema(description = "跟进话术草稿")
     private String content;
 
-    @Schema(description = "建议跟进方式（电话/到访）")
+    @Schema(description = "建议跟进方式（电话/微信/到访）")
     private String followMethod;
 
     @Schema(description = "补充建议")
     private String suggestion;
+
+    @Schema(description = "原始载荷 JSON（不同动作类型结构不同，前端按 actionType 解析）")
+    private String payload;
 
     @Schema(description = "状态")
     private String status;

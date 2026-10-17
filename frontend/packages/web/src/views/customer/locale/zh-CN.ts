@@ -82,4 +82,8 @@ export default {
   'customer.profileStage': '商机阶段分布',
   'customer.profileCountUnit': '个',
   'customer.profileFollowUnit': '次',
+  'customer.tags': '标签',
+  'customer.tagsEmpty': '暂无标签',
+  'customer.tagPlaceholder': '输入标签名',
+  'customer.tagAdd': '添加',
 };

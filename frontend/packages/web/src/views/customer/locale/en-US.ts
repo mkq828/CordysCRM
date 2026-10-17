@@ -90,4 +90,8 @@ export default {
   'customer.profileStage': 'Opportunity stage distribution',
   'customer.profileCountUnit': 'items',
   'customer.profileFollowUnit': 'times',
+  'customer.tags': 'Tags',
+  'customer.tagsEmpty': 'No tags yet',
+  'customer.tagPlaceholder': 'Enter tag name',
+  'customer.tagAdd': 'Add',
 };

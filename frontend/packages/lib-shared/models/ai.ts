@@ -441,16 +441,22 @@ export interface AiEmployeeAgentSaveParams {
 export interface AiEmployeeAction {
   id: string;
   actionType: string;
-  customerId: string;
+  customerId?: string;
   customerName?: string;
   ownerId?: string;
   ownerName?: string;
+  /** 资源类型（CUSTOMER/CONTRACT/PAYMENT_PLAN/CLUE） */
+  resourceType?: string;
+  resourceId?: string;
+  resourceName?: string;
   /** 跟进话术草稿 */
   content?: string;
   /** 建议跟进方式（电话/到访） */
   followMethod?: string;
   /** 补充建议 */
   suggestion?: string;
+  /** 原始载荷 JSON（不同动作类型结构不同，按 actionType 解析） */
+  payload?: string;
   status: string;
   createTime?: number;
 }

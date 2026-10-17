@@ -16,8 +16,32 @@ import lombok.Data;
 @Table(name = "ai_employee_action")
 public class AiEmployeeAction extends BaseModel {
 
-    /** 动作类型：创建跟进记录（本期唯一） */
+    /** 动作类型：创建跟进记录 */
     public static final String ACTION_FOLLOW_UP_CREATE = "FOLLOW_UP_CREATE";
+
+    /** 动作类型：自动催款/到期动作 */
+    public static final String ACTION_DUNNING = "DUNNING";
+
+    /** 动作类型：自动打标签 */
+    public static final String ACTION_TAG = "TAG";
+
+    /** 动作类型：线索/商机自动流转 */
+    public static final String ACTION_CLUE_FLOW = "CLUE_FLOW";
+
+    /** 动作类型：自动补全数据 */
+    public static final String ACTION_FILL_FIELD = "FILL_FIELD";
+
+    /** 资源类型：客户 */
+    public static final String RESOURCE_TYPE_CUSTOMER = "CUSTOMER";
+
+    /** 资源类型：合同 */
+    public static final String RESOURCE_TYPE_CONTRACT = "CONTRACT";
+
+    /** 资源类型：回款计划 */
+    public static final String RESOURCE_TYPE_PAYMENT_PLAN = "PAYMENT_PLAN";
+
+    /** 资源类型：线索 */
+    public static final String RESOURCE_TYPE_CLUE = "CLUE";
 
     public static final String STATUS_PENDING = "PENDING";
     public static final String STATUS_APPROVED = "APPROVED";
@@ -33,6 +57,15 @@ public class AiEmployeeAction extends BaseModel {
 
     @Schema(description = "岗位 Agent ID（定时扫描无岗位，可空）")
     private String agentId;
+
+    @Schema(description = "资源类型（CUSTOMER/CONTRACT/PAYMENT_PLAN/CLUE）")
+    private String resourceType;
+
+    @Schema(description = "资源ID（客户/合同/回款计划/线索等）")
+    private String resourceId;
+
+    @Schema(description = "资源名称（冗余展示）")
+    private String resourceName;
 
     @Schema(description = "客户ID")
     private String customerId;

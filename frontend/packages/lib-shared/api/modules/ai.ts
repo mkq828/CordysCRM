@@ -708,6 +708,10 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post<number>({ url: AiEmployeeActionScanUrl });
   }
 
+  function scanAiEmployeeActionByType(actionType: string) {
+    return CDR.post<number>({ url: `${AiEmployeeActionScanUrl}/${actionType}` });
+  }
+
   function generateAiMeetingMinutes(data: AiMeetingMinutesGenerateParams) {
     return CDR.post<AiMeetingMinutes>({ url: AiMeetingMinutesUrl, data });
   }
@@ -1156,6 +1160,7 @@ export default function useAiApi(CDR: CordysAxios) {
     approveAiEmployeeAction,
     rejectAiEmployeeAction,
     scanAiEmployeeActions,
+    scanAiEmployeeActionByType,
     generateAiMeetingMinutes,
     getAiMeetingMinutes,
     getAiMeetingMinutesDetail,

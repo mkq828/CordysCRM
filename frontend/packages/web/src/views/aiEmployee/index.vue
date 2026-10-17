@@ -158,42 +158,14 @@
                       <n-empty :description="t('aiEmployee.actionsEmpty')" class="mt-[48px]" />
                     </template>
                     <div v-else class="flex flex-col gap-[10px]">
-                      <div
+                      <AiActionCard
                         v-for="a in actions"
                         :key="a.id"
-                        class="action-card shrink-0 rounded-[8px] border border-[var(--divider-color)] p-[12px] transition-colors hover:border-[var(--primary-8)]"
-                      >
-                        <div class="flex flex-wrap items-center gap-[8px]">
-                          <span class="truncate text-[13px] font-semibold text-[var(--text-n1)]">{{
-                            a.customerName
-                          }}</span>
-                          <span class="text-[12px] text-[var(--text-n3)]"
-                            >{{ t('aiEmployee.actionsOwner') }}：{{ a.ownerName || '-' }}</span
-                          >
-                          <span class="text-[12px] text-[var(--text-n3)]"
-                            >{{ t('aiEmployee.actionsMethod') }}：{{ a.followMethod || '-' }}</span
-                          >
-                        </div>
-                        <div class="mt-[8px] break-words text-[12px] leading-[1.6] text-[var(--text-n2)]">{{
-                          a.content
-                        }}</div>
-                        <div v-if="a.suggestion" class="mt-[6px] break-words text-[12px] leading-[1.5] text-orange-500">
-                          {{ t('aiEmployee.actionsSuggestion') }}：{{ a.suggestion }}
-                        </div>
-                        <div class="mt-[10px] flex justify-end gap-[8px]">
-                          <n-button
-                            size="tiny"
-                            type="primary"
-                            :loading="processingId === a.id"
-                            @click="approveAction(a)"
-                          >
-                            {{ t('aiEmployee.actionsApprove') }}
-                          </n-button>
-                          <n-button size="tiny" :disabled="processingId === a.id" @click="rejectAction(a)">
-                            {{ t('aiEmployee.actionsReject') }}
-                          </n-button>
-                        </div>
-                      </div>
+                        :action="a"
+                        :processing="processingId === a.id"
+                        @approve="approveAction"
+                        @reject="rejectAction"
+                      />
                     </div>
                   </n-spin>
                 </div>
@@ -300,6 +272,7 @@
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmSplitPanel from '@/components/pure/crm-split-panel/index.vue';
   import AgentTaskChat from './components/AgentTaskChat.vue';
+  import AiActionCard from './components/AiActionCard.vue';
   import MeetingMinutesModal from './components/MeetingMinutesModal.vue';
   import MeetingRoom from './components/MeetingRoom.vue';
 
@@ -314,7 +287,7 @@
     getAiEmployeeDivisions,
     getAiMeetingMinutes,
     rejectAiEmployeeAction,
-    scanAiEmployeeActions,
+    scanAiEmployeeActionByType,
     updateAiEmployeeAgent,
   } from '@/api/modules';
   import useModal from '@/hooks/useModal';
@@ -376,6 +349,9 @@
   const { t } = useI18n();
   const Message = useMessage();
   const { openModal } = useModal();
+
+  // 手动扫描覆盖的自动任务场景（顺序即展示顺序）
+  const SCAN_ACTION_TYPES = ['FOLLOW_UP_CREATE', 'DUNNING', 'TAG', 'CLUE_FLOW', 'FILL_FIELD'];
 
   const activeTab = ref<'catalog' | 'agents' | 'minutes' | 'actions'>('catalog');
   const splitSize = ref(0.42);
@@ -652,7 +628,8 @@
   async function scanActions() {
     scanning.value = true;
     try {
-      const count = await scanAiEmployeeActions();
+      const counts = await Promise.all(SCAN_ACTION_TYPES.map((type) => scanAiEmployeeActionByType(type)));
+      const count = counts.reduce((sum, current) => sum + current, 0);
       Message.success(t('aiEmployee.actionsScanned', { count }));
       await loadActions();
     } catch (error) {

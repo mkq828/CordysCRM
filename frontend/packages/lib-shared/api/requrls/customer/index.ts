@@ -139,3 +139,7 @@ export const FixedAccountPoolViewUrl = 'pool/account/view/fixed';
 export const EnableAccountPoolViewUrl = 'pool/account/view/enable';
 export const DragAccountPoolViewUrl = 'pool/account/view/edit/pos';
 export const generateCustomerPoolChartUrl = '/pool/account/chart';
+
+export const CustomerTagListUrl = '/customer/tag'; // 客户标签-租户标签字典列表（GET）
+export const CustomerTagOfCustomerUrl = '/customer/tag/customer'; // 客户标签-客户已打标签（GET 拼 /{customerId}）/ 人工打标签（POST 拼 /{customerId}?tagName=）
+export const CustomerTagBatchUrl = '/customer/tag/customer/batch'; // 客户标签-批量查询客户的已打标签（POST body {customerIds}）

@@ -16,7 +16,7 @@ public class AiEmployeeActionPayload {
     /** 跟进话术草稿（第一人称、口语化） */
     private String content;
 
-    /** 跟进方式中文标签（电话 / 到访），执行时映射为存储编码 */
+    /** 跟进方式中文标签（电话 / 微信 / 到访），执行时映射为存储编码 */
     private String followMethod;
 
     /** 补充建议（一句话） */

@@ -434,3 +434,13 @@ export interface CustomerProfileResponse {
   /** 私信画像结构化字段（线索转客户带入，无则 null） */
   dmProfile?: DmProfileSnapshot | null;
 }
+
+/** 客户标签（租户级字典） */
+export interface CustomerTag {
+  id?: string;
+  organizationId?: string;
+  name?: string;
+  color?: string;
+  category?: string;
+  builtIn?: boolean;
+}

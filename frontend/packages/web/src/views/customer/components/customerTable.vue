@@ -135,7 +135,7 @@
 
 <script setup lang="ts">
   import { useRoute } from 'vue-router';
-  import { DataTableRowKey, NButton, useMessage } from 'naive-ui';
+  import { DataTableRowKey, NButton, NTooltip, useMessage } from 'naive-ui';
 
   import { OperatorEnum } from '@lib/shared/enums/commonEnum';
   import { CustomerSearchTypeEnum } from '@lib/shared/enums/customerEnum';
@@ -145,6 +145,7 @@
   import useLocale from '@lib/shared/locale/useLocale';
   import { characterLimit } from '@lib/shared/method';
   import { ExportTableColumnItem } from '@lib/shared/models/common';
+  import type { CustomerTag } from '@lib/shared/models/customer';
 
   import CrmAdvanceFilter from '@/components/pure/crm-advance-filter/index.vue';
   import { FilterForm, FilterFormItem, FilterResult } from '@/components/pure/crm-advance-filter/type';
@@ -155,6 +156,7 @@
   import CrmTable from '@/components/pure/crm-table/index.vue';
   import { BatchActionConfig } from '@/components/pure/crm-table/type';
   import CrmTableButton from '@/components/pure/crm-table-button/index.vue';
+  import CrmTag from '@/components/pure/crm-tag/index.vue';
   import CrmBatchEditModal from '@/components/business/crm-batch-edit-modal/index.vue';
   import CrmFormCreateDrawer from '@/components/business/crm-form-create-drawer/index.vue';
   import CrmImportButton from '@/components/business/crm-import-button/index.vue';
@@ -167,7 +169,13 @@
   import customerOverviewDrawer from './customerOverviewDrawer.vue';
   import mergeAccountModal from './mergeAccountModal.vue';
 
-  import { batchDeleteCustomer, batchTransferCustomer, deleteCustomer, updateCustomer } from '@/api/modules';
+  import {
+    batchDeleteCustomer,
+    batchTransferCustomer,
+    deleteCustomer,
+    getCustomerTagsBatch,
+    updateCustomer,
+  } from '@/api/modules';
   import { baseFilterConfigList } from '@/config/clue';
   import useFormCreateApi from '@/hooks/useFormCreateApi';
   import useFormCreateTable from '@/hooks/useFormCreateTable';
@@ -624,21 +632,99 @@
     readonly: props.readonly,
   });
   const { propsRes, propsEvent, tableQueryParams, loadList, setLoadListParams, setAdvanceFilter } = useTableRes;
-  const tableColumns = computed(() => {
-    if (activeTab.value === CustomerSearchTypeEnum.CUSTOMER_COLLABORATION) {
-      return propsRes.value.columns
-        .filter((item: any) => item.type !== 'selection')
-        .map((e) => {
-          if (e.key === 'operation') {
-            return {
-              ...e,
-              width: 80,
-            };
-          }
-          return e;
-        });
+
+  // 客户标签列：列表页直接展示彩色标签，避免逐行进详情查看。列表数据变化后批量拉取当前页各客户标签。
+  const customerTagsMap = ref<Record<string, CustomerTag[]>>({});
+
+  watch(
+    () => propsRes.value.data,
+    async (rows) => {
+      const ids = (rows || []).map((row: any) => row.id).filter(Boolean);
+      if (!ids.length) {
+        customerTagsMap.value = {};
+        return;
+      }
+      try {
+        customerTagsMap.value = await getCustomerTagsBatch(ids);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(error);
+        customerTagsMap.value = {};
+      }
+    },
+    { immediate: true }
+  );
+
+  function tagColorOf(tag: CustomerTag): { color: string; borderColor: string; textColor: string } {
+    const color = tag.color || '#f97316';
+    return { color, borderColor: color, textColor: '#ffffff' };
+  }
+
+  function renderCustomerTags(customerId: string) {
+    const tags = customerTagsMap.value[customerId] || [];
+    if (!tags.length) {
+      return '-';
     }
-    return propsRes.value.columns;
+    const maxShow = 2;
+    const shown = tags.slice(0, maxShow);
+    const rest = tags.length - shown.length;
+    const chips = shown.map((tag) =>
+      h(
+        CrmTag,
+        { key: tag.id || tag.name, size: 'small', theme: 'dark', color: tagColorOf(tag), tooltipDisabled: true },
+        { default: () => tag.name }
+      )
+    );
+    if (rest > 0) {
+      const restNames = tags
+        .slice(maxShow)
+        .map((tag) => tag.name)
+        .join('、');
+      chips.push(
+        h(
+          NTooltip,
+          { key: '__more__' },
+          {
+            trigger: () => h('span', { class: 'cursor-default text-[12px] text-[var(--text-n3)]' }, `+${rest}`),
+            default: () => restNames,
+          }
+        )
+      );
+    }
+    return h('div', { class: 'flex flex-wrap items-center gap-[4px]' }, chips);
+  }
+
+  const customerTagColumn = {
+    title: t('customer.tags'),
+    key: 'customerTags',
+    width: 180,
+    render: (row: any) => renderCustomerTags(row.id),
+  };
+
+  function injectCustomerTagColumn(columns: any[]): any[] {
+    const nameIndex = columns.findIndex((item) => item.key === 'name');
+    if (nameIndex === -1) {
+      return [...columns, customerTagColumn];
+    }
+    return [...columns.slice(0, nameIndex + 1), customerTagColumn, ...columns.slice(nameIndex + 1)];
+  }
+
+  const tableColumns = computed(() => {
+    const columns =
+      activeTab.value === CustomerSearchTypeEnum.CUSTOMER_COLLABORATION
+        ? propsRes.value.columns
+            .filter((item: any) => item.type !== 'selection')
+            .map((e) => {
+              if (e.key === 'operation') {
+                return {
+                  ...e,
+                  width: 80,
+                };
+              }
+              return e;
+            })
+        : propsRes.value.columns;
+    return injectCustomerTagColumn(columns);
   });
 
   const exportParams = computed(() => {

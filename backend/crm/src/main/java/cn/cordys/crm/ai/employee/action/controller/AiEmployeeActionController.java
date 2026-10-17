@@ -1,7 +1,9 @@
 package cn.cordys.crm.ai.employee.action.controller;
 
+import cn.cordys.common.exception.GenericException;
 import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.ai.employee.action.dto.response.AiEmployeeActionResponse;
+import cn.cordys.crm.ai.employee.action.service.AbstractAiAutoScanService;
 import cn.cordys.crm.ai.employee.action.service.AiEmployeeActionService;
 import cn.cordys.crm.ai.employee.action.service.AiFollowUpScanService;
 import cn.cordys.security.SessionUtils;
@@ -31,6 +33,9 @@ public class AiEmployeeActionController {
     @Resource
     private AiFollowUpScanService scanService;
 
+    @Resource
+    private List<AbstractAiAutoScanService> scanServices;
+
     @GetMapping
     @Operation(summary = "AI 员工待确认动作列表（本人+下级）")
     public List<AiEmployeeActionResponse> list() {
@@ -53,5 +58,15 @@ public class AiEmployeeActionController {
     @Operation(summary = "手动触发一次久未联系客户扫描（测试/按需）")
     public int scan() {
         return scanService.scan(OrganizationContext.getOrganizationId(), SessionUtils.getUserId());
+    }
+
+    @PostMapping("/scan/{actionType}")
+    @Operation(summary = "手动触发指定类型的自动任务扫描（测试/按需）")
+    public int scanByType(@PathVariable String actionType) {
+        AbstractAiAutoScanService service = scanServices.stream()
+                .filter(s -> s.actionType().equalsIgnoreCase(actionType))
+                .findFirst()
+                .orElseThrow(() -> new GenericException("不支持的动作类型: " + actionType));
+        return service.scan(OrganizationContext.getOrganizationId(), SessionUtils.getUserId());
     }
 }

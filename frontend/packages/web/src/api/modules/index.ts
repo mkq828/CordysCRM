@@ -502,6 +502,10 @@ export const {
   getCustomerOrderList,
   getCustomerInvoiceStatistic,
   getCustomerProfile,
+  getCustomerTagList,
+  getCustomerTags,
+  getCustomerTagsBatch,
+  tagCustomer,
 } = customerApi;
 
 export const {
@@ -916,6 +920,7 @@ export const {
   approveAiEmployeeAction,
   rejectAiEmployeeAction,
   scanAiEmployeeActions,
+  scanAiEmployeeActionByType,
   generateAiMeetingMinutes,
   getAiMeetingMinutes,
   getAiMeetingMinutesDetail,

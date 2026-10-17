@@ -311,6 +311,30 @@ public class AiKnowledgeService {
         return sb.toString().trim();
     }
 
+    /**
+     * 供自动任务等编排场景复用：按提问关键词检索企业知识库，返回带出处（文档名 + 截取片段）的引用列表。
+     * 与 {@link #retrieveContext} 同召回口径，但保留 docName 便于 prompt 注入时标注来源；无命中返回空列表。
+     */
+    public List<AiKnowledgeCitation> retrieveCitations(String orgId, String question) {
+        if (StringUtils.isBlank(question)) {
+            return List.of();
+        }
+        List<String> keywords = tokenizeKeywords(question.trim());
+        List<AiKnowledgeChunk> chunks = retrieveChunks(orgId, question.trim(), keywords);
+        if (chunks.isEmpty()) {
+            return List.of();
+        }
+        Map<String, String> docNames = buildDocNameMap(chunks);
+        List<AiKnowledgeCitation> citations = new ArrayList<>();
+        for (AiKnowledgeChunk chunk : chunks) {
+            AiKnowledgeCitation citation = new AiKnowledgeCitation();
+            citation.setDocName(docNames.getOrDefault(chunk.getDocId(), ""));
+            citation.setContent(snippetOf(chunk.getContent(), keywords));
+            citations.add(citation);
+        }
+        return citations;
+    }
+
     // ==================== 内部方法 ====================
 
     /**

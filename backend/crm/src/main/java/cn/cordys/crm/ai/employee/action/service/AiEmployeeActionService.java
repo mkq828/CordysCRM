@@ -119,12 +119,16 @@ public class AiEmployeeActionService {
         AiEmployeeActionResponse response = new AiEmployeeActionResponse();
         response.setId(action.getId());
         response.setActionType(action.getActionType());
+        response.setResourceType(action.getResourceType());
+        response.setResourceId(action.getResourceId());
+        response.setResourceName(action.getResourceName());
         response.setCustomerId(action.getCustomerId());
         response.setCustomerName(action.getCustomerName());
         response.setOwnerId(action.getOwnerId());
         response.setOwnerName(ownerNameMap.get(action.getOwnerId()));
         response.setStatus(action.getStatus());
         response.setCreateTime(action.getCreateTime());
+        response.setPayload(action.getPayload());
         AiEmployeeActionPayload payload = AiEmployeeActionPayload.parse(action.getPayload());
         response.setContent(payload.getContent());
         response.setFollowMethod(payload.getFollowMethod());

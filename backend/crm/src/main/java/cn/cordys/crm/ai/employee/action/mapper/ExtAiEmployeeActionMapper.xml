@@ -28,6 +28,9 @@
                organization_id AS organizationId,
                action_type AS actionType,
                agent_id AS agentId,
+               resource_type AS resourceType,
+               resource_id AS resourceId,
+               resource_name AS resourceName,
                customer_id AS customerId,
                customer_name AS customerName,
                owner_id AS ownerId,
@@ -44,14 +47,152 @@
         WHERE organization_id = #{orgId} AND status = 'PENDING'
     </select>
 
-    <select id="selectQuietCustomers" resultType="java.lang.String">
-        SELECT customer_id
+    <select id="selectRejectedRecent" resultType="cn.cordys.crm.ai.employee.action.domain.AiEmployeeAction">
+        SELECT id,
+               organization_id AS organizationId,
+               action_type AS actionType,
+               agent_id AS agentId,
+               resource_type AS resourceType,
+               resource_id AS resourceId,
+               resource_name AS resourceName,
+               customer_id AS customerId,
+               customer_name AS customerName,
+               owner_id AS ownerId,
+               payload,
+               status,
+               result,
+               confirm_user AS confirmUser,
+               confirm_time AS confirmTime,
+               create_user AS createUser,
+               update_user AS updateUser,
+               create_time AS createTime,
+               update_time AS updateTime
         FROM ai_employee_action
         WHERE organization_id = #{orgId}
           AND status = 'REJECTED'
           AND confirm_time IS NOT NULL
           AND confirm_time &gt; #{quietBefore}
-        GROUP BY customer_id
+    </select>
+
+    <select id="selectChurnCustomers" resultType="cn.cordys.crm.ai.employee.action.dto.StaleCustomerRow">
+        SELECT c.id AS customerId,
+               c.name AS customerName,
+               c.owner AS owner,
+               c.follow_time AS followTime,
+               0 AS contractAmount
+        FROM customer c
+        WHERE c.organization_id = #{orgId}
+          AND c.in_shared_pool = 0
+          AND c.owner IS NOT NULL AND c.owner != ''
+          AND (c.follow_time IS NULL OR c.follow_time &lt; #{churnBefore})
+          AND NOT EXISTS (
+              SELECT 1
+              FROM customer_tag_rel r
+              JOIN customer_tag t ON t.id = r.tag_id AND t.organization_id = #{orgId} AND t.name = #{churnTagName}
+              WHERE r.customer_id = c.id
+          )
+        ORDER BY c.follow_time ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectDunningCandidates" resultType="cn.cordys.crm.ai.employee.action.dto.DunningRow">
+        SELECT resourceType, resourceId, resourceName, customerId, customerName, owner, dueTime, amount
+        FROM (
+            SELECT 'CONTRACT' AS resourceType, c.id AS resourceId, c.name AS resourceName,
+                   c.customer_id AS customerId, cu.name AS customerName, c.owner AS owner,
+                   c.end_time AS dueTime, c.amount AS amount
+            FROM contract c
+            LEFT JOIN customer cu ON cu.id = c.customer_id
+            WHERE c.organization_id = #{orgId}
+              AND c.end_time IS NOT NULL
+              AND c.stage != 'VOID' AND c.stage != 'COMPLETED_PERFORMANCE'
+              AND c.owner IS NOT NULL AND c.owner != ''
+              AND c.end_time &lt; #{upper}
+              AND c.end_time &gt;= #{lower}
+            UNION ALL
+            SELECT 'PAYMENT_PLAN' AS resourceType, p.id AS resourceId, p.name AS resourceName,
+                   c.customer_id AS customerId, cu.name AS customerName, p.owner AS owner,
+                   p.plan_end_time AS dueTime, p.plan_amount AS amount
+            FROM contract_payment_plan p
+            LEFT JOIN contract c ON c.id = p.contract_id AND c.stage != 'VOID' AND c.stage != 'COMPLETED_PERFORMANCE'
+            LEFT JOIN customer cu ON cu.id = c.customer_id
+            WHERE p.organization_id = #{orgId}
+              AND p.plan_status IN ('PENDING', 'PARTIALLY_COMPLETED')
+              AND p.owner IS NOT NULL AND p.owner != ''
+              AND p.plan_end_time &lt; #{upper}
+              AND p.plan_end_time &gt;= #{lower}
+        ) t
+        ORDER BY dueTime ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectClueFlowCandidates" resultType="cn.cordys.crm.ai.employee.action.dto.ClueFlowRow">
+        SELECT id AS clueId,
+               name AS clueName,
+               owner AS owner,
+               stage AS stage,
+               follow_time AS followTime,
+               contact AS contact,
+               phone AS phone
+        FROM clue
+        WHERE organization_id = #{orgId}
+          AND stage = 'INTERESTED'
+          AND transition_id IS NULL
+          AND owner IS NOT NULL AND owner != ''
+          AND follow_time IS NOT NULL
+          AND follow_time &gt;= #{followAfter}
+        ORDER BY follow_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectFillFieldCandidates" resultType="cn.cordys.crm.ai.employee.action.dto.FillFieldCustomerRow">
+        SELECT c.id AS customerId,
+               c.name AS customerName,
+               c.owner AS owner
+        FROM customer c
+        WHERE c.organization_id = #{orgId}
+          AND c.in_shared_pool = 0
+          AND c.owner IS NOT NULL AND c.owner != ''
+          AND (
+              SELECT COUNT(DISTINCT f.field_id)
+              FROM (
+                  SELECT field_id FROM customer_field
+                  WHERE resource_id = c.id
+                    AND field_id IN
+                    <foreach collection="fieldIds" item="fid" open="(" separator="," close=")">#{fid}</foreach>
+                    AND field_value IS NOT NULL AND field_value != ''
+                  UNION
+                  SELECT field_id FROM customer_field_blob
+                  WHERE resource_id = c.id
+                    AND field_id IN
+                    <foreach collection="fieldIds" item="fid" open="(" separator="," close=")">#{fid}</foreach>
+                    AND field_value IS NOT NULL AND field_value != ''
+              ) f
+          ) &lt; #{requiredCount}
+        ORDER BY c.update_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectExistingFieldIds" resultType="cn.cordys.crm.ai.employee.action.dto.FillFieldValueRow">
+        SELECT cf.resource_id AS customerId, cf.field_id AS fieldId
+        FROM customer_field cf
+        JOIN customer c ON c.id = cf.resource_id
+        WHERE c.organization_id = #{orgId}
+          AND cf.resource_id IN
+          <foreach collection="customerIds" item="cid" open="(" separator="," close=")">#{cid}</foreach>
+          AND cf.field_id IN
+          <foreach collection="fieldIds" item="fid" open="(" separator="," close=")">#{fid}</foreach>
+          AND cf.field_value IS NOT NULL AND cf.field_value != ''
+        UNION
+        SELECT b.resource_id AS customerId, b.field_id AS fieldId
+        FROM customer_field_blob b
+        JOIN customer c ON c.id = b.resource_id
+        WHERE c.organization_id = #{orgId}
+          AND b.resource_id IN
+          <foreach collection="customerIds" item="cid" open="(" separator="," close=")">#{cid}</foreach>
+          AND b.field_id IN
+          <foreach collection="fieldIds" item="fid" open="(" separator="," close=")">#{fid}</foreach>
+          AND b.field_value IS NOT NULL AND b.field_value != ''
     </select>
 
 </mapper>

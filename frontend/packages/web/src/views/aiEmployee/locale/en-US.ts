@@ -75,6 +75,17 @@ export default {
   'aiEmployee.actionsApproved': 'Executed',
   'aiEmployee.actionsRejected': 'Rejected',
   'aiEmployee.actionsDesc':
-    'AI employees periodically scan customers who have not been contacted for a while and draft follow-up suggestions for your confirmation.',
+    'AI employees periodically scan follow-up, dunning, tagging, lead flow and data completion scenarios, generating actionable suggestions for your confirmation.',
   'aiEmployee.actionsScanned': 'Scan complete, {count} new suggestion(s)',
+  'aiEmployee.actionFollowUp': 'Follow-up',
+  'aiEmployee.actionDunning': 'Dunning',
+  'aiEmployee.actionTag': 'Tagging',
+  'aiEmployee.actionClueFlow': 'Lead Flow',
+  'aiEmployee.actionFillField': 'Data Completion',
+  'aiEmployee.actionSuggestedTags': 'Alternatives',
+  'aiEmployee.actionReason': 'Reason',
+  'aiEmployee.actionTargetStage': 'Target Stage',
+  'aiEmployee.stageSuccess': 'Won',
+  'aiEmployee.stageFail': 'Lost',
+  'aiEmployee.stageFollowing': 'Following',
 };

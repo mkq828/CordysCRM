@@ -23,21 +23,41 @@
       />
     </template>
     <template #left>
-      <div class="h-full overflow-hidden">
-        <CrmFormCreate
-          ref="formCreateRef"
-          embedded
-          is-edit
-          :need-init-detail="true"
-          :source-id="props.sourceId"
-          :form-key="FormDesignKeyEnum.CUSTOMER"
-          :columns="layout === 'vertical' ? 3 : undefined"
-          :readonly="collaborationType === 'READ_ONLY' || !hasAnyPermission(['CUSTOMER_MANAGEMENT:UPDATE'])"
-          class="p-[16px_24px]"
-          @init="handleFormInit"
-          @saved="handleSaved"
-          @ready="handleFormReady"
-        />
+      <div class="flex h-full flex-col overflow-hidden">
+        <div
+          class="flex shrink-0 flex-wrap items-center gap-[8px] border-b border-[var(--divider-color)] px-[16px] py-[8px]"
+        >
+          <span class="text-[12px] text-[var(--text-n3)]">{{ t('customer.tags') }}</span>
+          <CrmTag
+            v-for="tag in customerTags"
+            :key="tag.id || tag.name"
+            size="small"
+            theme="dark"
+            :color="tagColorOf(tag)"
+            tooltip-disabled
+          >
+            {{ tag.name }}
+          </CrmTag>
+          <span v-if="!customerTags.length" class="text-[12px] text-[var(--text-n4)]">{{
+            t('customer.tagsEmpty')
+          }}</span>
+        </div>
+        <div class="min-h-0 flex-1 overflow-hidden">
+          <CrmFormCreate
+            ref="formCreateRef"
+            embedded
+            is-edit
+            :need-init-detail="true"
+            :source-id="props.sourceId"
+            :form-key="FormDesignKeyEnum.CUSTOMER"
+            :columns="layout === 'vertical' ? 3 : undefined"
+            :readonly="collaborationType === 'READ_ONLY' || !hasAnyPermission(['CUSTOMER_MANAGEMENT:UPDATE'])"
+            class="p-[16px_24px]"
+            @init="handleFormInit"
+            @saved="handleSaved"
+            @ready="handleFormReady"
+          />
+        </div>
       </div>
     </template>
     <template #right>
@@ -147,11 +167,13 @@
   import { FormDesignKeyEnum } from '@lib/shared/enums/formDesignEnum';
   import { ModuleConfigEnum, ReasonTypeEnum } from '@lib/shared/enums/moduleEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
+  import type { CustomerTag } from '@lib/shared/models/customer';
   import { CollaborationType } from '@lib/shared/models/customer';
   import type { FormViewSize } from '@lib/shared/models/system/module';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import type { ActionsItem } from '@/components/pure/crm-more-action/type';
+  import CrmTag from '@/components/pure/crm-tag/index.vue';
   import ContactTable from '@/components/business/crm-form-create-table/contactTable.vue';
   import CrmHeaderTable from '@/components/business/crm-header-table/index.vue';
   import CrmMoveModal from '@/components/business/crm-move-modal/index.vue';
@@ -167,7 +189,7 @@
   import opportunityTable from '@/views/opportunity/components/opportunityTable.vue';
   import OrderTable from '@/views/order/order/components/orderTable.vue';
 
-  import { deleteCustomer, getCustomerHeaderList, updateCustomer } from '@/api/modules';
+  import { deleteCustomer, getCustomerHeaderList, getCustomerTags, updateCustomer } from '@/api/modules';
   import useModal from '@/hooks/useModal';
   import { hasAnyPermission } from '@/utils/permission';
 
@@ -199,6 +221,35 @@
   const transferLoading = ref(false);
   const collaborationType = ref<CollaborationType>();
   const sourceName = ref('');
+  const customerTags = ref<CustomerTag[]>([]);
+
+  async function loadCustomerTags() {
+    if (!props.sourceId) {
+      return;
+    }
+    try {
+      customerTags.value = await getCustomerTags(props.sourceId);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
+  }
+
+  // 标签按状态区分颜色：后端返回的语义色直接填充为深色底 + 白字，未配置时兜底橙色
+  function tagColorOf(tag: CustomerTag): { color: string; borderColor: string; textColor: string } {
+    const color = tag.color || '#f97316';
+    return { color, borderColor: color, textColor: '#ffffff' };
+  }
+
+  watch(
+    () => [show.value, props.sourceId],
+    () => {
+      if (show.value && props.sourceId) {
+        loadCustomerTags();
+      }
+    },
+    { immediate: true }
+  );
   const formCreateRef = ref<InstanceType<typeof CrmFormCreate>>();
   const buttonList = computed<ActionsItem[]>(() => {
     if (collaborationType.value || props.readonly) {

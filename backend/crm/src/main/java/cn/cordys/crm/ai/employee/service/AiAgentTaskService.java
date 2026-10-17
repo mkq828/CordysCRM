@@ -22,6 +22,7 @@ import cn.cordys.crm.ai.employee.dto.request.AiAgentTaskApplyRequest;
 import cn.cordys.crm.ai.employee.dto.request.AiEmployeeChatRequest;
 import cn.cordys.crm.ai.employee.tool.AiAgentTool;
 import cn.cordys.crm.ai.employee.tool.AiAgentToolRegistry;
+import cn.cordys.crm.ai.knowledge.service.AiKnowledgeService;
 import cn.cordys.crm.ai.llm.LlmChatRequest;
 import cn.cordys.crm.ai.llm.LlmMessage;
 import cn.cordys.crm.ai.llm.LlmProvider;
@@ -128,6 +129,9 @@ public class AiAgentTaskService {
     @Resource
     private AiAgentToolRegistry toolRegistry;
 
+    @Resource
+    private AiKnowledgeService aiKnowledgeService;
+
     /**
      * 执行带工具调用的任务对话。中间轮次只通过 {@code onProgress} 回传步骤、不回传文本；
      * 最终答案一次性交给 {@code onChunk} 下发。
@@ -143,7 +147,7 @@ public class AiAgentTaskService {
         if (employee == null) {
             throw new GenericException("岗位关联的角色已失效，请重新选择角色");
         }
-        List<AgentModel> models = agentModelService.resolveChatModels(orgId);
+        List<AgentModel> models = agentModelService.resolveTaskModels(orgId);
         if (models.isEmpty()) {
             throw new GenericException("请先在「模型设置」中配置并启用一个模型");
         }
@@ -157,7 +161,14 @@ public class AiAgentTaskService {
         List<LlmMessage> messages = new ArrayList<>();
         messages.add(new LlmMessage("system", buildSystemPrompt(employee, agent)));
         appendHistory(messages, conversationId, orgId);
-        messages.add(new LlmMessage("user", request.getMessage().trim()));
+        String userContent = request.getMessage().trim();
+        if (isKnowledgeEnabled(agent)) {
+            String knowledgeContext = aiKnowledgeService.retrieveContext(orgId, userContent);
+            if (StringUtils.isNotBlank(knowledgeContext)) {
+                userContent = userContent + "\n\n## 参考资料（来自企业知识库）\n" + knowledgeContext;
+            }
+        }
+        messages.add(new LlmMessage("user", userContent));
 
         long totalInput = 0;
         long totalOutput = 0;
@@ -251,6 +262,11 @@ public class AiAgentTaskService {
     }
 
     // ==================== 内部 ====================
+
+    /** 岗位是否开启「深度用知识库」：与 AiEmployeeService 同口径，开启后在用户问题前拼入检索到的知识库参考 */
+    private boolean isKnowledgeEnabled(AiEmployeeAgent agent) {
+        return agent.getKnowledgeEnabled() != null && agent.getKnowledgeEnabled() == 1;
+    }
 
     /** 系统提示词：角色提示词 + 岗位补充要求 + 只读工具清单 + 输出约定 */
     private String buildSystemPrompt(AiEmployee employee, AiEmployeeAgent agent) {

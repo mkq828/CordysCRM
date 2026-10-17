@@ -3,6 +3,7 @@
     ref="crmTableRef"
     v-model:checked-row-keys="checkedRowKeys"
     v-bind="propsRes"
+    :columns="tableColumns"
     class="crm-clue-table"
     :not-show-table-filter="isAdvancedSearchMode"
     :action-config="props.readonly ? undefined : actionConfig"
@@ -162,6 +163,7 @@
   import CrmTable from '@/components/pure/crm-table/index.vue';
   import { BatchActionConfig } from '@/components/pure/crm-table/type';
   import CrmTableButton from '@/components/pure/crm-table-button/index.vue';
+  import CrmTag from '@/components/pure/crm-tag/index.vue';
   import CrmBatchEditModal from '@/components/business/crm-batch-edit-modal/index.vue';
   import CrmFormCreateDrawer from '@/components/business/crm-form-create-drawer/index.vue';
   import CrmImportButton from '@/components/business/crm-import-button/index.vue';
@@ -617,6 +619,56 @@
     readonly: props.readonly,
   });
   const { propsRes, propsEvent, tableQueryParams, loadList, setLoadListParams, setAdvanceFilter } = useTableRes;
+
+  // 线索阶段列：系统 stage 字段（新建/跟进中/感兴趣/成功/失败）不在表单配置里，列表手动注入一列带颜色 tag
+  const STAGE_TAG_COLORS: Record<string, string> = {
+    NEW: '#8a94a6',
+    FOLLOWING: '#1677ff',
+    INTERESTED: '#f97316',
+    SUCCESS: '#16a34a',
+    FAIL: '#e05a00',
+  };
+  const STAGE_LABEL_KEYS: Record<string, string> = {
+    NEW: 'clue.stageNew',
+    FOLLOWING: 'clue.followingUp',
+    INTERESTED: 'clue.interested',
+    SUCCESS: 'clue.stageSuccess',
+    FAIL: 'clue.stageFail',
+  };
+
+  function renderStage(stage: string) {
+    if (!stage) {
+      return '-';
+    }
+    const color = STAGE_TAG_COLORS[stage] || '#8a94a6';
+    return h(
+      CrmTag,
+      {
+        size: 'small',
+        theme: 'dark',
+        color: { color, borderColor: color, textColor: '#ffffff' },
+        tooltipDisabled: true,
+      },
+      { default: () => t(STAGE_LABEL_KEYS[stage] || stage) }
+    );
+  }
+
+  const stageColumn = {
+    title: t('clue.stage'),
+    key: 'stage',
+    width: 100,
+    render: (row: ClueListItem) => renderStage(row.stage),
+  };
+
+  function injectStageColumn(columns: any[]): any[] {
+    const nameIndex = columns.findIndex((item) => item.key === 'name' || item.key === 'clueName');
+    if (nameIndex === -1) {
+      return [...columns, stageColumn];
+    }
+    return [...columns.slice(0, nameIndex + 1), stageColumn, ...columns.slice(nameIndex + 1)];
+  }
+
+  const tableColumns = computed(() => injectStageColumn(propsRes.value.columns));
 
   const exportParams = computed(() => {
     return {
