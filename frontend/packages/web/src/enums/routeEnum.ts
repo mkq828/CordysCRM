@@ -105,6 +105,7 @@ export enum PlatformFinanceRouteEnum {
   PLATFORM_FINANCE_PAYMENT_RECORD = 'platformFinancePaymentRecord',
   PLATFORM_FINANCE_INVOICE = 'platformFinanceInvoice',
   PLATFORM_FINANCE_REVENUE = 'platformFinanceRevenue',
+  PLATFORM_FINANCE_ONBOARDING_FLOW = 'platformFinanceOnboardingFlow',
 }
 
 export enum CityManagerRouteEnum {
