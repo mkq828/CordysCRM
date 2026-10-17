@@ -7,6 +7,30 @@ import appClientMenus from '@/router/app-menus';
 import { allMenuRouteMap, featureRouteMap } from '@/router/constants';
 import useAppStore from '@/store/modules/app';
 
+import {
+  AiQuotaRouteEnum,
+  CityManagerRouteEnum,
+  DashboardRouteEnum,
+  EffectsRouteEnum,
+  PendingRouteEnum,
+  PlatformAdminRouteEnum,
+  PlatformAiQuotaRouteEnum,
+  PlatformFinanceRouteEnum,
+  SuggestionRouteEnum,
+  SystemRouteEnum,
+  TenderRouteEnum,
+} from '@/enums/routeEnum';
+
+// 无模块开关的工具类一级菜单显式顺序（排在模块菜单之后；effects/pending 兜底，其余保持原相对顺序）
+const UTILITY_MENU_ORDER: string[] = [
+  CityManagerRouteEnum.CITY_MANAGER,
+  PlatformAdminRouteEnum.PLATFORM_ADMIN,
+  PlatformAiQuotaRouteEnum.PLATFORM_AI_QUOTA,
+  SuggestionRouteEnum.SUGGESTION,
+  EffectsRouteEnum.EFFECTS,
+  PendingRouteEnum.PENDING,
+];
+
 /**
  * 获取菜单树
  * @returns
@@ -21,14 +45,31 @@ export default function useMenuTree() {
     const currentMenuConfig: string[] = appStore.moduleConfigList.filter((e) => e.enable).map((e) => e.moduleKey);
 
     copyRouter.sort((a: RouteRecordNormalized, b: RouteRecordNormalized) => {
-      const getModuleOrder = (route: RouteRecordNormalized) => {
-        const moduleId = Object.keys(allMenuRouteMap).find((key) => (route.name as string)?.includes(key));
+      const getMenuOrder = (route: RouteRecordNormalized) => {
+        const name = route.name as string;
+        // 「平台大屏」「租户全生命周期」固定在「标讯」一级菜单之后，随标讯模块位置联动
+        if (name === DashboardRouteEnum.PLATFORM_DASHBOARD) {
+          return currentMenuConfig.indexOf(allMenuRouteMap[TenderRouteEnum.TENDER]) + 0.5;
+        }
+        if (name === PlatformFinanceRouteEnum.PLATFORM_FINANCE) {
+          return currentMenuConfig.indexOf(allMenuRouteMap[TenderRouteEnum.TENDER]) + 0.75;
+        }
+        const moduleId = Object.keys(allMenuRouteMap).find((key) => name?.includes(key));
         if (moduleId) {
           return currentMenuConfig.indexOf(allMenuRouteMap[moduleId]);
         }
-        return Infinity;
+        // 「我的 AI 额度」固定在「系统」一级菜单之前，随系统模块位置联动
+        if (name === AiQuotaRouteEnum.AI_QUOTA) {
+          return currentMenuConfig.indexOf(allMenuRouteMap[SystemRouteEnum.SYSTEM]) - 0.5;
+        }
+        // 无模块开关的工具类一级菜单按显式顺序排在模块菜单之后（effects/pending 兜底）
+        const utilityIndex = UTILITY_MENU_ORDER.indexOf(name);
+        if (utilityIndex >= 0) {
+          return 1000 + utilityIndex;
+        }
+        return 2000;
       };
-      return getModuleOrder(a) - getModuleOrder(b);
+      return getMenuOrder(a) - getMenuOrder(b);
     });
 
     function travel(_routes: RouteRecordRaw[], layer: number) {
