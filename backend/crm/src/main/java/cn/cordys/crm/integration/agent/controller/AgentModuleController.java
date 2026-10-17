@@ -3,11 +3,13 @@ package cn.cordys.crm.integration.agent.controller;
 
 import cn.cordys.common.constants.PermissionConstants;
 import cn.cordys.common.dto.BaseTreeNode;
+import cn.cordys.common.exception.GenericException;
 import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.integration.agent.domain.AgentModule;
 import cn.cordys.crm.integration.agent.dto.request.AgentModuleAddRequest;
 import cn.cordys.crm.integration.agent.dto.request.AgentModuleRenameRequest;
 import cn.cordys.crm.integration.agent.service.AgentModuleService;
+import cn.cordys.crm.platform.util.PlatformSessionUtils;
 import cn.cordys.crm.system.dto.request.NodeMoveRequest;
 import cn.cordys.security.SessionUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +37,9 @@ public class AgentModuleController {
     @RequiresPermissions(PermissionConstants.AGENT_ADD)
     @Operation(summary = "智能体-添加文件夹")
     public AgentModule addFileModule(@Validated @RequestBody AgentModuleAddRequest request) {
+        if (!PlatformSessionUtils.isAdmin()) {
+            throw new GenericException("智能体功能暂未对外开放，仅管理员可添加");
+        }
         return agentModuleService.addFileModule(request, OrganizationContext.getOrganizationId(), SessionUtils.getUserId());
     }
 

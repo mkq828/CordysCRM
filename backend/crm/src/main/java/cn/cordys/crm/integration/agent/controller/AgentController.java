@@ -5,6 +5,7 @@ import cn.cordys.common.constants.PermissionConstants;
 import cn.cordys.common.constants.ThirdConfigTypeConstants;
 import cn.cordys.common.dto.BasePageRequest;
 import cn.cordys.common.dto.OptionDTO;
+import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.pager.PageUtils;
 import cn.cordys.common.pager.Pager;
 import cn.cordys.context.OrganizationContext;
@@ -16,6 +17,7 @@ import cn.cordys.crm.integration.agent.dto.response.AgentPageResponse;
 import cn.cordys.crm.integration.agent.dto.response.ScriptResponse;
 import cn.cordys.crm.integration.agent.service.AgentBaseService;
 import cn.cordys.crm.integration.common.dto.ThirdConfigBaseDTO;
+import cn.cordys.crm.platform.util.PlatformSessionUtils;
 import cn.cordys.crm.system.service.IntegrationConfigService;
 import cn.cordys.security.SessionUtils;
 import com.github.pagehelper.Page;
@@ -44,6 +46,9 @@ public class AgentController {
     @RequiresPermissions(PermissionConstants.AGENT_ADD)
     @Operation(summary = "智能体-添加")
     public Agent addAgent(@Validated @RequestBody AgentAddRequest request) {
+        if (!PlatformSessionUtils.isAdmin()) {
+            throw new GenericException("智能体功能暂未对外开放，仅管理员可添加");
+        }
         return agentBaseService.addAgent(request, OrganizationContext.getOrganizationId(), SessionUtils.getUserId());
     }
 

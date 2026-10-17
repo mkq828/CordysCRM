@@ -50,7 +50,10 @@
   import agentTable from './components/table.vue';
   import tree from './components/tree.vue';
 
+  import useUserStore from '@/store/modules/user';
+
   const route = useRoute();
+  const userStore = useUserStore();
 
   const show = ref(false);
   const folderTree = ref<TreeSelectOption[]>([]);
@@ -71,6 +74,7 @@
 
   const isDetail = ref(false);
   function handleAddAgent() {
+    if (!userStore.isAdmin) return;
     activeAgentId.value = '';
     show.value = true;
     isDetail.value = false;

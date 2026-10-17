@@ -54,7 +54,7 @@
         <n-tooltip trigger="hover" :style="{ padding: '4px' }">
           <template #trigger>
             <n-button
-              v-permission="['AGENT:ADD']"
+              v-if="userStore.isAdmin"
               type="primary"
               size="tiny"
               ghost
@@ -119,8 +119,10 @@
     getAgentModuleTree,
     getAgentModuleTreeCount,
   } from '@/api/modules';
+  import useUserStore from '@/store/modules/user';
   import { hasAnyPermission } from '@/utils/permission';
 
+  const userStore = useUserStore();
   const Message = useMessage();
 
   const { t } = useI18n();
@@ -288,7 +290,7 @@
   }
 
   function renderExtraDom(infoProps: { option: CrmTreeNodeData; checked: boolean; selected: boolean }) {
-    if (hasAnyPermission(['AGENT:ADD'])) {
+    if (userStore.isAdmin) {
       const { option } = infoProps;
       // 额外的节点
       return h(

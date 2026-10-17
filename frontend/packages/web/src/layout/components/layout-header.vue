@@ -14,7 +14,7 @@
             </template>
           </n-button>
         </n-dropdown>
-        <CrmButtonGroup not-show-divider class="gap-[8px]" :list="appStore.getNavTopConfigList">
+        <CrmButtonGroup not-show-divider class="gap-[8px]" :list="navTopConfigList">
           <template #searchSlot>
             <n-button
               v-if="showSearch"
@@ -327,6 +327,11 @@
   ]);
   const dataScopeLabel = computed(() =>
     appStore.dataScope === 'SELF' ? t('common.dataScope.self') : t('common.dataScope.org')
+  );
+  // 智能体入口暂仅管理员可见：非 admin 直接从右上角按钮列表剔除 agent 项，
+  // 避免 CrmButtonGroup 因 slot 空而回退渲染出 label（i18n key）文字
+  const navTopConfigList = computed(() =>
+    appStore.getNavTopConfigList.filter((item) => item.key !== 'agent' || userStore.isAdmin)
   );
   function handleDataScopeSelect(key: string) {
     appStore.setDataScope(key as 'SELF' | 'ORG');

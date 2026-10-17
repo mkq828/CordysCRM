@@ -14,7 +14,7 @@
     >
       <template #tableTop>
         <div class="flex items-center justify-between">
-          <n-button v-permission="['AGENT:ADD']" type="primary" @click="emit('create')">
+          <n-button v-if="userStore.isAdmin" type="primary" @click="emit('create')">
             {{ t('agent.addAgent') }}
           </n-button>
           <CrmSearchInput v-model:value="keyword" class="!w-[240px]" @search="searchData" />
@@ -50,6 +50,7 @@
     unCollectAgent,
   } from '@/api/modules';
   import useModal from '@/hooks/useModal';
+  import useUserStore from '@/store/modules/user';
   import { hasAnyPermission } from '@/utils/permission';
 
   const props = defineProps<{
@@ -65,6 +66,7 @@
     (e: 'delete'): void;
   }>();
 
+  const userStore = useUserStore();
   const { t } = useI18n();
   const Message = useMessage();
   const { openModal } = useModal();
