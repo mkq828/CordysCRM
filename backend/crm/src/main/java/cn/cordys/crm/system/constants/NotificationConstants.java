@@ -228,6 +228,9 @@ public class NotificationConstants {
         //续费/升级申请驳回（通知租户管理员，含驳回原因）
         @Schema(description = "message.plan_apply_rejected")
         String TENANT_PLAN_REJECTED = "TENANT_PLAN_REJECTED";
+        //回款核销已到账（通知租户管理员）
+        @Schema(description = "message.payment_verified")
+        String PAYMENT_VERIFIED = "PAYMENT_VERIFIED";
     }
 
     public interface RelatedUser {
@@ -448,6 +451,10 @@ public class NotificationConstants {
         //你的「${name}」续费/升级申请未通过审核：${remark}
         @Schema(description = "message.plan_apply_rejected_text")
         String TENANT_PLAN_REJECTED_TEXT = "TENANT_PLAN_REJECTED_TEXT";
+
+        //你的企业「${name}」回款已核销到账。
+        @Schema(description = "message.payment_verified_text")
+        String PAYMENT_VERIFIED_TEXT = "PAYMENT_VERIFIED_TEXT";
     }
 
 

@@ -5,6 +5,7 @@ import cn.cordys.common.pager.Pager;
 import cn.cordys.common.response.result.CrmHttpResultCode;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.Translator;
+import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.platform.constants.PlatformPaymentVerificationStatus;
 import cn.cordys.crm.platform.domain.PlatformContract;
 import cn.cordys.crm.platform.domain.PlatformPaymentRecord;
@@ -16,22 +17,31 @@ import cn.cordys.crm.platform.dto.response.PlatformAttachmentResponse;
 import cn.cordys.crm.platform.dto.response.PlatformPaymentRecordResponse;
 import cn.cordys.crm.platform.util.PlatformManagerNames;
 import cn.cordys.crm.platform.util.PlatformSessionUtils;
+import cn.cordys.crm.system.constants.NotificationConstants;
 import cn.cordys.crm.system.domain.Attachment;
+import cn.cordys.crm.system.domain.MessageTask;
+import cn.cordys.crm.system.domain.Notification;
 import cn.cordys.crm.system.domain.Organization;
+import cn.cordys.crm.system.domain.User;
 import cn.cordys.crm.system.dto.request.UploadTransferRequest;
+import cn.cordys.crm.system.mapper.ExtMessageTaskMapper;
 import cn.cordys.crm.system.service.AttachmentService;
 import cn.cordys.crm.system.service.TenantPlanService;
+import cn.cordys.crm.system.utils.MessageTemplateUtils;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.mybatis.DataAccessLayer;
 import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
 import cn.cordys.security.SessionUtils;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +53,7 @@ import java.util.stream.Collectors;
  * 平台回款服务：回款 CRUD + 核销/撤回（复刻租户层 contract_payment_record 语义），首次核销自动开通企业版
  */
 @Service
+@Slf4j
 public class PlatformPaymentRecordService {
 
     @Resource
@@ -57,6 +68,12 @@ public class PlatformPaymentRecordService {
     private TenantPlanService tenantPlanService;
     @Resource
     private AttachmentService attachmentService;
+    @Resource
+    private BaseMapper<Notification> notificationMapper;
+    @Resource
+    private ExtMessageTaskMapper extMessageTaskMapper;
+    @Resource
+    private BaseMapper<User> userMapper;
 
     /**
      * 分页查询（内存分页，含合同编号/租户名/付款凭证/收款证明）
@@ -214,6 +231,8 @@ public class PlatformPaymentRecordService {
                         contract.getEditionCode(), contract.getValidityDays(), operatorId);
             }
         }
+        // 站内信通知租户管理员「钱已到账」，续费核销由 TENANT_PLAN_APPROVED 覆盖，不在此重复
+        notifyTenantVerified(record, operatorId);
     }
 
     /**
@@ -241,6 +260,71 @@ public class PlatformPaymentRecordService {
         recordMapper.updateById(record);
         // 撤回后清掉收款证明附件，保留付款凭证
         syncAttachments(record, operatorId);
+    }
+
+    /**
+     * 回款核销后站内信通知租户管理员（不发短信；套餐页会随核销自动刷新）。
+     * 参照续费核销通知直接落库到租户组织下，避免跨组织通知框架无法送达。
+     */
+    private void notifyTenantVerified(PlatformPaymentRecord record, String operatorId) {
+        String orgId = record.getOrganizationId();
+        if (StringUtils.isBlank(orgId)) {
+            return;
+        }
+        User adminUser = getAdminUser(orgId);
+        if (adminUser == null) {
+            log.warn("回款核销未找到租户管理员，跳过通知：org={}", orgId);
+            return;
+        }
+        String event = NotificationConstants.Event.PAYMENT_VERIFIED;
+        MessageTask task = extMessageTaskMapper.getMessageByEvent(event, OrganizationContext.DEFAULT_ORGANIZATION_ID);
+        if (task == null) {
+            log.warn("平台组织未配置回款核销通知模板，跳过通知：{}", event);
+            return;
+        }
+        if (!Boolean.TRUE.equals(task.getSysEnable())) {
+            return;
+        }
+
+        Organization org = organizationMapper.selectByPrimaryKey(orgId);
+        String orgName = org == null ? orgId : org.getName();
+
+        Map<String, Object> paramMap = new HashMap<>();
+        paramMap.put("name", orgName);
+        String content = MessageTemplateUtils.getContent(resolveTemplate(task), paramMap);
+
+        long now = System.currentTimeMillis();
+        Notification notification = new Notification();
+        notification.setId(IDGenerator.nextStr());
+        notification.setType(NotificationConstants.Type.SYSTEM_NOTICE.name());
+        notification.setReceiver(adminUser.getId());
+        notification.setSubject(MessageTemplateUtils.getEventMap().get(event));
+        notification.setStatus(NotificationConstants.Status.UNREAD.name());
+        notification.setOperator(operatorId);
+        notification.setOperation(event);
+        notification.setOrganizationId(orgId);
+        notification.setResourceType(NotificationConstants.Module.SYSTEM);
+        notification.setResourceName(orgName);
+        notification.setContent(content.getBytes(StandardCharsets.UTF_8));
+        notification.setCreateUser(operatorId);
+        notification.setUpdateUser(operatorId);
+        notification.setCreateTime(now);
+        notification.setUpdateTime(now);
+        notificationMapper.insert(notification);
+    }
+
+    private User getAdminUser(String organizationId) {
+        List<User> users = userMapper.selectListByLambda(new LambdaQueryWrapper<User>()
+                .eq(User::getLastOrganizationId, organizationId));
+        return users.isEmpty() ? null : users.getFirst();
+    }
+
+    private String resolveTemplate(MessageTask task) {
+        byte[] template = task.getTemplate();
+        if (template != null && template.length > 0) {
+            return new String(template, StandardCharsets.UTF_8);
+        }
+        return MessageTemplateUtils.getTemplate(task.getEvent());
     }
 
     /**

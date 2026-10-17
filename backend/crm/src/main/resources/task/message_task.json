@@ -313,7 +313,35 @@
         "weComEnable": false
       },
       {
+        "event": "TENANT_PLAN_APPLY",
+        "eventName": "",
+        "emailEnable": false,
+        "sysEnable": false,
+        "weComEnable": false
+      },
+      {
+        "event": "TENANT_PLAN_APPROVED",
+        "eventName": "",
+        "emailEnable": false,
+        "sysEnable": false,
+        "weComEnable": false
+      },
+      {
+        "event": "TENANT_PLAN_REJECTED",
+        "eventName": "",
+        "emailEnable": false,
+        "sysEnable": false,
+        "weComEnable": false
+      },
+      {
         "event": "AI_QUOTA_BREAK",
+        "eventName": "",
+        "emailEnable": false,
+        "sysEnable": false,
+        "weComEnable": false
+      },
+      {
+        "event": "PAYMENT_VERIFIED",
         "eventName": "",
         "emailEnable": false,
         "sysEnable": false,
