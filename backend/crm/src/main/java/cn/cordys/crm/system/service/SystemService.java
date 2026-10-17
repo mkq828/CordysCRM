@@ -33,6 +33,7 @@ public class SystemService {
     private static final String EDITION_EE = "ee";
     private static final String PERMISSION_CACHE = "permission_cache";
     private static final String KEY_OPERATOR = "platform.operator";
+    private static final String KEY_VERSION_CHECK_URL = "platform.version_check_url";
 
     private final CacheManager cacheManager;
     private final LicenseService licenseService;
@@ -95,17 +96,20 @@ public class SystemService {
         String current = StringUtils.defaultIfBlank(System.getenv("CRM_VERSION"), "unknown");
         String currentBase = baseVersion(current);
 
-        String edition = getEdition();
+        // 版本检查地址可配置（platform.version_check_url），未配置时不外呼，最新版本即当前版本
         CSHttpClient.DownloadInfo info = null;
-        try {
-            info = CSHttpClient.sendGetRequest(Map.of(
-                    "currentVersion", currentBase,
-                    "majorVersion", "v1",
-                    "edition", edition,
-                    "product", PRODUCT
-            ));
-        } catch (Exception e) {
-            log.info("检查版本信息失败: {}", e.getMessage());
+        String versionCheckUrl = getParam(KEY_VERSION_CHECK_URL);
+        if (StringUtils.isNotBlank(versionCheckUrl)) {
+            try {
+                info = CSHttpClient.sendGetRequest(versionCheckUrl, Map.of(
+                        "currentVersion", currentBase,
+                        "majorVersion", "v1",
+                        "edition", getEdition(),
+                        "product", PRODUCT
+                ));
+            } catch (Exception e) {
+                log.info("检查版本信息失败: {}", e.getMessage());
+            }
         }
 
         String latest = info != null

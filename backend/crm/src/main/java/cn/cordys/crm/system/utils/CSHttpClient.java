@@ -69,12 +69,12 @@ public class CSHttpClient {
     /**
      * 基于基础地址与查询参数的 GET 调用，自动进行 URL 编码并忽略空参数。
      *
+     * @param baseUrl     基础地址（由调用方指定，例如版本检查服务地址）
      * @param queryParams 查询参数 Map（null/空值将被忽略）
      *
      * @return 下载信息
      */
-    public static DownloadInfo sendGetRequest(Map<String, String> queryParams) {
-        String baseUrl = "https://community.fit2cloud.com/api/version";
+    public static DownloadInfo sendGetRequest(String baseUrl, Map<String, String> queryParams) {
         String url = buildUrl(baseUrl, queryParams);
         return sendGetRequest(url);
     }
