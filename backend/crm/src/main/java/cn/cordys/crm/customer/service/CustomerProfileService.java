@@ -1,15 +1,23 @@
 package cn.cordys.crm.customer.service;
 
+import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.util.JSON;
 import cn.cordys.crm.ai.constant.AiQuotaConstant;
 import cn.cordys.crm.ai.domain.AiAnalysisResult;
+import cn.cordys.crm.ai.dto.response.AdvisorWebSource;
+import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
+import cn.cordys.crm.ai.search.DeepSeekSearchClient;
 import cn.cordys.crm.ai.service.AiAnalysisResultService;
+import cn.cordys.crm.ai.service.AiQuotaService;
 import cn.cordys.crm.customer.dto.response.CustomerGetResponse;
 import cn.cordys.crm.customer.dto.response.CustomerProfileResponse;
+import cn.cordys.crm.customer.dto.response.CustomerPublicDynamicResponse;
 import cn.cordys.crm.customer.dto.response.ProfileCountAmount;
 import cn.cordys.crm.customer.dto.response.ProfileFollowSummary;
 import cn.cordys.crm.customer.mapper.ExtCustomerProfileMapper;
+import cn.cordys.crm.system.domain.Parameter;
 import cn.cordys.crm.system.service.EditionService;
+import cn.cordys.mybatis.BaseMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -35,6 +43,12 @@ public class CustomerProfileService {
     private AiAnalysisResultService aiAnalysisResultService;
     @Resource
     private ExtCustomerProfileMapper customerProfileMapper;
+    @Resource
+    private DeepSeekSearchClient deepSeekSearchClient;
+    @Resource
+    private AiQuotaService aiQuotaService;
+    @Resource
+    private BaseMapper<Parameter> parameterMapper;
 
     /**
      * 查询客户画像。先做行级权限校验（本人/下属/协作），再聚合 360° 数据与最新 AI 洞察。
@@ -115,5 +129,72 @@ public class CustomerProfileService {
             log.warn("解析客户私信画像失败, customerId={}", customerId, e);
             return null;
         }
+    }
+
+    /**
+     * 客户画像「公开动态」：联网搜索新闻 / 舆情各一轮，返回可点击出处。搜索按次计量（复用 ai_customer_profile 编码），
+     * 未配 key 或搜索失败时对应列表为空、不阻断主流程。
+     */
+    public CustomerPublicDynamicResponse publicDynamics(String customerId, String userId, String orgId) {
+        CustomerGetResponse customer = customerService.getWithDataPermissionCheck(customerId, userId, orgId);
+        if (!editionService.hasFeature(orgId, AiQuotaConstant.AI_CUSTOMER_PROFILE)) {
+            throw new GenericException("当前版本未开通「客户画像」功能");
+        }
+        String name = customer.getName();
+        if (StringUtils.isBlank(name)) {
+            throw new GenericException("请先填写客户名称");
+        }
+
+        AiQuotaRecordResult quota = aiQuotaService.checkQuota(orgId);
+        if (isBlocked(quota.getStatus())) {
+            throw new GenericException(blockedMessage(quota.getStatus()));
+        }
+
+        String keyword = name.trim();
+        List<AdvisorWebSource> news = deepSeekSearchClient.search(keyword + " 公司 新闻 最新动态");
+        recordSearch(orgId, userId);
+        List<AdvisorWebSource> sentiment = deepSeekSearchClient.search(keyword + " 舆情 负面 投诉");
+        recordSearch(orgId, userId);
+
+        CustomerPublicDynamicResponse response = new CustomerPublicDynamicResponse();
+        response.setCustomerName(name);
+        response.setNewsSources(news);
+        response.setSentimentSources(sentiment);
+        return response;
+    }
+
+    /** 1 次联网搜索折算 token 记账到客户画像功能编码，未配 key 或搜索失败仍记账（按次计费口径一致） */
+    private void recordSearch(String orgId, String userId) {
+        aiQuotaService.record(orgId, AiQuotaConstant.AI_CUSTOMER_PROFILE, AiQuotaConstant.SEARCH_MODEL_CODE,
+                getSearchTokensPerCall(), 0L, userId);
+    }
+
+    /** 1 次联网搜索折算 token 数（可配置，默认 1000），配置非法时回退默认值 */
+    private long getSearchTokensPerCall() {
+        Parameter parameter = parameterMapper.selectByPrimaryKey(AiQuotaConstant.PARAM_SEARCH_TOKENS_PER_CALL);
+        if (parameter == null || StringUtils.isBlank(parameter.getParamValue())) {
+            return AiQuotaConstant.DEFAULT_SEARCH_TOKENS_PER_CALL;
+        }
+        try {
+            return Long.parseLong(parameter.getParamValue().trim());
+        } catch (NumberFormatException e) {
+            return AiQuotaConstant.DEFAULT_SEARCH_TOKENS_PER_CALL;
+        }
+    }
+
+    private boolean isBlocked(String status) {
+        return AiQuotaConstant.STATUS_HARD_LIMITED.equals(status)
+                || AiQuotaConstant.STATUS_RATE_LIMITED.equals(status)
+                || AiQuotaConstant.STATUS_CIRCUIT_BROKEN.equals(status);
+    }
+
+    private String blockedMessage(String status) {
+        if (AiQuotaConstant.STATUS_RATE_LIMITED.equals(status)) {
+            return "调用过于频繁，请稍后再试";
+        }
+        if (AiQuotaConstant.STATUS_CIRCUIT_BROKEN.equals(status)) {
+            return "AI 服务暂不可用，请联系管理员";
+        }
+        return "AI 额度已用完，请加购或升级";
     }
 }

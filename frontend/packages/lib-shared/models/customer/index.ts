@@ -1,5 +1,5 @@
 import type { CustomerFollowPlanStatusEnum, CustomerSearchTypeEnum } from '../../enums/customerEnum';
-import type { DmProfileSnapshot } from '../ai';
+import type { AdvisorWebSource, DmProfileSnapshot } from '../ai';
 import type { ModuleField, TableExportParams, TableQueryParams } from '../common';
 
 export interface SaveCustomerParams {
@@ -439,6 +439,13 @@ export interface CustomerProfileResponse {
 export interface BusinessInfoFetchResult {
   filled?: string[];
   source?: string;
+}
+
+/** 客户画像「公开动态」：联网检索到的新闻 / 舆情来源 */
+export interface CustomerPublicDynamicResponse {
+  customerName?: string;
+  newsSources?: AdvisorWebSource[];
+  sentimentSources?: AdvisorWebSource[];
 }
 
 /** 客户标签（租户级字典） */

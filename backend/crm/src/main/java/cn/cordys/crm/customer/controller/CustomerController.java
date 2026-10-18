@@ -27,6 +27,7 @@ import cn.cordys.crm.customer.dto.response.BusinessInfoFetchResponse;
 import cn.cordys.crm.customer.dto.response.CustomerGetResponse;
 import cn.cordys.crm.customer.dto.response.CustomerListResponse;
 import cn.cordys.crm.customer.dto.response.CustomerProfileResponse;
+import cn.cordys.crm.customer.dto.response.CustomerPublicDynamicResponse;
 import cn.cordys.crm.customer.service.CustomerCollaborationService;
 import cn.cordys.crm.customer.service.CustomerBusinessInfoService;
 import cn.cordys.crm.customer.service.CustomerExportService;
@@ -131,6 +132,13 @@ public class CustomerController {
     @Operation(summary = "客户画像（360° 只读聚合 + AI 洞察）")
     public CustomerProfileResponse profile(@PathVariable String id) {
         return customerProfileService.profile(id, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
+    }
+
+    @PostMapping("/public-dynamics/{id}")
+    @CsPermission(PermissionConstants.CUSTOMER_MANAGEMENT_READ) // 行级权限在 service 内校验
+    @Operation(summary = "客户画像 · 公开动态（联网搜索新闻/舆情）")
+    public CustomerPublicDynamicResponse publicDynamics(@PathVariable String id) {
+        return customerProfileService.publicDynamics(id, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
     }
 
     @PostMapping("/business-info/fetch/{id}")

@@ -503,6 +503,7 @@ export const {
   getCustomerInvoiceStatistic,
   getCustomerProfile,
   fetchCustomerBusinessInfo,
+  fetchCustomerPublicDynamics,
   getCustomerTagList,
   getCustomerTags,
   getCustomerTagsBatch,

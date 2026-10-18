@@ -5,6 +5,7 @@ export const AddCustomerUrl = '/account/add'; // 添加客户
 export const GetCustomerUrl = '/account/get'; // 获取客户详情
 export const GetCustomerProfileUrl = '/account/profile'; // 获取客户画像
 export const FetchCustomerBusinessInfoUrl = '/account/business-info/fetch'; // 获取客户工商信息
+export const FetchCustomerPublicDynamicsUrl = '/account/public-dynamics'; // 获取客户公开动态（联网搜索新闻/舆情）
 export const DeleteCustomerUrl = '/account/delete'; // 删除客户
 export const BatchDeleteCustomerUrl = '/account/batch/delete'; // 批量删除客户
 export const BatchTransferCustomerUrl = '/account/batch/transfer'; // 批量转移客户

@@ -55,6 +55,7 @@ import {
   ExportOpenSeaCustomerAllUrl,
   ExportOpenSeaCustomerSelectedUrl,
   FetchCustomerBusinessInfoUrl,
+  FetchCustomerPublicDynamicsUrl,
   FixedAccountPoolViewUrl,
   FixedContactViewUrl,
   FixedCustomerViewUrl,
@@ -170,6 +171,7 @@ import type {
   CustomerOpportunityTableParams,
   CustomerOptionsItem,
   CustomerProfileResponse,
+  CustomerPublicDynamicResponse,
   CustomerTabHidden,
   CustomerTableParams,
   CustomerTag,
@@ -235,6 +237,11 @@ export default function useProductApi(CDR: CordysAxios) {
   // 获取客户工商信息（企查查为主、联网兜底，写入工商信息自定义字段）
   function fetchCustomerBusinessInfo(id: string) {
     return CDR.post<BusinessInfoFetchResult>({ url: `${FetchCustomerBusinessInfoUrl}/${id}` });
+  }
+
+  // 获取客户公开动态（联网搜索新闻/舆情，展示出处与可展开正文）
+  function fetchCustomerPublicDynamics(id: string) {
+    return CDR.post<CustomerPublicDynamicResponse>({ url: `${FetchCustomerPublicDynamicsUrl}/${id}` });
   }
 
   // 客户标签-租户标签字典列表
@@ -872,6 +879,7 @@ export default function useProductApi(CDR: CordysAxios) {
     getCustomer,
     getCustomerProfile,
     fetchCustomerBusinessInfo,
+    fetchCustomerPublicDynamics,
     getCustomerTagList,
     getCustomerTags,
     getCustomerTagsBatch,

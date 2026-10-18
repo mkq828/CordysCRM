@@ -57,6 +57,73 @@
           </n-tag>
         </div>
       </CrmCard>
+
+      <!-- 公开动态（联网检索新闻/舆情） -->
+      <CrmCard :title="t('customer.profilePublicDynamic')" hide-footer auto-height>
+        <div class="flex flex-col gap-[12px]">
+          <n-button
+            type="primary"
+            size="small"
+            class="w-fit"
+            :loading="publicDynamicLoading"
+            @click="fetchPublicDynamics"
+          >
+            {{ t('customer.profilePublicDynamicAction') }}
+          </n-button>
+
+          <template v-if="hasPublicDynamic">
+            <div v-if="!hasAnySource" class="text-[13px] text-[var(--text-n3)]">
+              {{ t('customer.profilePublicDynamicEmpty') }}
+            </div>
+            <div v-for="(group, gIndex) in publicDynamicGroups" :key="group.label" class="flex flex-col gap-[6px]">
+              <template v-if="group.sources.length">
+                <span class="text-[13px] font-semibold text-[var(--text-n1)]">
+                  {{ group.label }}（{{ group.sources.length }} 条）
+                </span>
+                <div
+                  v-for="(source, index) in group.sources"
+                  :key="`${gIndex}-${index}`"
+                  class="flex flex-col gap-[2px]"
+                >
+                  <a
+                    :href="source.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-[13px] leading-[1.6] text-[var(--primary-8)] hover:underline"
+                  >
+                    {{ index + 1 }}. {{ source.title || source.url }}
+                  </a>
+                  <span v-if="source.snippet" class="text-[12px] leading-[1.5] text-[var(--text-n3)]">
+                    {{ source.snippet }}
+                  </span>
+                  <template v-if="source.content">
+                    <n-button
+                      size="tiny"
+                      quaternary
+                      color="#f97316"
+                      class="w-fit"
+                      @click="togglePublicContent(gIndex, index)"
+                    >
+                      {{
+                        showPublicContent[`${gIndex}-${index}`]
+                          ? t('customer.profilePublicDynamicHideContent')
+                          : t('customer.profilePublicDynamicViewContent')
+                      }}
+                    </n-button>
+                    <div
+                      v-if="showPublicContent[`${gIndex}-${index}`]"
+                      class="whitespace-pre-wrap rounded-[6px] bg-[var(--fill-2)] p-[8px] text-[12px] leading-[1.6] text-[var(--text-n2)]"
+                    >
+                      {{ source.content }}
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+          <div v-else class="text-[12px] text-[var(--text-n3)]">{{ t('customer.profilePublicDynamicHint') }}</div>
+        </div>
+      </CrmCard>
     </template>
   </div>
 </template>
@@ -70,14 +137,14 @@
   import { PersonalEnum } from '@lib/shared/enums/systemEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import { emitOpenPersonalInfo } from '@lib/shared/method/personal-center';
-  import type { SalesAdvisorAnalyzeResult } from '@lib/shared/models/ai';
-  import type { CustomerProfileResponse } from '@lib/shared/models/customer';
+  import type { AdvisorWebSource, SalesAdvisorAnalyzeResult } from '@lib/shared/models/ai';
+  import type { CustomerProfileResponse, CustomerPublicDynamicResponse } from '@lib/shared/models/customer';
   import type { OpportunityStageConfig } from '@lib/shared/models/opportunity';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import AdvisorResult from '@/views/workbench/smart/components/AdvisorResult.vue';
 
-  import { getCustomerProfile, getOpportunityStageConfig } from '@/api/modules';
+  import { fetchCustomerPublicDynamics, getCustomerProfile, getOpportunityStageConfig } from '@/api/modules';
 
   import { WorkbenchRouteEnum } from '@/enums/routeEnum';
 
@@ -91,6 +158,9 @@
   const loading = ref(false);
   const profile = ref<CustomerProfileResponse>();
   const stageMap = ref<Record<string, string>>({});
+  const publicDynamicLoading = ref(false);
+  const publicDynamic = ref<CustomerPublicDynamicResponse>();
+  const showPublicContent = ref<Record<string, boolean>>({});
 
   function buildStageMap(config?: OpportunityStageConfig): Record<string, string> {
     const map: Record<string, string> = {};
@@ -130,6 +200,9 @@
     if (!props.sourceId) {
       return;
     }
+    // 切换客户时清空上一客户的公开动态，避免串客
+    publicDynamic.value = undefined;
+    showPublicContent.value = {};
     loading.value = true;
     try {
       const [profileRes, stageConfig] = await Promise.all([
@@ -195,6 +268,40 @@
       count: stage.count ?? 0,
     }))
   );
+
+  interface PublicDynamicGroup {
+    label: string;
+    sources: AdvisorWebSource[];
+  }
+
+  const publicDynamicGroups = computed<PublicDynamicGroup[]>(() => [
+    { label: t('customer.profilePublicDynamicNews'), sources: publicDynamic.value?.newsSources || [] },
+    { label: t('customer.profilePublicDynamicSentiment'), sources: publicDynamic.value?.sentimentSources || [] },
+  ]);
+  const hasPublicDynamic = computed(() => publicDynamic.value !== undefined);
+  const hasAnySource = computed(
+    () => (publicDynamic.value?.newsSources?.length || 0) + (publicDynamic.value?.sentimentSources?.length || 0) > 0
+  );
+
+  function togglePublicContent(gIndex: number, index: number) {
+    const key = `${gIndex}-${index}`;
+    showPublicContent.value[key] = !showPublicContent.value[key];
+  }
+
+  async function fetchPublicDynamics() {
+    if (!props.sourceId || publicDynamicLoading.value) {
+      return;
+    }
+    publicDynamicLoading.value = true;
+    try {
+      publicDynamic.value = await fetchCustomerPublicDynamics(props.sourceId);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    } finally {
+      publicDynamicLoading.value = false;
+    }
+  }
 
   function goAdvisor() {
     router.push({ name: WorkbenchRouteEnum.AI_SMART });
