@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -135,7 +136,7 @@ public class TenderSubscriptionService {
             throw new GenericException(blockedMessage(quota.getStatus()));
         }
 
-        List<AdvisorWebSource> sources = deepSeekSearchClient.search(query);
+        List<AdvisorWebSource> sources = deepSeekSearchClient.search(query, 15);
         recordSearch(orgId, sub.getUserId());
 
         Set<String> existingUrls = new HashSet<>();
@@ -143,11 +144,15 @@ public class TenderSubscriptionService {
                 .eq(TenderResult::getSubscriptionId, sub.getId()))
                 .forEach(r -> existingUrls.add(r.getUrl()));
 
+        List<String> keywords = splitKeywords(sub.getKeyword());
         List<TenderResult> newResults = new ArrayList<>();
         long now = System.currentTimeMillis();
         for (AdvisorWebSource source : sources) {
             String url = StringUtils.left(source.getUrl(), 512);
             if (StringUtils.isBlank(url) || existingUrls.contains(url)) {
+                continue;
+            }
+            if (!keywords.isEmpty() && !matchesAny(keywords, source)) {
                 continue;
             }
             TenderResult result = new TenderResult();
@@ -197,19 +202,38 @@ public class TenderSubscriptionService {
 
     private String buildQuery(TenderSubscription sub) {
         List<String> parts = new ArrayList<>();
+        // 关键词前置，作为搜索主意图，避免被固定后缀稀释
+        if (StringUtils.isNotBlank(sub.getKeyword())) {
+            parts.add(sub.getKeyword().trim());
+        }
         if (StringUtils.isNotBlank(sub.getIndustry())) {
             parts.add(sub.getIndustry().trim());
         }
         if (StringUtils.isNotBlank(sub.getRegion())) {
             parts.add(sub.getRegion().trim());
         }
-        if (StringUtils.isNotBlank(sub.getKeyword())) {
-            parts.add(sub.getKeyword().trim());
-        }
         if (parts.isEmpty()) {
             return "";
         }
         return String.join(" ", parts) + " 招标 采购 公告";
+    }
+
+    /** 关键词按空格/逗号/顿号切分，任一命中标题/摘要/正文即视为相关。 */
+    private List<String> splitKeywords(String keyword) {
+        if (StringUtils.isBlank(keyword)) {
+            return List.of();
+        }
+        return Arrays.stream(keyword.split("[\\s,，、]+"))
+                .map(String::trim)
+                .filter(StringUtils::isNotBlank)
+                .toList();
+    }
+
+    private boolean matchesAny(List<String> keywords, AdvisorWebSource source) {
+        String haystack = StringUtils.defaultString(source.getTitle()) + " "
+                + StringUtils.defaultString(source.getSnippet()) + " "
+                + StringUtils.defaultString(source.getContent());
+        return keywords.stream().anyMatch(haystack::contains);
     }
 
     private String subLabel(TenderSubscription sub) {

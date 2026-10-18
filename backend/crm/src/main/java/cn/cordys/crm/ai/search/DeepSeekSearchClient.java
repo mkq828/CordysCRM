@@ -52,6 +52,13 @@ public class DeepSeekSearchClient {
      * 按关键词搜索网页，返回最多 5 条结构化结果（标题/链接/摘要/正文）。未配 key 或调用失败时返回空列表。
      */
     public List<AdvisorWebSource> search(String query) {
+        return search(query, 5);
+    }
+
+    /**
+     * 按关键词搜索网页，返回最多 {@code count} 条结构化结果。供需要更多候选再做本地过滤的场景使用。
+     */
+    public List<AdvisorWebSource> search(String query, int count) {
         String apiKey = getApiKey();
         if (StringUtils.isBlank(apiKey)) {
             log.warn("未配置 {}，跳过联网搜索", PARAM_API_KEY);
@@ -60,7 +67,7 @@ public class DeepSeekSearchClient {
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("query", query);
-        body.put("count", 5);
+        body.put("count", count);
         body.put("need_content", true);
 
         try {
