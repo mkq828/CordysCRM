@@ -611,6 +611,32 @@ export interface TenderResult {
   createTime?: number;
 }
 
+/** 竞品动态-新建请求 */
+export interface CompetitorMonitorCreateParams {
+  competitor?: string;
+  keyword?: string;
+}
+
+/** 竞品动态订阅 */
+export interface CompetitorMonitorSubscription {
+  id: string;
+  competitor?: string;
+  keyword?: string;
+  enabled?: boolean;
+  createTime?: number;
+}
+
+/** 竞品动态结果 */
+export interface CompetitorMonitorResult {
+  id: string;
+  subscriptionId?: string;
+  title?: string;
+  url?: string;
+  snippet?: string;
+  content?: string;
+  createTime?: number;
+}
+
 /** 私信获客画像-已绑定平台账号 */
 export interface DmAccount {
   id: string;

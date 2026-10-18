@@ -66,6 +66,7 @@ export default {
     'menu.aiLeadCrawl': '竞品洞察',
     'menu.aiLeadMining': '潜客挖掘',
     'menu.aiTenderSubscription': '标讯订阅',
+    'menu.aiCompetitorMonitor': '竞品动态',
     'menu.aiVideo': '短视频生成',
     'menu.aiReplica': '爆款复刻',
     'menu.aiDrama': 'AI 漫剧',

@@ -176,6 +176,11 @@ export enum TenderSubscriptionRouteEnum {
   TENDER_SUBSCRIPTION_INDEX = 'aiTenderSubscriptionIndex',
 }
 
+export enum CompetitorMonitorRouteEnum {
+  COMPETITOR_MONITOR = 'aiCompetitorMonitor',
+  COMPETITOR_MONITOR_INDEX = 'aiCompetitorMonitorIndex',
+}
+
 export enum VideoRouteEnum {
   VIDEO = 'aiVideo',
   VIDEO_INDEX = 'aiVideoIndex',
@@ -265,6 +270,7 @@ export const AppRouteEnum = {
   ...LeadCrawlRouteEnum,
   ...LeadMiningRouteEnum,
   ...TenderSubscriptionRouteEnum,
+  ...CompetitorMonitorRouteEnum,
   ...VideoRouteEnum,
   ...DramaRouteEnum,
   ...ReplicaRouteEnum,

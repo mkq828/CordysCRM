@@ -63,6 +63,9 @@ import type {
   AskBiQueryResult,
   CompetitorInsightParams,
   CompetitorInsightResult,
+  CompetitorMonitorCreateParams,
+  CompetitorMonitorResult,
+  CompetitorMonitorSubscription,
   DmAccount,
   DmProfile,
   DmProfileImportResult,
@@ -191,6 +194,13 @@ import {
   AiVoiceCloneAvailableUrl,
   AiVoiceCloneTasksUrl,
   CompetitorInsightStreamUrl,
+  CompetitorMonitorAvailableUrl,
+  CompetitorMonitorCreateUrl,
+  CompetitorMonitorDeleteUrl,
+  CompetitorMonitorListUrl,
+  CompetitorMonitorResultsUrl,
+  CompetitorMonitorSearchNowUrl,
+  CompetitorMonitorToggleUrl,
   DmProfileAccountsUrl,
   DmProfileAvailableUrl,
   DmProfileImportUrl,
@@ -785,6 +795,36 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.get<TenderResult[]>({ url: TenderSubscriptionResultsUrl, params: { id } });
   }
 
+  function getCompetitorMonitorAvailable() {
+    return CDR.get<boolean>({ url: CompetitorMonitorAvailableUrl });
+  }
+
+  function getCompetitorMonitorList() {
+    return CDR.get<CompetitorMonitorSubscription[]>({ url: CompetitorMonitorListUrl });
+  }
+
+  function createCompetitorMonitor(data: CompetitorMonitorCreateParams) {
+    return CDR.post<CompetitorMonitorSubscription>({ url: CompetitorMonitorCreateUrl, data });
+  }
+
+  function deleteCompetitorMonitor(id: string) {
+    return CDR.post<void>({ url: `${CompetitorMonitorDeleteUrl}?id=${encodeURIComponent(id)}` });
+  }
+
+  function toggleCompetitorMonitor(id: string, enabled: boolean) {
+    return CDR.post<void>({ url: `${CompetitorMonitorToggleUrl}?id=${encodeURIComponent(id)}&enabled=${enabled}` });
+  }
+
+  function searchCompetitorMonitorNow(id: string) {
+    return CDR.post<CompetitorMonitorResult[]>({
+      url: `${CompetitorMonitorSearchNowUrl}?id=${encodeURIComponent(id)}`,
+    });
+  }
+
+  function getCompetitorMonitorResults(id: string) {
+    return CDR.get<CompetitorMonitorResult[]>({ url: CompetitorMonitorResultsUrl, params: { id } });
+  }
+
   function getDmProfileAvailable() {
     return CDR.get<boolean>({ url: DmProfileAvailableUrl });
   }
@@ -1232,6 +1272,13 @@ export default function useAiApi(CDR: CordysAxios) {
     toggleTenderSubscription,
     searchTenderSubscriptionNow,
     getTenderSubscriptionResults,
+    getCompetitorMonitorAvailable,
+    getCompetitorMonitorList,
+    createCompetitorMonitor,
+    deleteCompetitorMonitor,
+    toggleCompetitorMonitor,
+    searchCompetitorMonitorNow,
+    getCompetitorMonitorResults,
     getDmProfileAvailable,
     getDmProfileAccounts,
     bindDmProfileAccount,

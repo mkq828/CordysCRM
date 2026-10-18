@@ -3,6 +3,7 @@ import {
   AiCreationRouteEnum,
   AiEmployeeRouteEnum,
   AskBiRouteEnum,
+  CompetitorMonitorRouteEnum,
   ContentRouteEnum,
   KnowledgeRouteEnum,
   LeadCrawlRouteEnum,
@@ -136,6 +137,15 @@ const aiCreation: AppRouteRecordRaw = {
       component: () => import('@/views/tenderSubscription/index.vue'),
       meta: {
         locale: 'menu.aiTenderSubscription',
+        permissions: [],
+      },
+    },
+    {
+      path: '/ai-competitor-monitor/index',
+      name: CompetitorMonitorRouteEnum.COMPETITOR_MONITOR_INDEX,
+      component: () => import('@/views/competitorMonitor/index.vue'),
+      meta: {
+        locale: 'menu.aiCompetitorMonitor',
         permissions: [],
       },
     },

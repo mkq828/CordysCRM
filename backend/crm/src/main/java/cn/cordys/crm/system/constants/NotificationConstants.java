@@ -234,6 +234,9 @@ public class NotificationConstants {
         //标讯订阅发现新招标信息（通知订阅人）
         @Schema(description = "message.tender_subscribe_new")
         String TENDER_SUBSCRIBE_NEW = "TENDER_SUBSCRIBE_NEW";
+        //竞品动态发现新动态（通知订阅人）
+        @Schema(description = "message.competitor_monitor_new")
+        String COMPETITOR_MONITOR_NEW = "COMPETITOR_MONITOR_NEW";
     }
 
     public interface RelatedUser {
@@ -462,6 +465,10 @@ public class NotificationConstants {
         //您订阅的标讯「${name}」发现 ${count} 条新招标信息，请及时查看。
         @Schema(description = "message.tender_subscribe_new_text")
         String TENDER_SUBSCRIBE_NEW_TEXT = "TENDER_SUBSCRIBE_NEW_TEXT";
+
+        //您关注的竞品「${name}」发现 ${count} 条新动态，请及时查看。
+        @Schema(description = "message.competitor_monitor_new_text")
+        String COMPETITOR_MONITOR_NEW_TEXT = "COMPETITOR_MONITOR_NEW_TEXT";
     }
 
 

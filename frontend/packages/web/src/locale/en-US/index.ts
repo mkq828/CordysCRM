@@ -67,6 +67,7 @@ export default {
     'menu.aiLeadCrawl': 'Competitor Insight',
     'menu.aiLeadMining': 'Lead Mining',
     'menu.aiTenderSubscription': 'Tender Subscription',
+    'menu.aiCompetitorMonitor': 'Competitor Monitor',
     'menu.aiVideo': 'Short Video',
     'menu.aiReplica': 'Viral Replica',
     'menu.aiDrama': 'AI Drama',
