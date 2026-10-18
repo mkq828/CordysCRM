@@ -270,6 +270,9 @@ public class SalesAdvisorService {
             if (StringUtils.isNotBlank(source.getSnippet())) {
                 sb.append("——").append(source.getSnippet());
             }
+            if (StringUtils.isNotBlank(source.getContent())) {
+                sb.append("\n   正文：").append(source.getContent());
+            }
             if (StringUtils.isNotBlank(source.getUrl())) {
                 sb.append("（来源：").append(source.getUrl()).append("）");
             }

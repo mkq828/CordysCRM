@@ -126,4 +126,6 @@ export default {
   'workbench.smart.advisorCopied': '已复制',
   'workbench.smart.advisorOriginal': '原文对照',
   'workbench.smart.advisorHideOriginal': '收起原文',
+  'workbench.smart.advisorViewContent': '查看正文',
+  'workbench.smart.advisorHideContent': '收起正文',
 };

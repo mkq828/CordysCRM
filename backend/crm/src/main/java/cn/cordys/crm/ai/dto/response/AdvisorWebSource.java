@@ -16,4 +16,7 @@ public class AdvisorWebSource {
 
     /** 短摘要（snippet 为空时回退 summary） */
     private String snippet;
+
+    /** 正文全文（need_content=true 时返回，已截断；空表示该页正文不可得） */
+    private String content;
 }

@@ -127,4 +127,6 @@ export default {
   'workbench.smart.advisorCopied': 'Copied',
   'workbench.smart.advisorOriginal': 'Original',
   'workbench.smart.advisorHideOriginal': 'Hide original',
+  'workbench.smart.advisorViewContent': 'View full text',
+  'workbench.smart.advisorHideContent': 'Hide full text',
 };

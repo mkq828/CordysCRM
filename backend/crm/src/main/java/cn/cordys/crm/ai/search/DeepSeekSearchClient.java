@@ -38,6 +38,9 @@ public class DeepSeekSearchClient {
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
 
+    /** 单条正文截断上限（字符）：比 summary（约 600-800 字）更深，又控制注入 LLM 的 token 开销 */
+    private static final int CONTENT_MAX_CHARS = 1500;
+
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
@@ -46,7 +49,7 @@ public class DeepSeekSearchClient {
     private BaseMapper<Parameter> parameterMapper;
 
     /**
-     * 按关键词搜索网页，返回最多 5 条结构化结果（标题/链接/摘要）。未配 key 或调用失败时返回空列表。
+     * 按关键词搜索网页，返回最多 5 条结构化结果（标题/链接/摘要/正文）。未配 key 或调用失败时返回空列表。
      */
     public List<AdvisorWebSource> search(String query) {
         String apiKey = getApiKey();
@@ -58,7 +61,7 @@ public class DeepSeekSearchClient {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("query", query);
         body.put("count", 5);
-        body.put("need_content", false);
+        body.put("need_content", true);
 
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -94,6 +97,7 @@ public class DeepSeekSearchClient {
                 source.setTitle(cleanHtml(textOf(item, "title")));
                 source.setUrl(textOf(item, "url"));
                 source.setSnippet(cleanHtml(firstNonBlank(textOf(item, "snippet"), textOf(item, "summary"))));
+                source.setContent(truncate(cleanHtml(textOf(item, "content")), CONTENT_MAX_CHARS));
                 if (StringUtils.isNotBlank(source.getUrl())) {
                     sources.add(source);
                 }
@@ -111,6 +115,14 @@ public class DeepSeekSearchClient {
 
     private String firstNonBlank(String a, String b) {
         return StringUtils.isNotBlank(a) ? a : b;
+    }
+
+    /** 正文截断到上限字符，超长取前 N 字，避免整页全文注入撑爆上下文 */
+    private String truncate(String text, int maxChars) {
+        if (text == null || text.length() <= maxChars) {
+            return text;
+        }
+        return text.substring(0, maxChars);
     }
 
     /** 剥离标题/摘要里的 HTML 标签与实体，兼容一层或多层实体编码（如 &lt;table&gt;），避免原始标记直接展示。 */

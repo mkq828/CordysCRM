@@ -18,6 +18,21 @@
           <span v-if="source.snippet" class="text-[12px] leading-[1.5] text-[var(--text-n3)]">
             {{ source.snippet }}
           </span>
+          <template v-if="source.content">
+            <n-button size="tiny" quaternary color="#f97316" class="w-fit" @click="toggleSourceContent(index)">
+              {{
+                showSourceContent[index]
+                  ? t('workbench.smart.advisorHideContent')
+                  : t('workbench.smart.advisorViewContent')
+              }}
+            </n-button>
+            <div
+              v-if="showSourceContent[index]"
+              class="whitespace-pre-wrap rounded-[6px] bg-[var(--fill-2)] p-[8px] text-[12px] leading-[1.6] text-[var(--text-n2)]"
+            >
+              {{ source.content }}
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -237,6 +252,7 @@
   }
 
   const showOriginal = ref<Record<number, boolean>>({});
+  const showSourceContent = ref<Record<number, boolean>>({});
 
   const scriptCards = computed<ScriptCard[]>(() => {
     const recommendations = props.result?.scriptRecommendations;
@@ -253,6 +269,10 @@
 
   function toggleOriginal(index: number) {
     showOriginal.value[index] = !showOriginal.value[index];
+  }
+
+  function toggleSourceContent(index: number) {
+    showSourceContent.value[index] = !showSourceContent.value[index];
   }
 
   const intentNum = computed(() => {

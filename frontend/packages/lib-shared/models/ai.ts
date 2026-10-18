@@ -197,6 +197,8 @@ export interface AdvisorWebSource {
   title?: string;
   url?: string;
   snippet?: string;
+  /** 正文全文（已截断，空表示该页正文不可得） */
+  content?: string;
 }
 
 /** AI 销售会话军师结构化分析结果 */
