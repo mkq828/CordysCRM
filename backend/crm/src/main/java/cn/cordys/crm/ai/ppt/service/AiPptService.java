@@ -2,6 +2,7 @@ package cn.cordys.crm.ai.ppt.service;
 
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.crm.ai.constant.AiQuotaConstant;
+import cn.cordys.crm.ai.dto.response.AdvisorWebSource;
 import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
 import cn.cordys.crm.ai.dto.response.AiStreamResult;
 import cn.cordys.crm.ai.llm.LlmChatRequest;
@@ -16,8 +17,11 @@ import cn.cordys.crm.ai.ppt.dto.request.AiPptOutlineRequest;
 import cn.cordys.crm.ai.ppt.dto.request.AiPptSlidesRequest;
 import cn.cordys.crm.ai.ppt.dto.response.AiPptOutlineResult;
 import cn.cordys.crm.ai.ppt.dto.response.AiPptSlidesResult;
+import cn.cordys.crm.ai.search.DeepSeekSearchClient;
 import cn.cordys.crm.ai.service.AiQuotaService;
 import cn.cordys.crm.ai.service.FencedJsonStreamer;
+import cn.cordys.crm.system.domain.Parameter;
+import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.security.SessionUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -76,6 +80,10 @@ public class AiPptService {
     private AgentModelService agentModelService;
     @Resource
     private LlmProviderFactory llmProviderFactory;
+    @Resource
+    private DeepSeekSearchClient deepSeekSearchClient;
+    @Resource
+    private BaseMapper<Parameter> parameterMapper;
 
     /** 流式生成方案大纲：先流式输出引导语，再解析 JSON 大纲。 */
     public AiStreamResult<AiPptOutlineResult> generateOutline(String organizationId,
@@ -89,7 +97,10 @@ public class AiPptService {
         if (StringUtils.isBlank(request.getBackground())) {
             throw new GenericException("请填写客户背景与痛点");
         }
-        return doGenerate(organizationId, AiQuotaConstant.AI_PPT, buildOutlineMessages(request), this::parseOutline, onChunk);
+        // 联网补行业实时数据：按行业搜最新规模/趋势注入大纲，未配 key / 失败静默降级，不阻断生成
+        String webContext = buildWebContext(organizationId, request.getIndustry(), SessionUtils.getUserId());
+        return doGenerate(organizationId, AiQuotaConstant.AI_PPT, buildOutlineMessages(request, webContext),
+                this::parseOutline, onChunk);
     }
 
     /** 流式生成 PPT 逐页：入参为（可编辑后的）大纲区块。 */
@@ -153,7 +164,7 @@ public class AiPptService {
                 ? "AI 服务异常，请稍后重试" : lastError.getMessage());
     }
 
-    private List<LlmMessage> buildOutlineMessages(AiPptOutlineRequest request) {
+    private List<LlmMessage> buildOutlineMessages(AiPptOutlineRequest request, String webContext) {
         List<LlmMessage> messages = new ArrayList<>();
         messages.add(new LlmMessage("system", OUTLINE_SYSTEM_PROMPT));
         StringBuilder sb = new StringBuilder();
@@ -171,6 +182,9 @@ public class AiPptService {
         }
         if (StringUtils.isNotBlank(request.getFocus())) {
             sb.append("\n方案侧重：").append(request.getFocus().trim());
+        }
+        if (StringUtils.isNotBlank(webContext)) {
+            sb.append("\n\n").append(webContext);
         }
         messages.add(new LlmMessage("user", sb.toString()));
         return messages;
@@ -321,5 +335,61 @@ public class AiPptService {
 
     private String trim(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    /** 联网搜索行业实时数据注入方案大纲；未开启/未配 key/失败时返回空串，不阻断生成 */
+    private String buildWebContext(String orgId, String industry, String userId) {
+        if (!boolParam("ai.ppt.enable_web_search", true)) {
+            return "";
+        }
+        String keyword = industry == null ? "" : industry.trim();
+        if (keyword.isEmpty()) {
+            return "";
+        }
+        String query = (keyword.length() > 128 ? keyword.substring(0, 128) : keyword)
+                + " 行业 市场规模 发展趋势 最新数据";
+        List<AdvisorWebSource> sources = deepSeekSearchClient.search(query);
+        if (sources.isEmpty()) {
+            return "";
+        }
+        aiQuotaService.record(orgId, AiQuotaConstant.AI_PPT, AiQuotaConstant.SEARCH_MODEL_CODE,
+                getSearchTokensPerCall(), 0L, userId);
+        StringBuilder sb = new StringBuilder("## 行业实时数据（来自联网搜索，仅供撰写方案参考，请自然融入）\n");
+        int index = 1;
+        for (AdvisorWebSource source : sources) {
+            sb.append(index++).append(". 《")
+                    .append(StringUtils.defaultIfBlank(source.getTitle(), "无标题")).append("》");
+            if (StringUtils.isNotBlank(source.getSnippet())) {
+                sb.append("——").append(source.getSnippet());
+            }
+            sb.append('\n');
+        }
+        return sb.toString().trim();
+    }
+
+    private boolean boolParam(String key, boolean defaultValue) {
+        try {
+            Parameter param = parameterMapper.selectByPrimaryKey(key);
+            if (param != null && StringUtils.isNotBlank(param.getParamValue())) {
+                String value = param.getParamValue().trim();
+                return "true".equalsIgnoreCase(value) || "1".equals(value);
+            }
+        } catch (Exception e) {
+            log.warn("解析系统参数失败，key={}，使用默认值 {}", key, defaultValue, e);
+        }
+        return defaultValue;
+    }
+
+    /** 1 次联网搜索折算 token 数（可配置，非法回退默认值），与军师/订阅/知识库场景同口径 */
+    private long getSearchTokensPerCall() {
+        try {
+            Parameter param = parameterMapper.selectByPrimaryKey(AiQuotaConstant.PARAM_SEARCH_TOKENS_PER_CALL);
+            if (param != null && StringUtils.isNotBlank(param.getParamValue())) {
+                return Long.parseLong(param.getParamValue().trim());
+            }
+        } catch (Exception e) {
+            log.warn("解析搜索折算 token 参数失败，使用默认值", e);
+        }
+        return AiQuotaConstant.DEFAULT_SEARCH_TOKENS_PER_CALL;
     }
 }
