@@ -23,6 +23,9 @@ export default {
   'knowledge.deleteTip': 'This cannot be undone. Delete this document?',
   'knowledge.askDesc':
     'Ask questions based on uploaded documents. AI answers only from the documents with citations and never fabricates.',
+  'knowledge.enableWebSearch': 'Supplement time-sensitive info from the web',
+  'knowledge.enableWebSearchDesc':
+    'When enabled, AI supplements with public web info and cites the source if the knowledge base lacks time-sensitive content (latest policies, recent data, etc.).',
   'knowledge.questionPlaceholder': 'e.g. What is our return policy?',
   'knowledge.ask': 'Ask',
   'knowledge.asking': 'Answering…',

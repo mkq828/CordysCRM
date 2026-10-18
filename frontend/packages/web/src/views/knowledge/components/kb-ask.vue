@@ -48,6 +48,15 @@
                 :autosize="{ minRows: 3, maxRows: 8 }"
               />
 
+              <div class="flex flex-col gap-[2px]">
+                <n-checkbox v-model:checked="webSearch" class="text-[13px] text-[var(--text-n2)]">
+                  {{ t('knowledge.enableWebSearch') }}
+                </n-checkbox>
+                <span class="pl-[24px] text-[12px] text-[var(--text-n3)]">{{
+                  t('knowledge.enableWebSearchDesc')
+                }}</span>
+              </div>
+
               <div>
                 <AiActionButton :loading="asking" :disabled="!canAsk" @click="handleAsk">
                   {{ asking ? t('knowledge.asking') : t('knowledge.ask') }}
@@ -109,7 +118,7 @@
 
 <script setup lang="ts">
   import { computed, nextTick, onMounted, ref, watch } from 'vue';
-  import { NButton, NEmpty, NInput, NInputNumber, useMessage } from 'naive-ui';
+  import { NButton, NCheckbox, NEmpty, NInput, NInputNumber, useMessage } from 'naive-ui';
   import dayjs from 'dayjs';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -139,6 +148,7 @@
   const Message = useMessage();
 
   const question = ref('');
+  const webSearch = ref(false);
   const asking = ref(false);
   const { text: streamingText, feed: feedStreaming, finish: finishStreaming, reset: resetStreaming } = useTypewriter();
   const snippetMax = ref<number | null>(200);
@@ -288,6 +298,7 @@
         {
           question: question.value.trim(),
           conversationId: activeConversationId.value || undefined,
+          webSearch: webSearch.value,
         },
         { signal: controller.signal }
       );

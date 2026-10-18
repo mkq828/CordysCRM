@@ -22,6 +22,9 @@ export default {
   'knowledge.createTime': '上传时间',
   'knowledge.deleteTip': '删除后不可恢复，确定删除该文档吗？',
   'knowledge.askDesc': '基于已上传文档提问，AI 只依据文档内容回答并给出出处，文档中未提及的内容不会编造。',
+  'knowledge.enableWebSearch': '联网补充时效信息',
+  'knowledge.enableWebSearchDesc':
+    '勾选后，当知识库资料对时效性问题（最新政策、近期数据等）覆盖不足时，联网补充公开信息并标注来源。',
   'knowledge.questionPlaceholder': '例如：我们的退货政策是什么？',
   'knowledge.ask': '提问',
   'knowledge.asking': '回答中…',

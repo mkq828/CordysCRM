@@ -6,6 +6,7 @@ import cn.cordys.common.pager.Pager;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.JSON;
 import cn.cordys.crm.ai.constant.AiQuotaConstant;
+import cn.cordys.crm.ai.dto.response.AdvisorWebSource;
 import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
 import cn.cordys.crm.ai.dto.response.AiStreamResult;
 import cn.cordys.crm.ai.knowledge.domain.AiKnowledgeChunk;
@@ -28,6 +29,7 @@ import cn.cordys.crm.ai.llm.LlmProviderFactory;
 import cn.cordys.crm.ai.llm.LlmUsage;
 import cn.cordys.crm.ai.model.domain.AgentModel;
 import cn.cordys.crm.ai.model.service.AgentModelService;
+import cn.cordys.crm.ai.search.DeepSeekSearchClient;
 import cn.cordys.crm.ai.service.AiQuotaService;
 import cn.cordys.crm.system.domain.Parameter;
 import cn.cordys.mybatis.BaseMapper;
@@ -111,8 +113,10 @@ public class AiKnowledgeService {
             "我们", "你们", "他们", "请问", "一下", "关于", "以及", "这个", "那个", "一个", "可以", "能否");
 
     private static final String SYSTEM_PROMPT = """
-            你是企业知识库问答助手。请仅依据用户提供的参考资料回答问题，条理清晰、简洁准确。
-            若资料中未提及相关内容，明确回答「资料中未找到相关信息」，严禁编造。
+            你是企业知识库问答助手。请依据用户提供的参考资料回答问题，条理清晰、简洁准确。
+            参考资料分为「知识库资料」和「联网时效信息」两类：知识库资料优先；当知识库资料对时效性问题（最新政策、近期数据、当前动态等）覆盖不足时，可引用联网时效信息补充，并在回答中标注「据联网公开信息」。
+            紧扣问题焦点作答：只回答用户实际问的点（问价格只答价格、问流程只答流程、问时间只答时间），参考资料中与问题焦点无关的内容不要展开、不要罗列。
+            若两类资料均未提及相关内容，明确回答「资料中未找到相关信息」，严禁编造。
             直接输出回答正文（Markdown 格式，可用要点列表），不要输出 JSON、不要任何前后缀、不要提及「资料编号」。
             """;
 
@@ -136,6 +140,8 @@ public class AiKnowledgeService {
     private LlmProviderFactory llmProviderFactory;
     @Resource
     private BaseMapper<Parameter> parameterMapper;
+    @Resource
+    private DeepSeekSearchClient deepSeekSearchClient;
 
     // ==================== 文档维护 ====================
 
@@ -253,6 +259,17 @@ public class AiKnowledgeService {
             throw new GenericException(blockedMessage(status));
         }
 
+        // 联网补充时效信息：勾选后按问题联网检索公开信息注入（未配 key / 失败静默降级，不阻断问答）
+        List<AdvisorWebSource> webSources = List.of();
+        if (Boolean.TRUE.equals(request.getWebSearch())) {
+            String query = question.length() > 128 ? question.substring(0, 128) : question;
+            webSources = deepSeekSearchClient.search(query);
+            if (!webSources.isEmpty()) {
+                aiQuotaService.record(orgId, AiQuotaConstant.AI_KB, AiQuotaConstant.SEARCH_MODEL_CODE,
+                        getSearchTokensPerCall(), 0L, userId);
+            }
+        }
+
         StringBuilder content = new StringBuilder();
         AtomicBoolean emitted = new AtomicBoolean(false);
         Exception lastError = null;
@@ -265,7 +282,7 @@ public class AiKnowledgeService {
                 llmRequest.setBaseUrl(model.getApiUrl());
                 llmRequest.setApiKey(model.getApiKey());
                 agentModelService.applyModelParams(llmRequest, model);
-                llmRequest.setMessages(buildMessages(question, chunks));
+                llmRequest.setMessages(buildMessages(question, chunks, webSources));
 
                 LlmUsage usage = provider.chatStream(llmRequest, chunk -> {
                     emitted.set(true);
@@ -344,7 +361,8 @@ public class AiKnowledgeService {
      */
     private List<AiKnowledgeChunk> retrieveChunks(String orgId, String question, List<String> keywords) {
         // 1) 向量检索（语义召回，带相似度）
-        List<ScoredChunk> vectorHits = retrieveByVector(orgId, question, CHUNK_CANDIDATE_LIMIT);
+        VectorSearchResult vectorResult = retrieveByVector(orgId, question, CHUNK_CANDIDATE_LIMIT);
+        List<ScoredChunk> vectorHits = vectorResult.hits();
         // 2) 关键词检索（字面召回，能覆盖无向量的老数据）
         List<AiKnowledgeChunk> keywordHits = keywords.isEmpty()
                 ? List.of()
@@ -357,7 +375,12 @@ public class AiKnowledgeService {
             merged.put(sc.chunk().getId(), sc.chunk());
             simOf.put(sc.chunk().getId(), sc.similarity());
         }
+        // 向量检索正常执行时，有向量块的语义相关性已由相似度阈值裁决（<0.5 不召回）；
+        // 关键词命中只兜底「无向量」的老块，避免「政策」这类泛词把语义不相关的向量块拉回来。
         for (AiKnowledgeChunk chunk : keywordHits) {
+            if (vectorResult.executed() && chunk.getVector() != null) {
+                continue;
+            }
             merged.putIfAbsent(chunk.getId(), chunk);
         }
         if (merged.isEmpty()) {
@@ -384,22 +407,27 @@ public class AiKnowledgeService {
     /** 向量命中块 + 相似度（融合排序用） */
     private record ScoredChunk(AiKnowledgeChunk chunk, double similarity) {}
 
-    /** 向量检索：提问向量化后与租户已向量化分块做内存余弦相似度取 top-K；embedding 不可用或失败返回空 */
-    private List<ScoredChunk> retrieveByVector(String orgId, String question, int topK) {
+    /** 向量检索结果：hits 为相似度达阈值的命中块；executed 表示「embedding 可用 + 有向量数据 + 已成功计算相似度」 */
+    private record VectorSearchResult(List<ScoredChunk> hits, boolean executed) {
+        static final VectorSearchResult NOT_EXECUTED = new VectorSearchResult(List.of(), false);
+    }
+
+    /** 向量检索：提问向量化后与租户已向量化分块做内存余弦相似度取 top-K；embedding 不可用或失败返回未执行 */
+    private VectorSearchResult retrieveByVector(String orgId, String question, int topK) {
         AgentModel embedAgent = agentModelService.resolveEmbeddingModel(orgId);
         if (embedAgent == null) {
-            return List.of();
+            return VectorSearchResult.NOT_EXECUTED;
         }
         float[] query;
         try {
             query = embedToVector(question, embeddingModelName(), embedAgent);
         } catch (Exception e) {
             log.warn("知识库提问向量化失败，降级关键词检索: {}", e.getMessage());
-            return List.of();
+            return VectorSearchResult.NOT_EXECUTED;
         }
         List<AiKnowledgeChunk> candidates = extChunkMapper.selectVectorizedByOrg(orgId);
         if (candidates.isEmpty()) {
-            return List.of();
+            return VectorSearchResult.NOT_EXECUTED;
         }
         List<ScoredChunk> scored = new ArrayList<>();
         for (AiKnowledgeChunk chunk : candidates) {
@@ -410,7 +438,7 @@ public class AiKnowledgeService {
             scored.add(new ScoredChunk(chunk, cosineSimilarity(query, vec)));
         }
         if (scored.isEmpty()) {
-            return List.of();
+            return VectorSearchResult.NOT_EXECUTED;
         }
         scored.sort((a, b) -> Double.compare(b.similarity(), a.similarity()));
         // 已按相似度降序：首个低于阈值即视为无相关命中，后续更低无需再看
@@ -424,7 +452,7 @@ public class AiKnowledgeService {
                 break;
             }
         }
-        return hits;
+        return new VectorSearchResult(hits, true);
     }
 
     /**
@@ -640,16 +668,35 @@ public class AiKnowledgeService {
                 d -> d.getName() == null ? "" : d.getName(), (a, b) -> a));
     }
 
-    private List<LlmMessage> buildMessages(String question, List<AiKnowledgeChunk> chunks) {
+    private List<LlmMessage> buildMessages(String question, List<AiKnowledgeChunk> chunks,
+            List<AdvisorWebSource> webSources) {
         List<LlmMessage> messages = new ArrayList<>();
         messages.add(new LlmMessage("system", SYSTEM_PROMPT));
         StringBuilder sb = new StringBuilder();
         sb.append("问题：").append(question).append("\n\n参考资料：\n");
         if (chunks.isEmpty()) {
-            sb.append("（无相关参考资料）\n");
+            sb.append("（无知识库相关资料）\n");
         } else {
             for (int i = 0; i < chunks.size(); i++) {
                 sb.append(i + 1).append(". ").append(chunks.get(i).getContent()).append('\n');
+            }
+        }
+        if (webSources != null && !webSources.isEmpty()) {
+            sb.append("\n联网时效信息（供知识库资料覆盖不足时补充，引用请标注「据联网公开信息」）：\n");
+            int index = 1;
+            for (AdvisorWebSource source : webSources) {
+                sb.append(index++).append(". 《")
+                        .append(StringUtils.defaultIfBlank(source.getTitle(), "无标题")).append("》");
+                if (StringUtils.isNotBlank(source.getSnippet())) {
+                    sb.append("——").append(source.getSnippet());
+                }
+                if (StringUtils.isNotBlank(source.getContent())) {
+                    sb.append("\n   正文：").append(source.getContent());
+                }
+                if (StringUtils.isNotBlank(source.getUrl())) {
+                    sb.append("（来源：").append(source.getUrl()).append("）");
+                }
+                sb.append('\n');
             }
         }
         sb.append("\n请仅依据上述资料回答。");
@@ -722,6 +769,19 @@ public class AiKnowledgeService {
 
     private String trimTo(String text, int max) {
         return text.length() <= max ? text : text.substring(0, max) + "…";
+    }
+
+    /** 1 次联网搜索折算 token 数（可配置，非法回退默认值），与军师/订阅场景同口径 */
+    private long getSearchTokensPerCall() {
+        try {
+            Parameter param = parameterMapper.selectByPrimaryKey(AiQuotaConstant.PARAM_SEARCH_TOKENS_PER_CALL);
+            if (param != null && StringUtils.isNotBlank(param.getParamValue())) {
+                return Long.parseLong(param.getParamValue().trim());
+            }
+        } catch (Exception e) {
+            log.warn("解析搜索折算 token 参数失败，使用默认值", e);
+        }
+        return AiQuotaConstant.DEFAULT_SEARCH_TOKENS_PER_CALL;
     }
 
     // ==================== 系统设置 ====================

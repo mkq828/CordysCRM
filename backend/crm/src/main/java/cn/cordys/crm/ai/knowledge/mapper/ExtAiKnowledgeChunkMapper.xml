@@ -10,6 +10,7 @@
             c.doc_id,
             c.seq,
             c.content,
+            c.vector,
             c.create_time,
             c.update_time,
             c.create_user,

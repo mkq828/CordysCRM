@@ -380,6 +380,8 @@ export interface AiKnowledgeAskParams {
   question: string;
   topK?: number;
   conversationId?: string;
+  /** 是否联网补充时效信息（默认关） */
+  webSearch?: boolean;
 }
 
 /** 企业知识库-问答出处引用 */
