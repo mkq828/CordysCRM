@@ -8,6 +8,7 @@ import {
   KnowledgeRouteEnum,
   LeadCrawlRouteEnum,
   LeadMiningRouteEnum,
+  PptRouteEnum,
   ScriptRouteEnum,
   SentimentMonitorRouteEnum,
   TenderSubscriptionRouteEnum,
@@ -174,6 +175,15 @@ const aiCreation: AppRouteRecordRaw = {
       component: () => import('@/views/voiceClone/index.vue'),
       meta: {
         locale: 'menu.voiceClone',
+        permissions: [],
+      },
+    },
+    {
+      path: '/ai-ppt/index',
+      name: PptRouteEnum.PPT_INDEX,
+      component: () => import('@/views/ppt/index.vue'),
+      meta: {
+        locale: 'menu.aiPpt',
         permissions: [],
       },
     },

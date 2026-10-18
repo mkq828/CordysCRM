@@ -13,13 +13,14 @@ import cn.cordys.crm.ai.llm.LlmUsage;
 import cn.cordys.crm.ai.ppt.dto.request.AiPptOutlineRequest;
 import cn.cordys.crm.ai.ppt.dto.request.AiPptSlidesRequest;
 import cn.cordys.crm.ai.ppt.service.AiPptService;
-import cn.cordys.crm.platform.util.PlatformSessionUtils;
+import cn.cordys.crm.system.service.EditionService;
 import cn.cordys.security.SessionUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,7 +32,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * AI 方案/PPT 接口（登录即可用，额度框架门控）。
+ * AI 方案/PPT 接口（功能 5，企业版 G3 版本开关 + G2 额度框架门控）。
  * 两步式：/outline/stream 生成方案大纲；/slides/stream 由大纲生成 PPT 逐页。
  */
 @RestController
@@ -43,12 +44,20 @@ public class AiPptController extends BaseAiStreamController {
     private AiPptService aiPptService;
     @Resource
     private AgentConversationService agentConversationService;
+    @Resource
+    private EditionService editionService;
+
+    @GetMapping("/available")
+    @Operation(summary = "查询当前租户是否开通方案/PPT")
+    public boolean available() {
+        return editionService.hasFeature(OrganizationContext.getOrganizationId(), AiQuotaConstant.AI_PPT);
+    }
 
     @PostMapping(value = "/outline/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "流式生成方案大纲（先输出引导语，再回传 6 区块大纲）")
     public void outlineStream(@RequestBody AiPptOutlineRequest request, HttpServletResponse response) throws IOException {
         String orgId = OrganizationContext.getOrganizationId();
-        checkAvailable();
+        checkAvailable(orgId);
         String userId = SessionUtils.getUserId();
         doStream(response, orgId, userId, AiQuotaConstant.AI_PPT, request.getConversationId(),
                 title(request.getProduct(), "方案生成"), outlineUserContent(request),
@@ -59,11 +68,18 @@ public class AiPptController extends BaseAiStreamController {
     @Operation(summary = "流式生成 PPT 逐页（先输出引导语，再回传逐页内容）")
     public void slidesStream(@RequestBody AiPptSlidesRequest request, HttpServletResponse response) throws IOException {
         String orgId = OrganizationContext.getOrganizationId();
-        checkAvailable();
+        checkAvailable(orgId);
         String userId = SessionUtils.getUserId();
         doStream(response, orgId, userId, AiQuotaConstant.AI_PPT, request.getConversationId(),
                 title(request.getTitle(), "PPT 逐页"), slidesUserContent(request),
                 onChunk -> aiPptService.generateSlides(orgId, request, onChunk));
+    }
+
+    /** 企业版 G3 版本开关：试用租户放开，已开通租户按「版本→功能」映射判断。 */
+    private void checkAvailable(String orgId) {
+        if (!editionService.hasFeature(orgId, AiQuotaConstant.AI_PPT)) {
+            throw new GenericException("当前版本未开通方案/PPT，请升级至企业版");
+        }
     }
 
     /** 共用 SSE 编排：建会话 → 写 run → 流式 chunk → 落库 → 写 done/error。 */
@@ -101,13 +117,6 @@ public class AiPptController extends BaseAiStreamController {
         } finally {
             writer.flush();
             writer.close();
-        }
-    }
-
-    /** 方案/PPT 已封存，仅平台超级管理员（userId == admin）可用。 */
-    private void checkAvailable() {
-        if (!PlatformSessionUtils.isAdmin()) {
-            throw new GenericException("AI 方案/PPT 功能已封存，暂未对外开放");
         }
     }
 

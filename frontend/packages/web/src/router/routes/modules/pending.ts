@@ -1,9 +1,9 @@
-import { DramaRouteEnum, PendingRouteEnum, PptRouteEnum, ReplicaRouteEnum, VideoRouteEnum } from '@/enums/routeEnum';
+import { DramaRouteEnum, PendingRouteEnum, ReplicaRouteEnum, VideoRouteEnum } from '@/enums/routeEnum';
 
 import { DEFAULT_LAYOUT } from '../base';
 import type { AppRouteRecordRaw } from '../types';
 
-// 「待完善功能」：收编 爆款复刻 / 生成短视频 / 生成 PPT / AI漫剧 四个暂未打磨好的 AI 生成功能。
+// 「待完善功能」：收编 爆款复刻 / 生成短视频 / AI漫剧 三个暂未打磨好的 AI 生成功能。
 // 已封存：仅平台超级管理员（userId == admin）可见/可访问，
 // 前端 usePermission.accessRouter 隐藏菜单/拦截路由，后端 PlatformSessionUtils.isAdmin() 兜底。
 // 子路由用绝对路径，保持原 URL（如 /ai-video/index）不变，只改菜单归属与访问门槛。
@@ -25,15 +25,6 @@ const pending: AppRouteRecordRaw = {
       component: () => import('@/views/replica/index.vue'),
       meta: {
         locale: 'menu.aiReplica',
-        permissions: [],
-      },
-    },
-    {
-      path: '/ai-ppt/index',
-      name: PptRouteEnum.PPT_INDEX,
-      component: () => import('@/views/ppt/index.vue'),
-      meta: {
-        locale: 'menu.aiPpt',
         permissions: [],
       },
     },
