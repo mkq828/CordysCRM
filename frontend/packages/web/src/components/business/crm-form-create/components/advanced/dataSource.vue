@@ -28,6 +28,8 @@
       :disabled="props.fieldConfig.editable === false || props.disabled || !!props.fieldConfig.resourceFieldId"
       :filter-params="getParams()"
       :fieldConfig="props.fieldConfig"
+      :form-source-id="props.formSourceId"
+      :form-source-name="props.formSourceName"
       :disabled-selection="props.disabledSelection"
       :hide-child-tag="props.hideChildTag"
       :status="props.feedback ? 'error' : undefined"
@@ -70,6 +72,8 @@
     hideChildTag?: boolean;
     disabled?: boolean;
     disabledSelection?: (row: Record<string, any>) => boolean;
+    formSourceId?: string;
+    formSourceName?: string;
   }>();
   const emit = defineEmits<{
     (e: 'change', value: (string | number)[], source: Record<string, any>[], fields?: FormCreateField[]): void;

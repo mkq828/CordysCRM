@@ -27,6 +27,8 @@
               :form-config="formConfig"
               :disabled="item.type === FieldTypeEnum.DIVIDER ? undefined : props.readonly"
               :collapsed="item.type === FieldTypeEnum.DIVIDER ? isDividerCollapsed(item) : undefined"
+              :form-source-id="resolveFieldSource(item).id"
+              :form-source-name="resolveFieldSource(item).name || ''"
               @change="(value: any, source: Record<string, any>[], dataSourceFormFields?: FormCreateField[]) => handleFieldChange(value, source, item, dataSourceFormFields)"
               @toggle="() => toggleDivider(item)"
             />
@@ -178,6 +180,29 @@
     linkScenario,
     customFormId,
   });
+
+  // 联系人数据源字段「新建」时带出关联客户：从字段联动条件定位客户字段，取当前值+名称
+  function resolveFieldSource(item: FormCreateField): { id?: string; name?: string } {
+    const isContact =
+      (item.type === FieldTypeEnum.DATA_SOURCE || item.type === FieldTypeEnum.DATA_SOURCE_MULTIPLE) &&
+      item.dataSourceType === FieldDataSourceTypeEnum.CONTACT;
+    if (!isContact) {
+      return {};
+    }
+    const customerFieldId = item.combineSearch?.conditions?.[0]?.rightFieldId;
+    if (!customerFieldId) {
+      return {};
+    }
+    const value = formDetail.value[customerFieldId];
+    const id = (Array.isArray(value) ? value[0] : value) as string | undefined;
+    if (!id) {
+      return {};
+    }
+    const name = fieldList.value
+      .find((f) => f.id === customerFieldId)
+      ?.initialOptions?.find((o: any) => o.id === id)?.name;
+    return { id, name };
+  }
 
   const { reviewAction, shouldConfirmUpdateChange, initApprovalReviewConfig } = useFormReviewAction({
     formKey,

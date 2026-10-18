@@ -1,16 +1,30 @@
 <template>
-  <div v-if="parsed" class="follow-content">
-    <div v-if="parsed.prefix" class="follow-content__plain">{{ parsed.prefix }}</div>
-    <FlowBorder :radius="10">
-      <div class="follow-content__scripts">
-        <div class="follow-content__scripts-label">{{ parsed.label }}</div>
-        <div v-for="(script, index) in parsed.scripts" :key="index" class="follow-content__script">
-          <span class="follow-content__script-dot"></span>
-          <span>{{ script }}</span>
+  <div v-if="sections" class="follow-content">
+    <template v-for="(section, index) in sections" :key="index">
+      <!-- 候选话术保留流动渐变边框 -->
+      <FlowBorder v-if="section.label === '候选话术'" :radius="10">
+        <div class="follow-content__scripts">
+          <div class="follow-content__scripts-label">{{ section.label }}</div>
+          <div v-for="(script, scriptIndex) in section.items" :key="scriptIndex" class="follow-content__script">
+            <span class="follow-content__script-dot"></span>
+            <span>{{ script }}</span>
+          </div>
+        </div>
+      </FlowBorder>
+      <!-- 其余结构化字段：加粗彩色标签 + 圆点列表 -->
+      <div v-else class="follow-content__section">
+        <div class="follow-content__row">
+          <span class="follow-content__label" :style="{ color: section.color }">{{ section.label }}</span>
+          <span v-if="section.items.length === 1" class="follow-content__value">{{ section.items[0] }}</span>
+        </div>
+        <div v-if="section.items.length > 1" class="follow-content__items">
+          <div v-for="(item, itemIndex) in section.items" :key="itemIndex" class="follow-content__item">
+            <span class="follow-content__item-dot" :style="{ background: section.color }"></span>
+            <span>{{ item }}</span>
+          </div>
         </div>
       </div>
-    </FlowBorder>
-    <div v-if="parsed.suffix" class="follow-content__plain">{{ parsed.suffix }}</div>
+    </template>
   </div>
   <div v-else class="follow-content__plain">{{ content }}</div>
 </template>
@@ -24,53 +38,122 @@
     content?: string;
   }>();
 
-  interface ParsedContent {
-    prefix: string;
+  interface Section {
     label: string;
-    scripts: string[];
-    suffix: string;
+    color: string;
+    items: string[];
   }
 
-  const SCRIPT_LABEL = '候选话术';
+  // 会话军师/通话复盘结构化分析结果里的标签，颜色沿用智慧工作台分析卡片的语义色
+  const LABELS: Record<string, { color: string; multi?: boolean }> = {
+    意向评分: { color: '#f97316' },
+    成交信号: { color: '#10b981', multi: true },
+    异议点: { color: '#ef4444', multi: true },
+    情绪满意度: { color: '#3b82f6' },
+    竞品提及: { color: '#8b5cf6', multi: true },
+    流失风险: { color: '#f59e0b' },
+    候选话术: { color: '#6366f1' },
+  };
 
-  /** 把跟进内容里「候选话术」段落拆出来单独用流动渐变边框包起来，其余内容原样平铺 */
-  const parsed = computed<ParsedContent | null>(() => {
-    const content = props.content || '';
-    const lines = content.split('\n');
-    const idx = lines.findIndex((line) => line.includes(SCRIPT_LABEL));
-    if (idx === -1) {
+  /** 把「标签：内容」结构化跟进内容解析为分节；普通自由文本则返回 null 走纯文本兜底 */
+  const sections = computed<Section[] | null>(() => {
+    const content = (props.content || '').trim();
+    if (!content) {
       return null;
     }
 
-    const labelLine = lines[idx];
-    const prefix = lines.slice(0, idx).join('\n');
-    const label = labelLine.replace(/[:：]\s*$/, '').trim() || SCRIPT_LABEL;
-
-    const scripts: string[] = [];
-    const inline = labelLine
-      .replace(SCRIPT_LABEL, '')
-      .replace(/^[:：]\s*/, '')
-      .trim();
-    if (inline) {
-      scripts.push(inline);
-    }
-    let j = idx + 1;
-    while (j < lines.length && /^\s*[-•·]\s*/.test(lines[j])) {
-      scripts.push(lines[j].replace(/^\s*[-•·]\s*/, '').trim());
-      j += 1;
-    }
-
-    if (!scripts.length) {
+    const lines = content
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    // 首行不是已知结构化标签，视为普通自由文本
+    const firstMatch = lines[0]?.match(/^([^:：]+)[:：]\s*(.*)$/);
+    if (!firstMatch || !LABELS[firstMatch[1].trim()]) {
       return null;
     }
-    return { prefix, label, scripts, suffix: lines.slice(j).join('\n') };
+
+    const result: Section[] = [];
+    let current: Section | null = null;
+
+    lines.forEach((line) => {
+      // 上一节（如候选话术）下的 - 子项
+      if (current && /^[-•·]\s*/.test(line)) {
+        current.items.push(line.replace(/^[-•·]\s*/, '').trim());
+        return;
+      }
+
+      const match = line.match(/^([^:：]+)[:：]\s*(.*)$/);
+      const conf = match ? LABELS[match[1].trim()] : undefined;
+      if (match && conf) {
+        current = { label: match[1].trim(), color: conf.color, items: [] };
+        const value = match[2].trim();
+        if (value) {
+          current.items = conf.multi
+            ? value
+                .split('；')
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : [value];
+        }
+        result.push(current);
+        return;
+      }
+
+      // 已进入结构化渲染的额外行并入当前节
+      if (current) {
+        current.items.push(line);
+      }
+    });
+
+    const filtered = result.filter((section) => section.items.length > 0);
+    return filtered.length ? filtered : null;
   });
 </script>
 
 <style scoped lang="less">
-  .follow-content__plain {
-    white-space: pre-line;
+  .follow-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .follow-content__section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .follow-content__row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    line-height: 1.6;
+  }
+  .follow-content__label {
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .follow-content__value {
+    color: var(--text-n1);
     word-break: break-word;
+  }
+  .follow-content__items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .follow-content__item {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    color: var(--text-n1);
+    line-height: 1.6;
+  }
+  .follow-content__item-dot {
+    margin-top: 8px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
   .follow-content__scripts {
     padding: 10px 12px;
@@ -97,5 +180,9 @@
     border-radius: 50%;
     background: #f97316;
     flex-shrink: 0;
+  }
+  .follow-content__plain {
+    white-space: pre-line;
+    word-break: break-word;
   }
 </style>

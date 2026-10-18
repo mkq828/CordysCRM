@@ -46,6 +46,8 @@
     :form-key="realFormKey"
     :need-init-detail="false"
     :custom-form-id="props.sourceType"
+    :source-id="createSourceId"
+    :initial-source-name="createInitialSourceName"
     @saved="handleFormCreateSave"
   />
   <businessTitleDrawer v-model:visible="businessNameDrawerVisible" sourceId="" @load="() => searchData()" />
@@ -111,6 +113,8 @@
       filterParams?: FilterResult;
       fullscreenTargetRef?: HTMLElement | null;
       fieldConfig?: FormCreateField;
+      formSourceId?: string;
+      formSourceName?: string;
       isSubTableRender?: boolean;
       dataSourceTitle?: string;
     }>(),
@@ -683,6 +687,13 @@
     isCustomForm.value
       ? FormDesignKeyEnum.CUSTOM_FORM
       : fullFormSettingList.find((e) => e.dataSource === props.sourceType)?.formKey
+  );
+  // 新建联系人时带出关联客户（跟进记录等场景），其余数据源的新建不携带父级来源
+  const createSourceId = computed(() =>
+    props.sourceType === FieldDataSourceTypeEnum.CONTACT ? props.formSourceId : undefined
+  );
+  const createInitialSourceName = computed(() =>
+    props.sourceType === FieldDataSourceTypeEnum.CONTACT ? props.formSourceName || '' : ''
   );
   function handleNewCreate() {
     if (props.sourceType === FieldDataSourceTypeEnum.BUSINESS_TITLE) {

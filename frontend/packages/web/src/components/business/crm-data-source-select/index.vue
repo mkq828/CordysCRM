@@ -31,6 +31,8 @@
         :filter-params="filterParams"
         :fullscreen-target-ref="fullscreenTargetRef"
         :fieldConfig="props.fieldConfig"
+        :form-source-id="props.formSourceId"
+        :form-source-name="props.formSourceName"
         :isSubTableRender="props.hideChildTag"
         :dataSourceTitle="dataSourceTitle"
         @init-form="handleFormInit"
@@ -67,6 +69,8 @@
     maxTagCount?: number | 'responsive';
     filterParams?: FilterResult;
     fieldConfig?: FormCreateField;
+    formSourceId?: string;
+    formSourceName?: string;
     hideChildTag?: boolean;
     status?: 'error' | 'success' | 'warning';
     placeholder?: string;
