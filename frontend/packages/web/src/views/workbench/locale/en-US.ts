@@ -88,6 +88,8 @@ export default {
   'workbench.smart.AIAction': 'AI Follow-up Suggestions',
   'workbench.smart.AIActionApproval': 'AI Plan Approval',
   'workbench.smart.comingSoon': 'Coming Soon',
+  'workbench.smart.noSuggestion': 'No follow-up suggestions',
+  'workbench.smart.noApproval': 'No plans pending approval',
   'workbench.smart.urgent': 'Urgent',
   'workbench.smart.important': 'Important',
   'workbench.smart.suggestion': 'Suggestion',

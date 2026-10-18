@@ -57,14 +57,11 @@
             <div class="flex items-center gap-[8px]">
               <CrmIcon type="iconicon_star1" :size="16" color="var(--primary-8)" />
               <div class="text-[14px] font-semibold">{{ t('workbench.smart.AIAction') }}</div>
-              <span class="rounded-[2px] border border-orange-500 px-[4px] text-[11px] leading-[16px] text-orange-500">
-                {{ t('workbench.smart.comingSoon') }}
-              </span>
             </div>
           </template>
           <div class="h-full px-[24px] pb-[24px]">
             <n-spin :show="suggestionLoading" class="h-full" content-class="h-full">
-              <n-empty v-if="!suggestionList.length" :description="t('workbench.smart.comingSoon')" />
+              <n-empty v-if="!suggestionList.length" :description="t('workbench.smart.noSuggestion')" />
               <n-scrollbar v-else class="h-full" @scroll="suggestionPager.handleReachBottom">
                 <div class="flex flex-col gap-[16px]">
                   <div v-for="item in suggestionList" :key="item.id" class="smart-workbench-action-item">
@@ -94,7 +91,10 @@
                         @click="handleSuggestionIgnore(item)"
                       />
                     </div>
-                    <div class="mt-[16px] whitespace-pre-wrap text-[var(--text-n2)]">
+                    <div class="mt-[8px] text-[12px] text-[var(--text-n3)]">
+                      {{ t('aiEmployee.actionsOwner') }}：{{ item.ownerName || '-' }}
+                    </div>
+                    <div class="mt-[8px] whitespace-pre-wrap text-[var(--text-n2)]">
                       {{ item.summary || '-' }}
                     </div>
                   </div>
@@ -108,21 +108,18 @@
             <div class="flex items-center gap-[8px]">
               <CrmIcon type="iconicon_star1" :size="16" color="var(--primary-8)" />
               <div class="text-[14px] font-semibold">{{ t('workbench.smart.AIActionApproval') }}</div>
-              <span class="rounded-[2px] border border-orange-500 px-[4px] text-[11px] leading-[16px] text-orange-500">
-                {{ t('workbench.smart.comingSoon') }}
-              </span>
             </div>
           </template>
           <div class="h-full px-[24px] pb-[24px]">
             <n-spin :show="approveLoading" class="h-full" content-class="h-full">
-              <n-empty v-if="!approveList.length" :description="t('workbench.smart.comingSoon')" />
+              <n-empty v-if="!approveList.length" :description="t('workbench.smart.noApproval')" />
               <n-scrollbar v-else class="h-full" @scroll="approvePager.handleReachBottom">
                 <div class="flex flex-col gap-[16px]">
                   <div v-for="item in approveList" :key="item.id" class="smart-workbench-action-item">
                     <div class="flex items-center justify-between gap-[12px]">
                       <div class="flex min-w-0 items-center gap-[8px]">
                         <CrmTag class="shrink-0" size="small" theme="light" type="warning">
-                          {{ item.type }}
+                          {{ approveTypeLabel(item) }}
                         </CrmTag>
                         <n-tooltip trigger="hover" :delay="300">
                           <template #trigger>
@@ -140,7 +137,10 @@
                         @click="handleApproveIgnore(item)"
                       />
                     </div>
-                    <div class="mt-[16px] whitespace-pre-wrap text-[var(--text-n2)]">
+                    <div class="mt-[8px] text-[12px] text-[var(--text-n3)]">
+                      {{ t('aiEmployee.actionsOwner') }}：{{ item.ownerName || '-' }}
+                    </div>
+                    <div class="mt-[8px] whitespace-pre-wrap text-[var(--text-n2)]">
                       {{ item.summary || '-' }}
                     </div>
                     <div class="mt-[16px] flex flex-wrap gap-[8px]">
@@ -234,6 +234,18 @@
       label: t('workbench.smart.suggestion'),
       type: 'info' as const,
     };
+  }
+
+  const APPROVE_TYPE_LABEL_KEYS: Record<string, string> = {
+    DUNNING: 'aiEmployee.actionDunning',
+    TAG: 'aiEmployee.actionTag',
+    CLUE_FLOW: 'aiEmployee.actionClueFlow',
+    FILL_FIELD: 'aiEmployee.actionFillField',
+  };
+
+  function approveTypeLabel(item: AgentActionApproveItem): string {
+    const key = APPROVE_TYPE_LABEL_KEYS[item.type || ''];
+    return key ? t(key) : item.type || '-';
   }
 
   const dataOverviewLoading = ref(false);

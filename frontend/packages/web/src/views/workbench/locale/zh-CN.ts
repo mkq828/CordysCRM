@@ -87,6 +87,8 @@ export default {
   'workbench.smart.AIAction': 'AI 跟进建议',
   'workbench.smart.AIActionApproval': 'AI 方案审核',
   'workbench.smart.comingSoon': '待上线',
+  'workbench.smart.noSuggestion': '暂无跟进建议',
+  'workbench.smart.noApproval': '暂无待审核方案',
   'workbench.smart.urgent': '紧急',
   'workbench.smart.important': '重要',
   'workbench.smart.suggestion': '建议',

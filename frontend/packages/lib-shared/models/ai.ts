@@ -165,6 +165,7 @@ export interface AgentActionSuggestionItem {
   createUser?: string;
   content?: string;
   topic?: string;
+  ownerName?: string;
   userId?: string;
   actions?: string;
   priority?: number;
@@ -174,6 +175,7 @@ export interface AgentActionApproveItem {
   id: string;
   summary?: string;
   topic?: string;
+  ownerName?: string;
   createUser?: string;
   type?: string;
   userId?: string;
