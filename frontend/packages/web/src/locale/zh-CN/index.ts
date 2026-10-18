@@ -64,6 +64,7 @@ export default {
     'menu.aiKnowledge': '企业知识库',
     'menu.aiPpt': '方案/PPT',
     'menu.aiLeadCrawl': '竞品洞察',
+    'menu.aiLeadMining': '潜客挖掘',
     'menu.aiVideo': '短视频生成',
     'menu.aiReplica': '爆款复刻',
     'menu.aiDrama': 'AI 漫剧',

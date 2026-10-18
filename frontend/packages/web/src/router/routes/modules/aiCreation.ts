@@ -6,6 +6,7 @@ import {
   ContentRouteEnum,
   KnowledgeRouteEnum,
   LeadCrawlRouteEnum,
+  LeadMiningRouteEnum,
   ScriptRouteEnum,
   VoiceCloneRouteEnum,
   WorkbenchRouteEnum,
@@ -116,6 +117,15 @@ const aiCreation: AppRouteRecordRaw = {
       component: () => import('@/views/leadCrawl/index.vue'),
       meta: {
         locale: 'menu.aiLeadCrawl',
+        permissions: [],
+      },
+    },
+    {
+      path: '/ai-lead-mining/index',
+      name: LeadMiningRouteEnum.LEAD_MINING_INDEX,
+      component: () => import('@/views/leadMining/index.vue'),
+      meta: {
+        locale: 'menu.aiLeadMining',
         permissions: [],
       },
     },

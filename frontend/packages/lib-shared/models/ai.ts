@@ -563,6 +563,26 @@ export interface CompetitorInsightResult {
   rawContent?: string;
 }
 
+/** 潜客挖掘-搜索请求 */
+export interface LeadMiningSearchParams {
+  industry?: string;
+  region?: string;
+  keyword?: string;
+}
+
+/** 潜客挖掘-导入线索请求 */
+export interface LeadMiningImportParams {
+  name?: string;
+  url?: string;
+  snippet?: string;
+}
+
+/** 潜客挖掘-导入线索结果 */
+export interface LeadMiningImportResult {
+  clueId?: string;
+  clueName?: string;
+}
+
 /** 私信获客画像-已绑定平台账号 */
 export interface DmAccount {
   id: string;

@@ -1,6 +1,7 @@
 import { useI18n } from '../../hooks/useI18n';
 import { getToken } from '../../method/auth';
 import type {
+  AdvisorWebSource,
   AgentActionApproveItem,
   AgentActionSuggestionItem,
   AgentChatCancelParams,
@@ -86,6 +87,9 @@ import type {
   DramaSeedAssetsResult,
   DramaVoicePreviewParams,
   DramaVoicePreviewResult,
+  LeadMiningImportParams,
+  LeadMiningImportResult,
+  LeadMiningSearchParams,
   SalesAdvisorAnalyzeParams,
   SalesAdvisorAnalyzeResult,
   SalesAdvisorQueryParams,
@@ -188,6 +192,9 @@ import {
   DmProfileAvailableUrl,
   DmProfileImportUrl,
   DmProfileProfilesUrl,
+  LeadMiningAvailableUrl,
+  LeadMiningImportUrl,
+  LeadMiningSearchUrl,
   SalesAdvisorAnalyzeStreamUrl,
   SalesAdvisorAnalyzeUrl,
   SalesAdvisorQueryUrl,
@@ -728,6 +735,18 @@ export default function useAiApi(CDR: CordysAxios) {
     return streamSse(CompetitorInsightStreamUrl, data, options);
   }
 
+  function getLeadMiningAvailable() {
+    return CDR.get<boolean>({ url: LeadMiningAvailableUrl });
+  }
+
+  function searchLeadMining(data: LeadMiningSearchParams) {
+    return CDR.post<AdvisorWebSource[]>({ url: LeadMiningSearchUrl, data });
+  }
+
+  function importLeadMining(data: LeadMiningImportParams) {
+    return CDR.post<LeadMiningImportResult>({ url: LeadMiningImportUrl, data });
+  }
+
   function getDmProfileAvailable() {
     return CDR.get<boolean>({ url: DmProfileAvailableUrl });
   }
@@ -1165,6 +1184,9 @@ export default function useAiApi(CDR: CordysAxios) {
     getAiMeetingMinutes,
     getAiMeetingMinutesDetail,
     streamCompetitorInsight,
+    getLeadMiningAvailable,
+    searchLeadMining,
+    importLeadMining,
     getDmProfileAvailable,
     getDmProfileAccounts,
     bindDmProfileAccount,

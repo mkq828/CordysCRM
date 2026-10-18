@@ -65,6 +65,7 @@ export default {
     'menu.aiKnowledge': 'AI Knowledge Base',
     'menu.aiPpt': 'Proposal & PPT',
     'menu.aiLeadCrawl': 'Competitor Insight',
+    'menu.aiLeadMining': 'Lead Mining',
     'menu.aiVideo': 'Short Video',
     'menu.aiReplica': 'Viral Replica',
     'menu.aiDrama': 'AI Drama',
