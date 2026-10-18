@@ -171,6 +171,11 @@ export enum LeadMiningRouteEnum {
   LEAD_MINING_INDEX = 'aiLeadMiningIndex',
 }
 
+export enum TenderSubscriptionRouteEnum {
+  TENDER_SUBSCRIPTION = 'aiTenderSubscription',
+  TENDER_SUBSCRIPTION_INDEX = 'aiTenderSubscriptionIndex',
+}
+
 export enum VideoRouteEnum {
   VIDEO = 'aiVideo',
   VIDEO_INDEX = 'aiVideoIndex',
@@ -259,6 +264,7 @@ export const AppRouteEnum = {
   ...PptRouteEnum,
   ...LeadCrawlRouteEnum,
   ...LeadMiningRouteEnum,
+  ...TenderSubscriptionRouteEnum,
   ...VideoRouteEnum,
   ...DramaRouteEnum,
   ...ReplicaRouteEnum,

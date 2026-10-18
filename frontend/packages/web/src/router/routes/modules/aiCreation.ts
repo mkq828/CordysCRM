@@ -8,6 +8,7 @@ import {
   LeadCrawlRouteEnum,
   LeadMiningRouteEnum,
   ScriptRouteEnum,
+  TenderSubscriptionRouteEnum,
   VoiceCloneRouteEnum,
   WorkbenchRouteEnum,
 } from '@/enums/routeEnum';
@@ -126,6 +127,15 @@ const aiCreation: AppRouteRecordRaw = {
       component: () => import('@/views/leadMining/index.vue'),
       meta: {
         locale: 'menu.aiLeadMining',
+        permissions: [],
+      },
+    },
+    {
+      path: '/ai-tender-subscription/index',
+      name: TenderSubscriptionRouteEnum.TENDER_SUBSCRIPTION_INDEX,
+      component: () => import('@/views/tenderSubscription/index.vue'),
+      meta: {
+        locale: 'menu.aiTenderSubscription',
         permissions: [],
       },
     },

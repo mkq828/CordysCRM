@@ -1,0 +1,21 @@
+export default {
+  'tenderSubscription.desc':
+    'Subscribe to tender criteria you care about; the system searches the web daily and pushes new tenders as in-app messages. Results come from public web pages — verify before use.',
+  'tenderSubscription.industry': 'Industry',
+  'tenderSubscription.industryPlaceholder': 'e.g. SaaS, smart manufacturing',
+  'tenderSubscription.region': 'Region',
+  'tenderSubscription.regionPlaceholder': 'e.g. Guangzhou, Yangtze River Delta',
+  'tenderSubscription.keyword': 'Keyword',
+  'tenderSubscription.keywordPlaceholder': 'e.g. CRM procurement',
+  'tenderSubscription.add': 'Add subscription',
+  'tenderSubscription.adding': 'Adding…',
+  'tenderSubscription.list': 'My subscriptions',
+  'tenderSubscription.empty': 'No subscriptions yet, add one above',
+  'tenderSubscription.delete': 'Delete',
+  'tenderSubscription.searchNow': 'Search now',
+  'tenderSubscription.results': 'Tender results',
+  'tenderSubscription.selectFirst': 'Select a subscription on the left to view or search tenders',
+  'tenderSubscription.noResult': 'No tenders found yet, click "Search now" or change the criteria',
+  'tenderSubscription.viewContent': 'View content',
+  'tenderSubscription.hideContent': 'Hide content',
+};

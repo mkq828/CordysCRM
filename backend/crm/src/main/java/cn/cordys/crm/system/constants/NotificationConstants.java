@@ -231,6 +231,9 @@ public class NotificationConstants {
         //回款核销已到账（通知租户管理员）
         @Schema(description = "message.payment_verified")
         String PAYMENT_VERIFIED = "PAYMENT_VERIFIED";
+        //标讯订阅发现新招标信息（通知订阅人）
+        @Schema(description = "message.tender_subscribe_new")
+        String TENDER_SUBSCRIBE_NEW = "TENDER_SUBSCRIBE_NEW";
     }
 
     public interface RelatedUser {
@@ -455,6 +458,10 @@ public class NotificationConstants {
         //你的企业「${name}」回款已核销到账。
         @Schema(description = "message.payment_verified_text")
         String PAYMENT_VERIFIED_TEXT = "PAYMENT_VERIFIED_TEXT";
+
+        //您订阅的标讯「${name}」发现 ${count} 条新招标信息，请及时查看。
+        @Schema(description = "message.tender_subscribe_new_text")
+        String TENDER_SUBSCRIBE_NEW_TEXT = "TENDER_SUBSCRIBE_NEW_TEXT";
     }
 
 

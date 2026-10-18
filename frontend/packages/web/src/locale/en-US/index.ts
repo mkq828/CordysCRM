@@ -66,6 +66,7 @@ export default {
     'menu.aiPpt': 'Proposal & PPT',
     'menu.aiLeadCrawl': 'Competitor Insight',
     'menu.aiLeadMining': 'Lead Mining',
+    'menu.aiTenderSubscription': 'Tender Subscription',
     'menu.aiVideo': 'Short Video',
     'menu.aiReplica': 'Viral Replica',
     'menu.aiDrama': 'AI Drama',

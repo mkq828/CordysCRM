@@ -96,6 +96,9 @@ import type {
   SalesAdvisorQueryResult,
   ScriptRecommend,
   SmartFocusParams,
+  TenderResult,
+  TenderSubscription,
+  TenderSubscriptionCreateParams,
 } from '../../models/ai';
 import type { CommonList, ImportUploadParams, TableQueryParams } from '../../models/common';
 import type { ValidateInfo } from '../../models/system/org';
@@ -202,6 +205,13 @@ import {
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
   SmartDataOverviewUrl,
+  TenderSubscriptionAvailableUrl,
+  TenderSubscriptionCreateUrl,
+  TenderSubscriptionDeleteUrl,
+  TenderSubscriptionListUrl,
+  TenderSubscriptionResultsUrl,
+  TenderSubscriptionSearchNowUrl,
+  TenderSubscriptionToggleUrl,
 } from '../requrls/ai';
 
 interface SseBlock {
@@ -747,6 +757,34 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.post<LeadMiningImportResult>({ url: LeadMiningImportUrl, data });
   }
 
+  function getTenderSubscriptionAvailable() {
+    return CDR.get<boolean>({ url: TenderSubscriptionAvailableUrl });
+  }
+
+  function getTenderSubscriptionList() {
+    return CDR.get<TenderSubscription[]>({ url: TenderSubscriptionListUrl });
+  }
+
+  function createTenderSubscription(data: TenderSubscriptionCreateParams) {
+    return CDR.post<TenderSubscription>({ url: TenderSubscriptionCreateUrl, data });
+  }
+
+  function deleteTenderSubscription(id: string) {
+    return CDR.post<void>({ url: `${TenderSubscriptionDeleteUrl}?id=${encodeURIComponent(id)}` });
+  }
+
+  function toggleTenderSubscription(id: string, enabled: boolean) {
+    return CDR.post<void>({ url: `${TenderSubscriptionToggleUrl}?id=${encodeURIComponent(id)}&enabled=${enabled}` });
+  }
+
+  function searchTenderSubscriptionNow(id: string) {
+    return CDR.post<TenderResult[]>({ url: `${TenderSubscriptionSearchNowUrl}?id=${encodeURIComponent(id)}` });
+  }
+
+  function getTenderSubscriptionResults(id: string) {
+    return CDR.get<TenderResult[]>({ url: TenderSubscriptionResultsUrl, params: { id } });
+  }
+
   function getDmProfileAvailable() {
     return CDR.get<boolean>({ url: DmProfileAvailableUrl });
   }
@@ -1187,6 +1225,13 @@ export default function useAiApi(CDR: CordysAxios) {
     getLeadMiningAvailable,
     searchLeadMining,
     importLeadMining,
+    getTenderSubscriptionAvailable,
+    getTenderSubscriptionList,
+    createTenderSubscription,
+    deleteTenderSubscription,
+    toggleTenderSubscription,
+    searchTenderSubscriptionNow,
+    getTenderSubscriptionResults,
     getDmProfileAvailable,
     getDmProfileAccounts,
     bindDmProfileAccount,

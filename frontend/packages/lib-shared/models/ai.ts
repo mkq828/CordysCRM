@@ -583,6 +583,34 @@ export interface LeadMiningImportResult {
   clueName?: string;
 }
 
+/** 标讯订阅-新建请求 */
+export interface TenderSubscriptionCreateParams {
+  industry?: string;
+  region?: string;
+  keyword?: string;
+}
+
+/** 标讯订阅 */
+export interface TenderSubscription {
+  id: string;
+  industry?: string;
+  region?: string;
+  keyword?: string;
+  enabled?: boolean;
+  createTime?: number;
+}
+
+/** 标讯订阅-招标结果 */
+export interface TenderResult {
+  id: string;
+  subscriptionId?: string;
+  title?: string;
+  url?: string;
+  snippet?: string;
+  content?: string;
+  createTime?: number;
+}
+
 /** 私信获客画像-已绑定平台账号 */
 export interface DmAccount {
   id: string;

@@ -1,0 +1,21 @@
+export default {
+  'tenderSubscription.desc':
+    '订阅你关注的招标条件，系统每天自动联网搜索并以站内信推送新招标；结果来自公开网页，建议点开核实。',
+  'tenderSubscription.industry': '行业',
+  'tenderSubscription.industryPlaceholder': '如：SaaS、智能制造',
+  'tenderSubscription.region': '地域',
+  'tenderSubscription.regionPlaceholder': '如：广州、长三角',
+  'tenderSubscription.keyword': '关键词',
+  'tenderSubscription.keywordPlaceholder': '如：CRM 采购',
+  'tenderSubscription.add': '添加订阅',
+  'tenderSubscription.adding': '添加中…',
+  'tenderSubscription.list': '我的订阅',
+  'tenderSubscription.empty': '还没有订阅，先在上方添加一个',
+  'tenderSubscription.delete': '删除',
+  'tenderSubscription.searchNow': '立即搜索',
+  'tenderSubscription.results': '招标结果',
+  'tenderSubscription.selectFirst': '点选左侧订阅查看或搜索招标结果',
+  'tenderSubscription.noResult': '暂未检索到招标信息，可点「立即搜索」或换个条件',
+  'tenderSubscription.viewContent': '查看正文',
+  'tenderSubscription.hideContent': '收起正文',
+};
