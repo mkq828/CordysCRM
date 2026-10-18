@@ -1,11 +1,15 @@
 package cn.cordys.crm.ai.employee.action.service;
 
 import cn.cordys.common.uid.IDGenerator;
+import cn.cordys.crm.ai.constant.AiQuotaConstant;
+import cn.cordys.crm.ai.dto.response.AdvisorWebSource;
 import cn.cordys.crm.ai.employee.action.domain.AiEmployeeAction;
 import cn.cordys.crm.ai.employee.action.dto.AiEmployeeActionPayload;
 import cn.cordys.crm.ai.employee.action.dto.StaleCustomerRow;
+import cn.cordys.crm.ai.search.DeepSeekSearchClient;
 import cn.cordys.crm.system.constants.NotificationConstants;
 import cn.cordys.crm.system.domain.Notification;
+import cn.cordys.crm.system.domain.Parameter;
 import cn.cordys.mybatis.BaseMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -42,10 +46,14 @@ public class AiFollowUpScanService extends AbstractAiAutoScanService {
             2. followMethod 只能是「电话」「微信」或「到访」三选一。
             3. suggestion 是一句简短补充建议（如提醒要点、切入话题），可为空。
             4. 全程使用中文业务表述，不得出现系统内部英文编码。
+            5. 若上下文提供了「客户最新公开动态」，可借此作为破冰话题自然引入，但不要照读出处的标题或网址。
             """;
 
     @Resource
     private BaseMapper<Notification> notificationMapper;
+
+    @Resource
+    private DeepSeekSearchClient deepSeekSearchClient;
 
     @Override
     public String actionType() {
@@ -86,10 +94,70 @@ public class AiFollowUpScanService extends AbstractAiAutoScanService {
     @Override
     protected String buildPrompt(String orgId, Candidate candidate, String kbContext) {
         StringBuilder sb = new StringBuilder(buildContext(candidate));
+        String webContext = buildWebContext(orgId, candidate);
+        if (StringUtils.isNotBlank(webContext)) {
+            sb.append("\n\n").append(webContext);
+        }
         if (StringUtils.isNotBlank(kbContext)) {
             sb.append("\n\n## 参考资料（来自企业知识库）\n").append(kbContext);
         }
         return sb.toString();
+    }
+
+    /** 联网搜索客户最新动态作为破冰素材；未开启/未配 key/失败时返回空串，不阻断跟进生成。 */
+    private String buildWebContext(String orgId, Candidate candidate) {
+        if (!boolParam("ai.auto_task.follow_up.enable_web_search", true)) {
+            return "";
+        }
+        String name = candidate.customerName();
+        if (StringUtils.isBlank(name)) {
+            return "";
+        }
+        String trimmed = name.trim();
+        String query = (trimmed.length() > 128 ? trimmed.substring(0, 128) : trimmed) + " 最新动态 新闻";
+        List<AdvisorWebSource> sources = deepSeekSearchClient.search(query);
+        if (sources.isEmpty()) {
+            return "";
+        }
+        aiQuotaService.record(orgId, AiQuotaConstant.AI_EMPLOYEE, AiQuotaConstant.SEARCH_MODEL_CODE,
+                getSearchTokensPerCall(), 0L, null);
+        StringBuilder sb = new StringBuilder("## 客户最新公开动态（仅供破冰参考，请自然引入）\n");
+        int index = 1;
+        for (AdvisorWebSource source : sources) {
+            sb.append(index++).append(". 《")
+                    .append(StringUtils.defaultIfBlank(source.getTitle(), "无标题")).append("》");
+            if (StringUtils.isNotBlank(source.getSnippet())) {
+                sb.append("——").append(source.getSnippet());
+            }
+            sb.append('\n');
+        }
+        return sb.toString().trim();
+    }
+
+    private boolean boolParam(String key, boolean defaultValue) {
+        try {
+            Parameter param = parameterMapper.selectByPrimaryKey(key);
+            if (param != null && StringUtils.isNotBlank(param.getParamValue())) {
+                String value = param.getParamValue().trim();
+                return "true".equalsIgnoreCase(value) || "1".equals(value);
+            }
+        } catch (Exception e) {
+            log.warn("解析系统参数失败，key={}，使用默认值 {}", key, defaultValue, e);
+        }
+        return defaultValue;
+    }
+
+    /** 1 次联网搜索折算 token 数（可配置，非法回退默认值），与军师/订阅场景同口径。 */
+    private long getSearchTokensPerCall() {
+        try {
+            Parameter param = parameterMapper.selectByPrimaryKey(AiQuotaConstant.PARAM_SEARCH_TOKENS_PER_CALL);
+            if (param != null && StringUtils.isNotBlank(param.getParamValue())) {
+                return Long.parseLong(param.getParamValue().trim());
+            }
+        } catch (Exception e) {
+            log.warn("解析搜索折算 token 参数失败，使用默认值", e);
+        }
+        return AiQuotaConstant.DEFAULT_SEARCH_TOKENS_PER_CALL;
     }
 
     private String buildContext(Candidate candidate) {
