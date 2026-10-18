@@ -68,6 +68,7 @@ export default {
     'menu.aiTenderSubscription': '标讯订阅',
     'menu.aiCompetitorMonitor': '竞品动态',
     'menu.aiSentimentMonitor': '舆情监控',
+    'menu.aiBossBrief': '老板晨报',
     'menu.aiVideo': '短视频生成',
     'menu.aiReplica': '爆款复刻',
     'menu.aiDrama': 'AI 漫剧',

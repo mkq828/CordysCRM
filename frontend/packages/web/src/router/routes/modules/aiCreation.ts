@@ -3,6 +3,7 @@ import {
   AiCreationRouteEnum,
   AiEmployeeRouteEnum,
   AskBiRouteEnum,
+  BossBriefRouteEnum,
   CompetitorMonitorRouteEnum,
   ContentRouteEnum,
   KnowledgeRouteEnum,
@@ -157,6 +158,15 @@ const aiCreation: AppRouteRecordRaw = {
       component: () => import('@/views/sentimentMonitor/index.vue'),
       meta: {
         locale: 'menu.aiSentimentMonitor',
+        permissions: [],
+      },
+    },
+    {
+      path: '/ai-boss-brief/index',
+      name: BossBriefRouteEnum.BOSS_BRIEF_INDEX,
+      component: () => import('@/views/bossBrief/index.vue'),
+      meta: {
+        locale: 'menu.aiBossBrief',
         permissions: [],
       },
     },

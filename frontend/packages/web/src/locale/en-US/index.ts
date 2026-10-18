@@ -69,6 +69,7 @@ export default {
     'menu.aiTenderSubscription': 'Tender Subscription',
     'menu.aiCompetitorMonitor': 'Competitor Monitor',
     'menu.aiSentimentMonitor': 'Sentiment Monitor',
+    'menu.aiBossBrief': 'Boss Brief',
     'menu.aiVideo': 'Short Video',
     'menu.aiReplica': 'Viral Replica',
     'menu.aiDrama': 'AI Drama',

@@ -186,6 +186,11 @@ export enum SentimentMonitorRouteEnum {
   SENTIMENT_MONITOR_INDEX = 'aiSentimentMonitorIndex',
 }
 
+export enum BossBriefRouteEnum {
+  BOSS_BRIEF = 'aiBossBrief',
+  BOSS_BRIEF_INDEX = 'aiBossBriefIndex',
+}
+
 export enum VideoRouteEnum {
   VIDEO = 'aiVideo',
   VIDEO_INDEX = 'aiVideoIndex',

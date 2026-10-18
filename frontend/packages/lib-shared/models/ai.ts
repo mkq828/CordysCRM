@@ -665,6 +665,30 @@ export interface SentimentMonitorResult {
   createTime?: number;
 }
 
+/** 老板晨报-新建请求 */
+export interface BossBriefCreateParams {
+  topic?: string;
+}
+
+/** 老板晨报关注主题 */
+export interface BossBriefTopic {
+  id: string;
+  topic?: string;
+  enabled?: boolean;
+  createTime?: number;
+}
+
+/** 老板晨报结果 */
+export interface BossBriefResult {
+  id: string;
+  topicId?: string;
+  title?: string;
+  url?: string;
+  snippet?: string;
+  content?: string;
+  createTime?: number;
+}
+
 /** 私信获客画像-已绑定平台账号 */
 export interface DmAccount {
   id: string;

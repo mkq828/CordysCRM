@@ -61,6 +61,9 @@ import type {
   AskBiCatalogResult,
   AskBiQueryParams,
   AskBiQueryResult,
+  BossBriefCreateParams,
+  BossBriefResult,
+  BossBriefTopic,
   CompetitorInsightParams,
   CompetitorInsightResult,
   CompetitorMonitorCreateParams,
@@ -197,6 +200,13 @@ import {
   AiVideoVoicesUrl,
   AiVoiceCloneAvailableUrl,
   AiVoiceCloneTasksUrl,
+  BossBriefAvailableUrl,
+  BossBriefCreateUrl,
+  BossBriefDeleteUrl,
+  BossBriefListUrl,
+  BossBriefResultsUrl,
+  BossBriefSearchNowUrl,
+  BossBriefToggleUrl,
   CompetitorInsightStreamUrl,
   CompetitorMonitorAvailableUrl,
   CompetitorMonitorCreateUrl,
@@ -870,6 +880,36 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.get<SentimentMonitorResult[]>({ url: SentimentMonitorResultsUrl, params: { id } });
   }
 
+  function getBossBriefAvailable() {
+    return CDR.get<boolean>({ url: BossBriefAvailableUrl });
+  }
+
+  function getBossBriefList() {
+    return CDR.get<BossBriefTopic[]>({ url: BossBriefListUrl });
+  }
+
+  function createBossBrief(data: BossBriefCreateParams) {
+    return CDR.post<BossBriefTopic>({ url: BossBriefCreateUrl, data });
+  }
+
+  function deleteBossBrief(id: string) {
+    return CDR.post<void>({ url: `${BossBriefDeleteUrl}?id=${encodeURIComponent(id)}` });
+  }
+
+  function toggleBossBrief(id: string, enabled: boolean) {
+    return CDR.post<void>({ url: `${BossBriefToggleUrl}?id=${encodeURIComponent(id)}&enabled=${enabled}` });
+  }
+
+  function searchBossBriefNow(id: string) {
+    return CDR.post<BossBriefResult[]>({
+      url: `${BossBriefSearchNowUrl}?id=${encodeURIComponent(id)}`,
+    });
+  }
+
+  function getBossBriefResults(id: string) {
+    return CDR.get<BossBriefResult[]>({ url: BossBriefResultsUrl, params: { id } });
+  }
+
   function getDmProfileAvailable() {
     return CDR.get<boolean>({ url: DmProfileAvailableUrl });
   }
@@ -1332,6 +1372,13 @@ export default function useAiApi(CDR: CordysAxios) {
     toggleSentimentMonitor,
     searchSentimentMonitorNow,
     getSentimentMonitorResults,
+    getBossBriefAvailable,
+    getBossBriefList,
+    createBossBrief,
+    deleteBossBrief,
+    toggleBossBrief,
+    searchBossBriefNow,
+    getBossBriefResults,
     getDmProfileAvailable,
     getDmProfileAccounts,
     bindDmProfileAccount,
