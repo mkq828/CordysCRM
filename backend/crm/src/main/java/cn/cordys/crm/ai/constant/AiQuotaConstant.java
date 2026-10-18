@@ -29,6 +29,14 @@ public final class AiQuotaConstant {
     public static final int DEFAULT_DAILY_CALL_LIMIT = 1000;
     public static final double DEFAULT_DAILY_COST_THRESHOLD = 100.0;
 
+    // ==================== 联网搜索计量折算 ====================
+    /** 1 次联网搜索折算 token 数的配置 key（DeepSeek 搜索按次计费 5 元/千次，非 token 计费，折算后复用额度链路） */
+    public static final String PARAM_SEARCH_TOKENS_PER_CALL = "ai.deepseek.searchTokensPerCall";
+    /** 1 次联网搜索折算 token 数默认值（≈0.1 次标准额度） */
+    public static final long DEFAULT_SEARCH_TOKENS_PER_CALL = 1000L;
+    /** 联网搜索在用量明细中的 model_code 占位（无真实模型，仅用于看板聚合与成本归集） */
+    public static final String SEARCH_MODEL_CODE = "deepseek-search";
+
     // ==================== 额度状态 ====================
     public static final String STATUS_NORMAL = "NORMAL";
     public static final String STATUS_SOFT_LIMITED = "SOFT_LIMITED";

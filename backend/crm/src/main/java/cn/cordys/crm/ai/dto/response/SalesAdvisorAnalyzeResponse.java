@@ -37,4 +37,7 @@ public class SalesAdvisorAnalyzeResponse {
 
     /** 结构化解析失败时的原文回退（模型未按 JSON 输出时） */
     private String rawAnalysis;
+
+    /** 联网检索到的客户公开信息出处（开启联网查背景时回传，供前端渲染可点击链接） */
+    private List<AdvisorWebSource> webSources;
 }

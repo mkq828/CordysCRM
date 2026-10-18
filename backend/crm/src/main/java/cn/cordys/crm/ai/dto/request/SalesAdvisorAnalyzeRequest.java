@@ -21,4 +21,7 @@ public class SalesAdvisorAnalyzeRequest {
 
     /** 关联客户 ID（可空；分析完成后把结论沉淀到 ai_analysis_result，供客户画像回读） */
     private String customerId;
+
+    /** 是否联网查客户背景（按客户名/关键词调 DeepSeek Search 注入公开信息） */
+    private Boolean enableWebSearch;
 }

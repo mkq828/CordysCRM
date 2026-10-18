@@ -420,7 +420,7 @@ public class AgentModelService {
     public void applyModelParams(LlmChatRequest request, AgentModel model) {
         // 豆包 Seed 系列默认关闭深度思考：该系列默认 thinking=enabled，短问答都要先空转数秒、
         // 长 JSON 任务空转可达上百秒，业务场景追求响应速度，故默认关闭；仍可显式配置 model_params.thinking 覆盖。
-        if (isDoubaoSeed(model)) {
+        if (isDoubaoSeed(model) || isDeepSeekReasoning(model)) {
             request.setThinking(Map.of("type", "disabled"));
         }
         String params = model.getModelParams();
@@ -446,6 +446,12 @@ public class AgentModelService {
         return "豆包".equals(model.getProvider())
                 && StringUtils.isNotBlank(model.getModelName())
                 && model.getModelName().startsWith("doubao-seed");
+    }
+
+    /** DeepSeek V4 系列（deepseek-flash / deepseek-v4-pro）同为推理模型，默认 high 档先空转推理，需按业务关闭 */
+    private boolean isDeepSeekReasoning(AgentModel model) {
+        return StringUtils.isNotBlank(model.getModelName())
+                && model.getModelName().startsWith("deepseek-");
     }
 
     private Double asDouble(Object value) {

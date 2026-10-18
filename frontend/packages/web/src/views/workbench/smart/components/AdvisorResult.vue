@@ -1,5 +1,27 @@
 <template>
   <div class="advisor-result flex flex-col gap-[16px]">
+    <!-- 联网检索到的公开信息来源（可点击出处） -->
+    <div v-if="result.webSources?.length" class="flex flex-col gap-[8px]">
+      <span class="text-[13px] font-semibold text-[var(--text-n1)]">
+        {{ t('workbench.smart.advisorWebSources') }}（{{ result.webSources.length }} 条）
+      </span>
+      <div class="flex flex-col gap-[6px]">
+        <div v-for="(source, index) in result.webSources" :key="index" class="flex flex-col gap-[2px]">
+          <a
+            :href="source.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-[13px] leading-[1.6] text-[var(--primary-8)] hover:underline"
+          >
+            {{ index + 1 }}. {{ source.title || source.url }}
+          </a>
+          <span v-if="source.snippet" class="text-[12px] leading-[1.5] text-[var(--text-n3)]">
+            {{ source.snippet }}
+          </span>
+        </div>
+      </div>
+    </div>
+
     <!-- 三大指标：意向评分 / 流失风险 / 情绪 -->
     <div class="grid grid-cols-3 gap-[12px]">
       <div class="advisor-metric">

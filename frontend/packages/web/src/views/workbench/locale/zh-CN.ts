@@ -99,6 +99,8 @@ export default {
   'workbench.smart.advisorModeQuery': '查客户数据',
   'workbench.smart.advisorPlaceholder': '粘贴与客户的聊天记录…',
   'workbench.smart.advisorCustomerPlaceholder': '关联客户（可选，可输入搜索，结果将沉淀到客户画像）',
+  'workbench.smart.advisorWebSearch': '联网查客户背景',
+  'workbench.smart.advisorWebSources': '联网检索到的公开信息',
   'workbench.smart.advisorUploadTip': '上传聊天截图（可选，自动识别文字）',
   'workbench.smart.advisorThinking': '正在思考中…',
   'workbench.smart.advisorQueryPlaceholder':

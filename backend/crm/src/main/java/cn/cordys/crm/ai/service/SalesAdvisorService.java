@@ -4,6 +4,7 @@ import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.util.JSON;
 import cn.cordys.crm.ai.constant.AiQuotaConstant;
 import cn.cordys.crm.ai.dto.request.SalesAdvisorAnalyzeRequest;
+import cn.cordys.crm.ai.dto.response.AdvisorWebSource;
 import cn.cordys.crm.ai.dto.response.AiQuotaRecordResult;
 import cn.cordys.crm.ai.dto.response.AiStreamResult;
 import cn.cordys.crm.ai.dto.response.SalesAdvisorAnalyzeResponse;
@@ -17,6 +18,7 @@ import cn.cordys.crm.ai.model.service.AgentModelService;
 import cn.cordys.crm.ai.script.dto.request.AiSalesScriptRetrieveRequest;
 import cn.cordys.crm.ai.script.dto.response.ScriptRecommendResponse;
 import cn.cordys.crm.ai.script.service.AiSalesScriptService;
+import cn.cordys.crm.ai.search.DeepSeekSearchClient;
 import cn.cordys.crm.customer.service.CustomerService;
 import cn.cordys.crm.system.domain.Parameter;
 import cn.cordys.crm.system.service.AttachmentService;
@@ -90,6 +92,8 @@ public class SalesAdvisorService {
     private AiAnalysisResultService aiAnalysisResultService;
     @Resource
     private CustomerService customerService;
+    @Resource
+    private DeepSeekSearchClient deepSeekSearchClient;
 
     /**
      * 分析销售会话。截图（若有）直接作为图片喂给多模态视觉模型，再走四步链路调用模型并解析结构化结果。
@@ -129,7 +133,7 @@ public class SalesAdvisorService {
             }
         }
 
-        // 2. 模型候选 + 额度校验（会话军师属「洞察与评估任务」，走 taskModels 专用模型）
+        // 1.5 模型候选 + 额度预检：联网搜索与模型调用都会记账，先拦「无模型/硬超/限流/熔断」，避免白花搜索成本
         List<AgentModel> models = agentModelService.resolveTaskModels(organizationId);
         if (models.isEmpty()) {
             throw new GenericException("请先在「模型设置」中配置并启用一个模型");
@@ -139,6 +143,21 @@ public class SalesAdvisorService {
         String status = quota.getStatus();
         if (isBlocked(status)) {
             throw new GenericException(blockedMessage(status));
+        }
+
+        // 1.6 联网查客户背景：按客户名/关键词先搜一轮公开信息注入上下文（未配 key 或失败时静默降级）
+        List<AdvisorWebSource> webSources = List.of();
+        if (Boolean.TRUE.equals(request.getEnableWebSearch())) {
+            String webQuery = buildWebSearchQuery(request);
+            if (StringUtils.isNotBlank(webQuery)) {
+                webSources = deepSeekSearchClient.search(webQuery);
+                userContent = appendWebSources(userContent, webSources);
+                if (!webSources.isEmpty()) {
+                    // 搜索按次计费，折算成固定 token 等价量记入当前功能编码的额度（不新开 feature，折算量可配）
+                    aiQuotaService.record(organizationId, featureCode, AiQuotaConstant.SEARCH_MODEL_CODE,
+                            getSearchTokensPerCall(), 0L, userId);
+                }
+            }
         }
 
         // 3. 遍历候选调用，流式转发叙述部分并累积全文（首个模型一旦产出内容便不再降级）
@@ -163,6 +182,7 @@ public class SalesAdvisorService {
                 aiQuotaService.record(organizationId, featureCode, model.getModelName(),
                         usage.getInputTokens(), usage.getOutputTokens(), userId);
                 SalesAdvisorAnalyzeResponse analysis = parseAnalysis(streamer.text());
+                analysis.setWebSources(webSources);
                 enrichWithScriptLibrary(analysis, organizationId, request);
                 persistAnalysisResult(organizationId, request.getCustomerId(), analysis, model.getModelName(), userId,
                         featureCode);
@@ -219,6 +239,47 @@ public class SalesAdvisorService {
             messages.add(new LlmMessage("user", text, imageUrls));
         }
         return messages;
+    }
+
+    /** 联网检索的查询词：优先取关联客户名（联网查的是「客户背景」，客户名比粘贴文本更精准），未关联客户时退回粘贴文本；超长截断到 128 字 */
+    private String buildWebSearchQuery(SalesAdvisorAnalyzeRequest request) {
+        if (StringUtils.isNotBlank(request.getCustomerId())) {
+            String name = customerService.getCustomerName(request.getCustomerId());
+            if (StringUtils.isNotBlank(name)) {
+                return truncate128(name.trim());
+            }
+        }
+        String message = request.getMessage() == null ? "" : request.getMessage().trim();
+        return truncate128(message);
+    }
+
+    /** 把联网检索结果拼进用户输入，供模型结合分析并保留出处；无结果时原样返回 */
+    private String appendWebSources(String userContent, List<AdvisorWebSource> webSources) {
+        if (webSources == null || webSources.isEmpty()) {
+            return userContent;
+        }
+        StringBuilder sb = new StringBuilder();
+        if (StringUtils.isNotBlank(userContent)) {
+            sb.append(userContent).append('\n');
+        }
+        sb.append("【联网检索到的客户公开信息】（仅供分析参考，引用时请保留出处）\n");
+        int index = 1;
+        for (AdvisorWebSource source : webSources) {
+            sb.append(index++).append(". 《")
+                    .append(StringUtils.defaultIfBlank(source.getTitle(), "无标题")).append("》");
+            if (StringUtils.isNotBlank(source.getSnippet())) {
+                sb.append("——").append(source.getSnippet());
+            }
+            if (StringUtils.isNotBlank(source.getUrl())) {
+                sb.append("（来源：").append(source.getUrl()).append("）");
+            }
+            sb.append('\n');
+        }
+        return sb.toString().trim();
+    }
+
+    private String truncate128(String text) {
+        return text.length() > 128 ? text.substring(0, 128) : text;
     }
 
     // ==================== 结果解析 ====================
@@ -488,6 +549,19 @@ public class SalesAdvisorService {
     private String getParam(String key) {
         Parameter parameter = parameterMapper.selectByPrimaryKey(key);
         return parameter == null ? null : parameter.getParamValue();
+    }
+
+    /** 1 次联网搜索折算 token 数（可配置，默认 1000 ≈ 0.1 次标准额度），配置非法时回退默认值 */
+    private long getSearchTokensPerCall() {
+        String value = getParam(AiQuotaConstant.PARAM_SEARCH_TOKENS_PER_CALL);
+        if (StringUtils.isBlank(value)) {
+            return AiQuotaConstant.DEFAULT_SEARCH_TOKENS_PER_CALL;
+        }
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException e) {
+            return AiQuotaConstant.DEFAULT_SEARCH_TOKENS_PER_CALL;
+        }
     }
 
     private boolean isBlocked(String status) {

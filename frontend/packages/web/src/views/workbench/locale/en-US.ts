@@ -100,6 +100,8 @@ export default {
   'workbench.smart.advisorModeQuery': 'Query data',
   'workbench.smart.advisorPlaceholder': 'Paste the chat history with the customer…',
   'workbench.smart.advisorCustomerPlaceholder': 'Link a customer (optional — type to search, results feed the profile)',
+  'workbench.smart.advisorWebSearch': 'Search web for background',
+  'workbench.smart.advisorWebSources': 'Public info found online',
   'workbench.smart.advisorUploadTip': 'Upload a chat screenshot (optional, auto-recognized)',
   'workbench.smart.advisorThinking': 'Thinking…',
   'workbench.smart.advisorQueryPlaceholder':

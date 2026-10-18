@@ -188,6 +188,15 @@ export interface SalesAdvisorAnalyzeParams {
   picIds?: string[];
   conversationId?: string;
   customerId?: string;
+  /** 是否联网查客户背景（按客户名/关键词调 DeepSeek Search 注入公开信息） */
+  enableWebSearch?: boolean;
+}
+
+/** 军师联网检索到的一条公开信息来源 */
+export interface AdvisorWebSource {
+  title?: string;
+  url?: string;
+  snippet?: string;
 }
 
 /** AI 销售会话军师结构化分析结果 */
@@ -201,6 +210,8 @@ export interface SalesAdvisorAnalyzeResult {
   suggestedScripts?: string[];
   scriptRecommendations?: ScriptRecommend[];
   rawAnalysis?: string;
+  /** 联网检索到的公开信息出处 */
+  webSources?: AdvisorWebSource[];
 }
 
 /** AI 销售会话军师查数请求：一句大白话（例如「张三最近跟进到哪了」） */

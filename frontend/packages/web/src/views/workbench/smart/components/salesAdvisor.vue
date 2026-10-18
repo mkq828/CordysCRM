@@ -1,5 +1,5 @@
 <template>
-  <div class="h-[640px]">
+  <div class="h-[800px]">
     <CrmCard hide-footer no-content-padding content-height="100%" class="sales-advisor h-full overflow-hidden">
       <template #header>
         <div class="flex items-center gap-[8px]">
@@ -42,6 +42,11 @@
                 @search="handleSearchCustomer"
               />
 
+              <div v-if="queryMode === 'analyze'" class="flex items-center gap-[8px]">
+                <n-switch v-model:value="enableWebSearch" size="small" :disabled="analyzing" />
+                <span class="text-[13px] text-orange-500">{{ t('workbench.smart.advisorWebSearch') }}</span>
+              </div>
+
               <div v-if="queryMode === 'analyze' && pics.length" class="flex flex-wrap items-center gap-[8px]">
                 <n-tag
                   v-for="(pic, index) in pics"
@@ -55,10 +60,11 @@
                 </n-tag>
               </div>
 
-              <div class="advisor-composer relative">
+              <div class="advisor-composer flex flex-col rounded-[8px] border border-[var(--text-n8)]">
                 <n-input
                   v-model:value="message"
                   type="textarea"
+                  :bordered="false"
                   :placeholder="
                     queryMode === 'query'
                       ? t('workbench.smart.advisorQueryPlaceholder')
@@ -67,7 +73,7 @@
                   :autosize="{ minRows: 3, maxRows: 10 }"
                 />
 
-                <div class="absolute bottom-[8px] left-[8px] right-[8px] flex items-center justify-between">
+                <div class="flex items-center justify-between border-t border-[var(--text-n8)] px-[8px] py-[6px]">
                   <n-upload
                     v-if="queryMode === 'analyze'"
                     :custom-request="customUpload"
@@ -179,9 +185,15 @@
                   />
                   <ShimmerText size="16px">{{ t('workbench.smart.advisorThinking') }}</ShimmerText>
                 </div>
-                <div v-if="streamingText" class="whitespace-pre-wrap text-[13px] leading-[1.6] text-[var(--text-n2)]">
-                  {{ streamingText }}
-                </div>
+                <template v-else>
+                  <div class="whitespace-pre-wrap text-[13px] leading-[1.6] text-[var(--text-n2)]">
+                    {{ streamingText }}<span class="advisor-cursor"></span>
+                  </div>
+                  <div class="flex items-center gap-[6px] text-[12px] text-[var(--text-n4)]">
+                    <CrmIcon type="iconicon_loading" :size="12" color="var(--primary-8)" class="ai-loading-spin" />
+                    <span>{{ t('workbench.smart.advisorThinking') }}</span>
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -190,7 +202,12 @@
 
       <CrmFormCreateDrawer
         v-model:visible="followDrawerVisible"
-        :form-key="FormDesignKeyEnum.FOLLOW_RECORD"
+        :form-key="followFormKey"
+        :source-id="followSourceId"
+        :initial-source-name="followInitialSourceName"
+        :other-save-params="followOtherSaveParams"
+        :link-form-key="followLinkFormKey"
+        :link-scenario="followLinkScenario"
         :initial-values="followInitialValues"
         @saved="handleFollowSaved"
       />
@@ -210,6 +227,7 @@
     NRadioButton,
     NRadioGroup,
     NSelect,
+    NSwitch,
     NTag,
     NUpload,
     type UploadCustomRequestOptions,
@@ -217,7 +235,7 @@
   } from 'naive-ui';
   import dayjs from 'dayjs';
 
-  import { FormDesignKeyEnum } from '@lib/shared/enums/formDesignEnum';
+  import { FormDesignKeyEnum, FormLinkScenarioEnum } from '@lib/shared/enums/formDesignEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import type {
     AgentConversationDetail,
@@ -258,6 +276,9 @@
     name: string;
   }
   const pics = ref<Pic[]>([]);
+
+  // 联网查客户背景：开启后分析时按客户名/关键词先搜一轮公开信息并回传出处
+  const enableWebSearch = ref(false);
 
   // 关联客户（可选）：分析结果会沉淀到该客户的 ai_analysis_result，供客户画像回读
   const customerId = ref<string | null>(null);
@@ -446,7 +467,9 @@
     streaming.value = true;
     resetStreaming();
 
-    const userText = message.value.trim() || (pics.value.length ? `【聊天记录截图】×${pics.value.length}` : '');
+    const text = message.value.trim();
+    const picIds = pics.value.map((pic) => pic.id);
+    const userText = text || (picIds.length ? `【聊天记录截图】×${picIds.length}` : '');
     thread.value.push({
       id: `u_${Date.now()}`,
       role: 'USER',
@@ -454,14 +477,18 @@
       time: Date.now(),
       userName: currentUserName.value,
     });
+    // 发送后立即清空输入框与已上传截图，避免残留被下次分析重复提交
+    message.value = '';
+    pics.value = [];
 
     let assistantPushed = false;
     try {
       const stream = streamSalesAdvisor({
-        message: message.value.trim() || undefined,
-        picIds: pics.value.map((pic) => pic.id),
+        message: text || undefined,
+        picIds,
         conversationId: activeConversationId.value || undefined,
         customerId: customerId.value || undefined,
+        enableWebSearch: enableWebSearch.value || undefined,
       });
 
       // eslint-disable-next-line no-restricted-syntax -- 原生 async generator，无需 regenerator-runtime
@@ -575,6 +602,18 @@
 
   const followDrawerVisible = ref(false);
   const followInitialValues = ref<Record<string, any>>({});
+  const followFormKey = ref<FormDesignKeyEnum>(FormDesignKeyEnum.FOLLOW_RECORD);
+  const followSourceId = ref<string | undefined>(undefined);
+  const followOtherSaveParams = ref<Record<string, any>>({});
+  const followInitialSourceName = ref('');
+  const followLinkFormKey = computed(() =>
+    followFormKey.value === FormDesignKeyEnum.FOLLOW_RECORD_CUSTOMER ? FormDesignKeyEnum.CUSTOMER : undefined
+  );
+  const followLinkScenario = computed(() =>
+    followFormKey.value === FormDesignKeyEnum.FOLLOW_RECORD_CUSTOMER
+      ? FormLinkScenarioEnum.CUSTOMER_TO_RECORD
+      : undefined
+  );
 
   function buildFollowContent(result: SalesAdvisorAnalyzeResult): string {
     if (!result) {
@@ -609,6 +648,18 @@
     if (!result) {
       return;
     }
+    // 分析时已关联客户，则跟进记录直接落到该客户名下，无需再次选择客户
+    if (customerId.value) {
+      followFormKey.value = FormDesignKeyEnum.FOLLOW_RECORD_CUSTOMER;
+      followSourceId.value = customerId.value;
+      followOtherSaveParams.value = { customerId: customerId.value };
+      followInitialSourceName.value = customerOptions.value.find((o) => o.value === customerId.value)?.label || '';
+    } else {
+      followFormKey.value = FormDesignKeyEnum.FOLLOW_RECORD;
+      followSourceId.value = undefined;
+      followOtherSaveParams.value = {};
+      followInitialSourceName.value = '';
+    }
     followInitialValues.value = { content: buildFollowContent(result) };
     followDrawerVisible.value = true;
   }
@@ -635,8 +686,11 @@
 </script>
 
 <style scoped lang="scss">
-  .advisor-composer :deep(textarea) {
-    padding-bottom: 36px;
+  .advisor-composer {
+    transition: border-color 0.2s ease;
+    &:focus-within {
+      border-color: var(--primary-8);
+    }
   }
   .advisor-tool-button {
     padding: 2px 4px;
@@ -644,6 +698,20 @@
     border-radius: 4px;
     &:hover {
       background: var(--text-n9);
+    }
+  }
+  .advisor-cursor {
+    display: inline-block;
+    margin-left: 2px;
+    width: 8px;
+    height: 14px;
+    background: var(--primary-8);
+    vertical-align: -2px;
+    animation: advisor-blink 1s step-end infinite;
+  }
+  @keyframes advisor-blink {
+    50% {
+      opacity: 0;
     }
   }
 </style>
