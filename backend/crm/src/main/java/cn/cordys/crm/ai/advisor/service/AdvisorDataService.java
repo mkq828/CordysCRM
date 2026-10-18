@@ -41,11 +41,11 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 军师查数问答：大白话 → 查询意图 → 语义层编译只读 SQL（强制 organization_id + 本人及下属负责人范围）
- * → 执行 → 用结果生成自然语言回答。
+ * 军师查数问答：大白话 → 查询意图 → 语义层编译只读 SQL（强制 organization_id，负责人范围按
+ * includeSubordinates 区分「本人」与「本人+下级」）→ 执行 → 用结果生成自然语言回答。
  * <p>
- * 与问数 BI 的区别：数据域是「本人+下级负责的客户/跟进明细」，回答是自然语言（非报表），
- * 且行级权限强制限定在本人及下属名下。
+ * 与问数 BI 的区别：数据域是「本人（或含下属）负责的客户/跟进明细」，回答是自然语言（非报表），
+ * 且行级权限强制限定在本人（可含下属）名下。
  * </p>
  */
 @Service
@@ -114,8 +114,10 @@ public class AdvisorDataService {
             return response;
         }
 
-        // 2. 编译执行只读 SQL（本人+下级负责人范围）
-        List<String> ownerIds = new ArrayList<>(dataScopeService.getUserIdsWithSubordinates(userId, orgId));
+        // 2. 编译执行只读 SQL（负责人范围：默认本人，明确提及下属/团队时含下属）
+        List<String> ownerIds = Boolean.TRUE.equals(intent.includeSubordinates())
+                ? new ArrayList<>(dataScopeService.getUserIdsWithSubordinates(userId, orgId))
+                : List.of(userId);
         List<Map<String, Object>> readable = compileAndExecute(orgId, intent, ownerIds);
 
         // 3. 用结果生成自然语言回答（二次 LLM）
@@ -185,7 +187,10 @@ public class AdvisorDataService {
             Integer staleDays = node.hasNonNull("staleDays") ? node.get("staleDays").asInt() : null;
             Integer withinDays = node.hasNonNull("withinDays") ? node.get("withinDays").asInt() : null;
             Integer limit = node.hasNonNull("limit") ? node.get("limit").asInt() : null;
-            return new AdvisorDataCatalog.QueryIntent(action, name, sharedPool, staleDays, withinDays, limit);
+            Boolean includeSubordinates = node.hasNonNull("includeSubordinates")
+                    ? node.get("includeSubordinates").asBoolean() : Boolean.FALSE;
+            return new AdvisorDataCatalog.QueryIntent(action, name, sharedPool, staleDays, withinDays, limit,
+                    includeSubordinates);
         } catch (GenericException e) {
             throw e;
         } catch (Exception e) {

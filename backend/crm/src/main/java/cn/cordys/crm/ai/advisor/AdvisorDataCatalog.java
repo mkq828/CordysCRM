@@ -6,8 +6,8 @@ import java.time.LocalDate;
  * 军师查数语义层白名单（第一版：客户 + 跟进两个数据域）。
  * <p>
  * 与问数 BI 同理：所有表名、列名在此硬编码，LLM 只产出目录内的 action 与参数；
- * 编译层据此拼装参数化只读 SQL，并无条件注入 organization_id 与「本人+下级」负责人范围，
- * 从结构上杜绝 SQL 注入与越权。
+ * 编译层据此拼装参数化只读 SQL，并无条件注入 organization_id，负责人范围按
+ * includeSubordinates 区分「本人」与「本人+下级」，从结构上杜绝 SQL 注入与越权。
  * </p>
  */
 public final class AdvisorDataCatalog {
@@ -26,13 +26,13 @@ public final class AdvisorDataCatalog {
 
     /** LLM 产出的查询意图（action 必须命中目录，参数白名单化）。 */
     public record QueryIntent(String action, String name, Boolean sharedPool, Integer staleDays,
-                              Integer withinDays, Integer limit) {
+                              Integer withinDays, Integer limit, Boolean includeSubordinates) {
     }
 
     public static String intentPrompt() {
         return "你是企业 CRM 的「销售数据助手」，把销售的大白话问题转成一段查询指令 JSON，交给系统查数据库。\n"
                 + "今天日期：" + LocalDate.now() + "\n\n"
-                + "你只能查「销售本人及下属」负责的客户与跟进数据，支持三种查询：\n\n"
+                + "你只能查客户与跟进数据，支持三种查询：\n\n"
                 + "1. " + ACTION_LIST_CUSTOMERS + "（查客户列表）\n"
                 + "   - name：客户名称关键词，模糊匹配，可选\n"
                 + "   - sharedPool：是否在公海，true/false，可选\n"
@@ -40,15 +40,20 @@ public final class AdvisorDataCatalog {
                 + "2. " + ACTION_CUSTOMER_FOLLOWS + "（查某个客户的跟进记录）\n"
                 + "   - name：客户名称关键词，必填\n"
                 + "   - withinDays：最近 N 天内的跟进，数字，可选\n"
-                + "3. " + ACTION_RECENT_FOLLOWS + "（查本人及下属最近的跟进记录）\n"
+                + "3. " + ACTION_RECENT_FOLLOWS + "（查最近的跟进记录）\n"
                 + "   - withinDays：最近 N 天内的跟进，数字，可选\n\n"
+                + "数据范围用 includeSubordinates 区分两档：\n"
+                + "- 「我名下 / 我的客户 / 我负责的客户」→ 只查本人（当前登录销售）为负责人的数据，includeSubordinates=false\n"
+                + "- 「我和下属 / 我的团队 / 我及下属 / 我们部门」→ 查本人及下属负责的数据，includeSubordinates=true\n"
+                + "不明确是否含下属时，默认 includeSubordinates=false（只查本人）。\n\n"
                 + "输出只能是 JSON（不要 markdown、不要解释），结构如下：\n"
                 + "{\"action\":\"" + ACTION_LIST_CUSTOMERS + "\",\"name\":null,\"sharedPool\":null,"
-                + "\"staleDays\":7,\"withinDays\":null,\"limit\":10}\n\n"
+                + "\"staleDays\":7,\"withinDays\":null,\"limit\":10,\"includeSubordinates\":false}\n\n"
                 + "规则：\n"
                 + "- 「张三最近跟进到哪了」→ " + ACTION_CUSTOMER_FOLLOWS + "，name=张三\n"
-                + "- 「我名下有哪些客户 7 天没跟进了」→ " + ACTION_LIST_CUSTOMERS + "，staleDays=7\n"
-                + "- 「最近我跟进了哪些客户」→ " + ACTION_RECENT_FOLLOWS + "\n"
+                + "- 「我名下有哪些客户 7 天没跟进了」→ " + ACTION_LIST_CUSTOMERS + "，staleDays=7，includeSubordinates=false\n"
+                + "- 「我的团队有哪些客户 7 天没跟进了」→ " + ACTION_LIST_CUSTOMERS + "，staleDays=7，includeSubordinates=true\n"
+                + "- 「最近我跟进了哪些客户」→ " + ACTION_RECENT_FOLLOWS + "，includeSubordinates=false\n"
                 + "- 「公海里有哪些客户」→ " + ACTION_LIST_CUSTOMERS + "，sharedPool=true\n"
                 + "- 「最近 30 天跟进了哪些客户」→ " + ACTION_RECENT_FOLLOWS + "，withinDays=30\n"
                 + "- 不是查数据的问题（如让你分析一段对话、闲聊、问业务规则）→ action=" + ACTION_NONE + "\n"
