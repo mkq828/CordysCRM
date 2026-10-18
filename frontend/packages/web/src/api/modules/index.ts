@@ -877,6 +877,7 @@ export const {
   streamGenerateAiContent,
   streamGenerateAiPptOutline,
   streamGenerateAiPptSlides,
+  getAiPptAvailable,
   streamAskKnowledge,
   cancelAgentChat,
   confirmAgentChat,

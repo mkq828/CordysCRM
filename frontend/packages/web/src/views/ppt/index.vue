@@ -8,7 +8,9 @@
         </div>
       </template>
 
-      <CrmSplitPanel class="h-full" :max="0.5" :min="0.2" :default-size="0.24">
+      <n-empty v-if="available === false" class="ppt-locked" :description="t('ppt.locked')" />
+
+      <CrmSplitPanel v-else class="h-full" :max="0.5" :min="0.2" :default-size="0.24">
         <template #1>
           <AiConversationPanel
             ref="conversationPanelRef"
@@ -149,8 +151,8 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, ref } from 'vue';
-  import { NInput, useMessage } from 'naive-ui';
+  import { computed, onMounted, ref } from 'vue';
+  import { NEmpty, NInput, useMessage } from 'naive-ui';
 
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import type {
@@ -170,7 +172,7 @@
   import OutlineEditor from './components/OutlineEditor.vue';
   import SlidePreview from './components/SlidePreview.vue';
 
-  import { streamGenerateAiPptOutline, streamGenerateAiPptSlides } from '@/api/modules';
+  import { getAiPptAvailable, streamGenerateAiPptOutline, streamGenerateAiPptSlides } from '@/api/modules';
   import useTypewriter from '@/hooks/useTypewriter';
 
   const FEATURE_PPT = 'ai_ppt';
@@ -187,6 +189,7 @@
   const focus = ref('');
 
   const generating = ref<'none' | 'outline' | 'slides'>('none');
+  const available = ref<boolean | null>(null);
   const { text: streamingText, feed: feedStreaming, reset: resetStreaming } = useTypewriter();
   const outline = ref<AiPptOutlineResult | null>(null);
   const slides = ref<AiPptSlidesResult | null>(null);
@@ -242,6 +245,14 @@
     outline.value = null;
     slides.value = null;
   }
+
+  onMounted(async () => {
+    try {
+      available.value = await getAiPptAvailable();
+    } catch {
+      available.value = false; // 拉取失败交给后端门控，前端按未开通展示升级提示
+    }
+  });
 
   async function handleGenerateOutline() {
     if (!canGenerate.value) {
@@ -335,6 +346,9 @@
 <style lang="less" scoped>
   .ppt-page {
     background: #f5f7fa;
+  }
+  .ppt-locked {
+    padding-top: 60px;
   }
   .ppt-blank {
     display: flex;

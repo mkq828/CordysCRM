@@ -36,6 +36,7 @@ export const AiContentGenerateUrl = '/agent/content/generate'; // AI 获客内�
 export const AiContentGenerateStreamUrl = '/agent/content/generate/stream'; // AI 获客内容-流式生成
 export const AiPptOutlineStreamUrl = '/agent/ppt/outline/stream'; // AI 方案/PPT-流式生成方案大纲
 export const AiPptSlidesStreamUrl = '/agent/ppt/slides/stream'; // AI 方案/PPT-流式生成 PPT 逐页
+export const AiPptAvailableUrl = '/agent/ppt/available'; // AI 方案/PPT-版本开关查询
 export const AiKnowledgeDocPageUrl = '/agent/kb/doc/page'; // 企业知识库-文档分页列表
 export const AiKnowledgeDocUploadUrl = '/agent/kb/doc/upload'; // 企业知识库-上传并解析文档
 export const AiKnowledgeDocDeleteUrl = '/agent/kb/doc/delete'; // 企业知识库-删除文档（拼 /{id}）

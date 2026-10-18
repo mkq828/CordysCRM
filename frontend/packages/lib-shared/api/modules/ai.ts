@@ -167,6 +167,7 @@ import {
   AiKnowledgeDocPageUrl,
   AiKnowledgeDocUploadUrl,
   AiMeetingMinutesUrl,
+  AiPptAvailableUrl,
   AiPptOutlineStreamUrl,
   AiPptSlidesStreamUrl,
   AiReplicaAvailableUrl,
@@ -521,6 +522,10 @@ export default function useAiApi(CDR: CordysAxios) {
 
   function streamGenerateAiPptSlides(data: AiPptSlidesParams, options: AgentChatStreamOptions = {}) {
     return streamSse(AiPptSlidesStreamUrl, data, options);
+  }
+
+  function getAiPptAvailable() {
+    return CDR.get<boolean>({ url: AiPptAvailableUrl });
   }
 
   function streamAskKnowledge(data: AiKnowledgeAskParams, options: AgentChatStreamOptions = {}) {
@@ -1244,6 +1249,7 @@ export default function useAiApi(CDR: CordysAxios) {
     streamGenerateAiContent,
     streamGenerateAiPptOutline,
     streamGenerateAiPptSlides,
+    getAiPptAvailable,
     streamAskKnowledge,
     cancelAgentChat,
     confirmAgentChat,

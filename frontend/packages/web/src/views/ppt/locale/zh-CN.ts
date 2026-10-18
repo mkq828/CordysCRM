@@ -1,5 +1,6 @@
 export default {
   'ppt.desc': '填写客户背景与痛点，AI 先为你生成结构化解决方案大纲，确认后再一键生成可下载的 PPT 初稿。',
+  'ppt.locked': '当前版本未开通方案/PPT，请升级至企业版',
   'ppt.customerName': '客户名称',
   'ppt.customerNamePlaceholder': '选填，例如：某某科技有限公司',
   'ppt.industry': '行业',

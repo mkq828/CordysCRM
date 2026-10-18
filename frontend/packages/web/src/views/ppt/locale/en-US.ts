@@ -1,6 +1,7 @@
 export default {
   'ppt.desc':
     'Enter the customer background and pain points. AI first builds a structured proposal outline, and once you confirm it, generates a downloadable PPT draft in one click.',
+  'ppt.locked': 'Proposal & PPT is not available on your plan; upgrade to Enterprise',
   'ppt.customerName': 'Customer',
   'ppt.customerNamePlaceholder': 'Optional, e.g. Acme Technologies Ltd.',
   'ppt.industry': 'Industry',
