@@ -173,6 +173,7 @@
     batchDeleteCustomer,
     batchTransferCustomer,
     deleteCustomer,
+    fetchCustomerBusinessInfo,
     getCustomerTagsBatch,
     updateCustomer,
   } from '@/api/modules';
@@ -808,6 +809,8 @@
       searchData();
     }
     if (activeFormKey.value === FormDesignKeyEnum.CUSTOMER && !needInitDetail.value && !isContinue) {
+      // 新建客户成功后自动拉取工商信息（静默失败，不打断新建联系人流程）
+      fetchCustomerBusinessInfo(res.id).catch(() => undefined);
       // 新建客户后打开新建联系人
       activeSourceId.value = res.id;
       initialSourceName.value = res.name;

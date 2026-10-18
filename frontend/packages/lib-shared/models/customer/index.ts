@@ -435,6 +435,12 @@ export interface CustomerProfileResponse {
   dmProfile?: DmProfileSnapshot | null;
 }
 
+/** 获取客户工商信息结果：已填充字段 + 数据来源（qcc 权威 / web 联网兜底 / mixed） */
+export interface BusinessInfoFetchResult {
+  filled?: string[];
+  source?: string;
+}
+
 /** 客户标签（租户级字典） */
 export interface CustomerTag {
   id?: string;

@@ -502,6 +502,7 @@ export const {
   getCustomerOrderList,
   getCustomerInvoiceStatistic,
   getCustomerProfile,
+  fetchCustomerBusinessInfo,
   getCustomerTagList,
   getCustomerTags,
   getCustomerTagsBatch,

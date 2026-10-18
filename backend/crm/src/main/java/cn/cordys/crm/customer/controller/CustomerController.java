@@ -23,10 +23,12 @@ import cn.cordys.crm.contract.service.ContractPaymentRecordService;
 import cn.cordys.crm.contract.service.ContractService;
 import cn.cordys.crm.customer.domain.Customer;
 import cn.cordys.crm.customer.dto.request.*;
+import cn.cordys.crm.customer.dto.response.BusinessInfoFetchResponse;
 import cn.cordys.crm.customer.dto.response.CustomerGetResponse;
 import cn.cordys.crm.customer.dto.response.CustomerListResponse;
 import cn.cordys.crm.customer.dto.response.CustomerProfileResponse;
 import cn.cordys.crm.customer.service.CustomerCollaborationService;
+import cn.cordys.crm.customer.service.CustomerBusinessInfoService;
 import cn.cordys.crm.customer.service.CustomerExportService;
 import cn.cordys.crm.customer.service.CustomerProfileService;
 import cn.cordys.crm.customer.service.CustomerService;
@@ -97,6 +99,8 @@ public class CustomerController {
     private CustomerCollaborationService customerCollaborationService;
     @Resource
     private CustomerProfileService customerProfileService;
+    @Resource
+    private CustomerBusinessInfoService customerBusinessInfoService;
 
     @GetMapping("/module/form")
     @RequiresPermissions(value = {PermissionConstants.CUSTOMER_MANAGEMENT_READ, PermissionConstants.CUSTOMER_MANAGEMENT_POOL_READ}, logical = Logical.OR)
@@ -127,6 +131,13 @@ public class CustomerController {
     @Operation(summary = "客户画像（360° 只读聚合 + AI 洞察）")
     public CustomerProfileResponse profile(@PathVariable String id) {
         return customerProfileService.profile(id, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
+    }
+
+    @PostMapping("/business-info/fetch/{id}")
+    @CsPermission(value = PermissionConstants.CUSTOMER_MANAGEMENT_UPDATE, resourceId = "{#id}", formType = FormKeyConstants.CUSTOMER)
+    @Operation(summary = "获取客户工商信息（企查查为主、联网兜底，写入工商信息自定义字段）")
+    public BusinessInfoFetchResponse fetchBusinessInfo(@PathVariable String id) {
+        return customerBusinessInfoService.fetchAndFill(id, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
     }
 
     @PostMapping("/add")

@@ -94,4 +94,9 @@ export default {
   'customer.tagsEmpty': 'No tags yet',
   'customer.tagPlaceholder': 'Enter tag name',
   'customer.tagAdd': 'Add',
+  'customer.fetchBusinessInfo': 'Fetch business info',
+  'customer.fetchBusinessInfoSuccess': 'Business info fetched: {fields}',
+  'customer.fetchBusinessInfoFromWeb':
+    'Fetched from public web: {fields} (may be inaccurate or from a similarly-named company, please verify)',
+  'customer.fetchBusinessInfoEmpty': 'No business info found. Check QCC/model config, or fill in manually',
 };

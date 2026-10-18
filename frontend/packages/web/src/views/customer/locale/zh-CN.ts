@@ -86,4 +86,8 @@ export default {
   'customer.tagsEmpty': '暂无标签',
   'customer.tagPlaceholder': '输入标签名',
   'customer.tagAdd': '添加',
+  'customer.fetchBusinessInfo': '获取工商信息',
+  'customer.fetchBusinessInfoSuccess': '已获取工商信息：{fields}',
+  'customer.fetchBusinessInfoFromWeb': '已从公开网络获取：{fields}（可能不准确、可能是同名公司，建议核对）',
+  'customer.fetchBusinessInfoEmpty': '未查到工商信息，请确认已配置企查查或模型，或手动填写',
 };

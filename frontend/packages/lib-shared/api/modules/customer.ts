@@ -54,6 +54,7 @@ import {
   ExportCustomerSelectedUrl,
   ExportOpenSeaCustomerAllUrl,
   ExportOpenSeaCustomerSelectedUrl,
+  FetchCustomerBusinessInfoUrl,
   FixedAccountPoolViewUrl,
   FixedContactViewUrl,
   FixedCustomerViewUrl,
@@ -152,6 +153,7 @@ import type {
   BatchMoveToPublicPoolParams,
   BatchOperationOpenSeaCustomerParams,
   BatchUpdatePoolAccountParams,
+  BusinessInfoFetchResult,
   CollaborationItem,
   CustomerContractListItem,
   CustomerContractTableParams,
@@ -228,6 +230,11 @@ export default function useProductApi(CDR: CordysAxios) {
   // 获取客户画像（360° 只读聚合 + AI 洞察）
   function getCustomerProfile(id: string) {
     return CDR.get<CustomerProfileResponse>({ url: `${GetCustomerProfileUrl}/${id}` });
+  }
+
+  // 获取客户工商信息（企查查为主、联网兜底，写入工商信息自定义字段）
+  function fetchCustomerBusinessInfo(id: string) {
+    return CDR.post<BusinessInfoFetchResult>({ url: `${FetchCustomerBusinessInfoUrl}/${id}` });
   }
 
   // 客户标签-租户标签字典列表
@@ -864,6 +871,7 @@ export default function useProductApi(CDR: CordysAxios) {
     getCustomerFormConfig,
     getCustomer,
     getCustomerProfile,
+    fetchCustomerBusinessInfo,
     getCustomerTagList,
     getCustomerTags,
     getCustomerTagsBatch,

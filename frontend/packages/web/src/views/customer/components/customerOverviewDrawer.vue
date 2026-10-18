@@ -189,7 +189,13 @@
   import opportunityTable from '@/views/opportunity/components/opportunityTable.vue';
   import OrderTable from '@/views/order/order/components/orderTable.vue';
 
-  import { deleteCustomer, getCustomerHeaderList, getCustomerTags, updateCustomer } from '@/api/modules';
+  import {
+    deleteCustomer,
+    fetchCustomerBusinessInfo,
+    getCustomerHeaderList,
+    getCustomerTags,
+    updateCustomer,
+  } from '@/api/modules';
   import useModal from '@/hooks/useModal';
   import { hasAnyPermission } from '@/utils/permission';
 
@@ -219,6 +225,7 @@
 
   const refreshKey = ref(0);
   const transferLoading = ref(false);
+  const fetchBusinessInfoLoading = ref(false);
   const collaborationType = ref<CollaborationType>();
   const sourceName = ref('');
   const customerTags = ref<CustomerTag[]>([]);
@@ -256,6 +263,15 @@
       return [];
     }
     return [
+      {
+        label: t('customer.fetchBusinessInfo'),
+        key: 'fetchBusinessInfo',
+        text: false,
+        ghost: true,
+        class: 'n-btn-outline-primary',
+        disabled: fetchBusinessInfoLoading.value,
+        permission: ['CUSTOMER_MANAGEMENT:UPDATE'],
+      },
       {
         label: t('common.save'),
         key: 'save',
@@ -453,6 +469,35 @@
     showMoveModal.value = true;
   }
 
+  // 获取工商信息：企查查为主、联网兜底，写入后刷新表单
+  async function handleFetchBusinessInfo() {
+    if (fetchBusinessInfoLoading.value) {
+      return;
+    }
+    fetchBusinessInfoLoading.value = true;
+    try {
+      const result = await fetchCustomerBusinessInfo(props.sourceId);
+      const filled = result?.filled || [];
+      if (filled.length) {
+        // 联网兜底结果可能不准（可能是同名公司），用警示口径；qcc 权威源走成功口径
+        const fromWeb = result?.source === 'web' || result?.source === 'mixed';
+        if (fromWeb) {
+          Message.warning(t('customer.fetchBusinessInfoFromWeb', { fields: filled.join('、') }));
+        } else {
+          Message.success(t('customer.fetchBusinessInfoSuccess', { fields: filled.join('、') }));
+        }
+      } else {
+        Message.warning(t('customer.fetchBusinessInfoEmpty'));
+      }
+      formCreateRef.value?.reload();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    } finally {
+      fetchBusinessInfoLoading.value = false;
+    }
+  }
+
   function handleButtonSelect(key: string) {
     if (key === 'save') {
       formCreateRef.value?.submit();
@@ -462,6 +507,8 @@
       transfer();
     } else if (key === 'moveToOpenSea') {
       handleMoveToPublicPool();
+    } else if (key === 'fetchBusinessInfo') {
+      handleFetchBusinessInfo();
     }
   }
 
