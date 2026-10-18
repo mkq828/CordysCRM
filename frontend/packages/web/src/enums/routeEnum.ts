@@ -181,6 +181,11 @@ export enum CompetitorMonitorRouteEnum {
   COMPETITOR_MONITOR_INDEX = 'aiCompetitorMonitorIndex',
 }
 
+export enum SentimentMonitorRouteEnum {
+  SENTIMENT_MONITOR = 'aiSentimentMonitor',
+  SENTIMENT_MONITOR_INDEX = 'aiSentimentMonitorIndex',
+}
+
 export enum VideoRouteEnum {
   VIDEO = 'aiVideo',
   VIDEO_INDEX = 'aiVideoIndex',
@@ -271,6 +276,7 @@ export const AppRouteEnum = {
   ...LeadMiningRouteEnum,
   ...TenderSubscriptionRouteEnum,
   ...CompetitorMonitorRouteEnum,
+  ...SentimentMonitorRouteEnum,
   ...VideoRouteEnum,
   ...DramaRouteEnum,
   ...ReplicaRouteEnum,

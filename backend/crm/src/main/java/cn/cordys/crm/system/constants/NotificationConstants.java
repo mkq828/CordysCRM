@@ -237,6 +237,9 @@ public class NotificationConstants {
         //竞品动态发现新动态（通知订阅人）
         @Schema(description = "message.competitor_monitor_new")
         String COMPETITOR_MONITOR_NEW = "COMPETITOR_MONITOR_NEW";
+        //舆情监控发现新风险（通知订阅人）
+        @Schema(description = "message.sentiment_monitor_new")
+        String SENTIMENT_MONITOR_NEW = "SENTIMENT_MONITOR_NEW";
     }
 
     public interface RelatedUser {
@@ -469,6 +472,10 @@ public class NotificationConstants {
         //您关注的竞品「${name}」发现 ${count} 条新动态，请及时查看。
         @Schema(description = "message.competitor_monitor_new_text")
         String COMPETITOR_MONITOR_NEW_TEXT = "COMPETITOR_MONITOR_NEW_TEXT";
+
+        //您监控的对象「${name}」发现 ${count} 条新风险信息，请及时查看。
+        @Schema(description = "message.sentiment_monitor_new_text")
+        String SENTIMENT_MONITOR_NEW_TEXT = "SENTIMENT_MONITOR_NEW_TEXT";
     }
 
 

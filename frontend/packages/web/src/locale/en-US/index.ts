@@ -68,6 +68,7 @@ export default {
     'menu.aiLeadMining': 'Lead Mining',
     'menu.aiTenderSubscription': 'Tender Subscription',
     'menu.aiCompetitorMonitor': 'Competitor Monitor',
+    'menu.aiSentimentMonitor': 'Sentiment Monitor',
     'menu.aiVideo': 'Short Video',
     'menu.aiReplica': 'Viral Replica',
     'menu.aiDrama': 'AI Drama',

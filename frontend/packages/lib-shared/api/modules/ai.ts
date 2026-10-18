@@ -98,6 +98,9 @@ import type {
   SalesAdvisorQueryParams,
   SalesAdvisorQueryResult,
   ScriptRecommend,
+  SentimentMonitorCreateParams,
+  SentimentMonitorResult,
+  SentimentMonitorSubscription,
   SmartFocusParams,
   TenderResult,
   TenderSubscription,
@@ -211,6 +214,13 @@ import {
   SalesAdvisorAnalyzeStreamUrl,
   SalesAdvisorAnalyzeUrl,
   SalesAdvisorQueryUrl,
+  SentimentMonitorAvailableUrl,
+  SentimentMonitorCreateUrl,
+  SentimentMonitorDeleteUrl,
+  SentimentMonitorListUrl,
+  SentimentMonitorResultsUrl,
+  SentimentMonitorSearchNowUrl,
+  SentimentMonitorToggleUrl,
   SmartAiSummaryRegenerateUrl,
   SmartAiSummaryUrl,
   SmartDataOverviewRegenerateUrl,
@@ -825,6 +835,36 @@ export default function useAiApi(CDR: CordysAxios) {
     return CDR.get<CompetitorMonitorResult[]>({ url: CompetitorMonitorResultsUrl, params: { id } });
   }
 
+  function getSentimentMonitorAvailable() {
+    return CDR.get<boolean>({ url: SentimentMonitorAvailableUrl });
+  }
+
+  function getSentimentMonitorList() {
+    return CDR.get<SentimentMonitorSubscription[]>({ url: SentimentMonitorListUrl });
+  }
+
+  function createSentimentMonitor(data: SentimentMonitorCreateParams) {
+    return CDR.post<SentimentMonitorSubscription>({ url: SentimentMonitorCreateUrl, data });
+  }
+
+  function deleteSentimentMonitor(id: string) {
+    return CDR.post<void>({ url: `${SentimentMonitorDeleteUrl}?id=${encodeURIComponent(id)}` });
+  }
+
+  function toggleSentimentMonitor(id: string, enabled: boolean) {
+    return CDR.post<void>({ url: `${SentimentMonitorToggleUrl}?id=${encodeURIComponent(id)}&enabled=${enabled}` });
+  }
+
+  function searchSentimentMonitorNow(id: string) {
+    return CDR.post<SentimentMonitorResult[]>({
+      url: `${SentimentMonitorSearchNowUrl}?id=${encodeURIComponent(id)}`,
+    });
+  }
+
+  function getSentimentMonitorResults(id: string) {
+    return CDR.get<SentimentMonitorResult[]>({ url: SentimentMonitorResultsUrl, params: { id } });
+  }
+
   function getDmProfileAvailable() {
     return CDR.get<boolean>({ url: DmProfileAvailableUrl });
   }
@@ -1279,6 +1319,13 @@ export default function useAiApi(CDR: CordysAxios) {
     toggleCompetitorMonitor,
     searchCompetitorMonitorNow,
     getCompetitorMonitorResults,
+    getSentimentMonitorAvailable,
+    getSentimentMonitorList,
+    createSentimentMonitor,
+    deleteSentimentMonitor,
+    toggleSentimentMonitor,
+    searchSentimentMonitorNow,
+    getSentimentMonitorResults,
     getDmProfileAvailable,
     getDmProfileAccounts,
     bindDmProfileAccount,

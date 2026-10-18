@@ -637,6 +637,32 @@ export interface CompetitorMonitorResult {
   createTime?: number;
 }
 
+/** 舆情监控-新建请求 */
+export interface SentimentMonitorCreateParams {
+  target?: string;
+  keyword?: string;
+}
+
+/** 舆情监控订阅 */
+export interface SentimentMonitorSubscription {
+  id: string;
+  target?: string;
+  keyword?: string;
+  enabled?: boolean;
+  createTime?: number;
+}
+
+/** 舆情监控结果 */
+export interface SentimentMonitorResult {
+  id: string;
+  subscriptionId?: string;
+  title?: string;
+  url?: string;
+  snippet?: string;
+  content?: string;
+  createTime?: number;
+}
+
 /** 私信获客画像-已绑定平台账号 */
 export interface DmAccount {
   id: string;

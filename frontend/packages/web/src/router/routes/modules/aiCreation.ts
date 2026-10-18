@@ -9,6 +9,7 @@ import {
   LeadCrawlRouteEnum,
   LeadMiningRouteEnum,
   ScriptRouteEnum,
+  SentimentMonitorRouteEnum,
   TenderSubscriptionRouteEnum,
   VoiceCloneRouteEnum,
   WorkbenchRouteEnum,
@@ -146,6 +147,15 @@ const aiCreation: AppRouteRecordRaw = {
       component: () => import('@/views/competitorMonitor/index.vue'),
       meta: {
         locale: 'menu.aiCompetitorMonitor',
+        permissions: [],
+      },
+    },
+    {
+      path: '/ai-sentiment-monitor/index',
+      name: SentimentMonitorRouteEnum.SENTIMENT_MONITOR_INDEX,
+      component: () => import('@/views/sentimentMonitor/index.vue'),
+      meta: {
+        locale: 'menu.aiSentimentMonitor',
         permissions: [],
       },
     },
