@@ -7,7 +7,6 @@
     <n-message-provider>
       <n-dialog-provider>
         <RouterView />
-        <CrmLicenseFeatureNotice />
       </n-dialog-provider>
     </n-message-provider>
   </n-config-provider>
@@ -24,7 +23,6 @@
   import type { Result } from '@lib/shared/types/axios';
 
   import CrmSysUpgradeTip from '@/components/pure/crm-sys-upgrade-tip/index.vue';
-  import CrmLicenseFeatureNotice from '@/components/business/crm-license-feature-notice/index.vue';
 
   import { getThirdOauthCallback } from '@/api/modules';
   import useLoading from '@/hooks/useLoading';

@@ -19,9 +19,8 @@ export default {
   'system.license.LicenseIsRequired': 'License Code 不能为空',
   'system.license.clickUpload': '点击上传',
   'system.license.uploadFileTip': '请上传文件再提交！',
-  'system.license.LicenseExpirationPromptLessThanThirty':
-    '系统授权剩余 {day} 天到期，为了不影响您的使用，请尽快联系工作人员',
-  'system.license.LicenseExpirationPromptGreaterThanThirty': '系统授权已过期，如需帮助，请联系工作人员',
+  'system.license.LicenseExpirationPromptLessThanThirty': '套餐剩余 {day} 天到期，为了不影响您的使用，请尽快续费',
+  'system.license.LicenseExpirationPromptGreaterThanThirty': '套餐已到期，如需继续使用，请联系工作人员续费',
   'system.license.LicenseExpirationError': 'License Code 校验失败，请检查！如需帮助，请联系工作人员',
   'system.license.LicenseStandard': '标准版',
   'system.license.LicenseEnterprise': '企业版',

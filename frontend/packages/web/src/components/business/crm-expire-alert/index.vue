@@ -28,16 +28,8 @@
     styleClass?: string[];
   }>();
 
-  const getInvalidTip = computed(() => {
-    switch (licenseStore.licenseInfo?.status) {
-      case 'invalid':
-        return t('system.license.LicenseExpirationError');
-      case 'expired':
-        return t('system.license.LicenseExpirationPromptGreaterThanThirty');
-      default:
-        break;
-    }
-  });
+  // 已过期时统一提示续费（原 license 的 invalid/expired 分支已随订阅体系消失）
+  const getInvalidTip = computed(() => t('system.license.LicenseExpirationPromptGreaterThanThirty'));
 </script>
 
 <style scoped></style>

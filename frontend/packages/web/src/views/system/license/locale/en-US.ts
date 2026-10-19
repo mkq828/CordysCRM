@@ -19,9 +19,9 @@ export default {
   'system.license.LicenseIsRequired': 'The License Code cannot be null',
   'system.license.clickUpload': 'Click to upload',
   'system.license.LicenseExpirationPromptLessThanThirty':
-    'The remaining {day} of system authorization expires. In order not to affect your use, please contact the staff as soon as possible',
+    'Your plan expires in {day} days. To avoid disruption, please renew as soon as possible',
   'system.license.LicenseExpirationPromptGreaterThanThirty':
-    'System authorization has expired, if you need help, please contact the working staff',
+    'Your plan has expired. To continue using, please contact the staff to renew',
   'system.license.LicenseExpirationError':
     'License Code check failed, please check!  If you need assistance, please contact the staff',
   'system.license.LicenseStandard': 'Standard',

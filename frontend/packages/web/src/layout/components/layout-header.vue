@@ -121,58 +121,6 @@
                   </div>
                   <div class="font-semibold">{{ appStore.versionInfo.latestVersion }}</div>
                 </div>
-                <div v-if="hasAnyPermission(['LICENSE:READ'])" class="flex flex-col gap-[4px]">
-                  <n-divider class="!my-0" />
-                  <div class="flex flex-col gap-[8px]">
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center gap-[8px]">
-                        <div class="font-semibold text-[var(--text-n1)]">License</div>
-                        <CrmTag
-                          v-if="licenseStore.isEnterpriseVersion()"
-                          tooltip-disabled
-                          :type="getLicenseStatus.status"
-                          theme="light"
-                        >
-                          {{ getLicenseStatus.title }}
-                        </CrmTag>
-                      </div>
-                      <n-button v-permission="['LICENSE:EDIT']" text type="primary" @click="handleUpdate">
-                        {{ t('common.update') }}
-                      </n-button>
-                    </div>
-                    <div v-if="licenseStore.isEnterpriseVersion()" class="flex items-center gap-[8px]">
-                      <div class="text-[12px] leading-[20px] text-[var(--text-n4)]">
-                        {{ t('system.license.customerName') }}
-                      </div>
-                      <div class="font-semibold">{{ licenseStore?.licenseInfo?.corporation }}</div>
-                    </div>
-                    <div v-if="licenseStore.isEnterpriseVersion()" class="flex items-center gap-[8px]">
-                      <div class="text-[12px] leading-[20px] text-[var(--text-n4)]">
-                        {{ t('system.license.productionVersion') }}
-                      </div>
-                      <div class="font-semibold">
-                        {{
-                          licenseVersionMap[licenseStore?.licenseInfo?.edition as keyof typeof licenseVersionMap] ??
-                          licenseVersionMap.Standard
-                        }}
-                      </div>
-                    </div>
-                    <div v-if="licenseStore.isEnterpriseVersion()" class="flex items-center gap-[8px]">
-                      <div class="text-[12px] leading-[20px] text-[var(--text-n4)]">
-                        {{ t('system.license.LicenseAccountCount') }}
-                      </div>
-                      <div class="font-semibold">
-                        {{ licenseStore?.licenseInfo?.count ?? '-' }}
-                      </div>
-                    </div>
-                    <div v-if="licenseStore.isEnterpriseVersion()" class="flex items-center gap-[8px]">
-                      <div class="text-[12px] leading-[20px] text-[var(--text-n4)]">
-                        {{ t('system.license.authorizationTime') }}
-                      </div>
-                      <div class="font-semibold">{{ licenseStore?.licenseInfo?.expired ?? '-' }}</div>
-                    </div>
-                  </div>
-                </div>
                 <div class="flex items-center justify-between">
                   <div class="text-[12px] leading-[20px] text-[var(--text-n4)]">哆咪CRM</div>
                   <div class="text-[12px] leading-[20px] text-[var(--text-n4)]">
@@ -237,7 +185,6 @@
       </div>
     </div>
     <MessageDrawer v-model:show="showMessageDrawer" />
-    <licenseDrawer v-model:visible="showLicenseDrawer" />
     <Suspense>
       <CrmDuplicateCheckDrawer v-if="initDuplicateCheckDrawer" v-model:visible="showDuplicateCheckDrawer" />
     </Suspense>
@@ -273,12 +220,10 @@
   import CrmMoreAction from '@/components/pure/crm-more-action/index.vue';
   import { ActionsItem } from '@/components/pure/crm-more-action/type';
   import CrmSvg from '@/components/pure/crm-svg/index.vue';
-  import CrmTag from '@/components/pure/crm-tag/index.vue';
   import { lastScopedOptions } from '@/components/business/crm-duplicate-check-drawer/config';
   import CrmTaskDrawer from '@/components/business/crm-task-drawer/index.vue';
   import CrmTopMenu from '@/components/business/crm-top-menu/index.vue';
   import AgreementModal from '@/components/agreement/AgreementModal.vue';
-  import licenseDrawer from '@/views/system/license/licenseDrawer.vue';
   import MessageDrawer from '@/views/system/message/components/messageDrawer.vue';
 
   import { addApiKey, changeLocaleBackEnd } from '@/api/modules';
@@ -286,9 +231,7 @@
   import useLegacyCopy from '@/hooks/useLegacyCopy';
   import useModal from '@/hooks/useModal';
   import useAppStore from '@/store/modules/app';
-  import useLicenseStore from '@/store/modules/setting/license';
   import useUserStore from '@/store/modules/user';
-  import { hasAnyPermission } from '@/utils/permission';
 
   import { SystemRouteEnum, WorkbenchRouteEnum } from '@/enums/routeEnum';
 
@@ -309,7 +252,6 @@
 
   const appStore = useAppStore();
   const userStore = useUserStore();
-  const licenseStore = useLicenseStore();
 
   const props = defineProps<{
     isPreview?: boolean;
@@ -349,33 +291,6 @@
   function goPlanApplication() {
     router.push({ name: SystemRouteEnum.SYSTEM_PLAN_APPLICATION });
   }
-
-  const showLicenseDrawer = ref(false);
-  function handleUpdate() {
-    showLicenseDrawer.value = true;
-  }
-  const getLicenseStatus = computed<{
-    title: string;
-    status: 'default' | 'error' | 'warning' | 'primary' | 'info' | 'success';
-  }>(() => {
-    switch (licenseStore.licenseInfo?.status) {
-      case 'valid':
-        return {
-          title: t('system.license.valid'),
-          status: 'success',
-        };
-      case 'expired':
-        return {
-          title: t('system.license.invalid'),
-          status: 'error',
-        };
-      default:
-        return {
-          title: t('system.license.failure'),
-          status: 'error',
-        };
-    }
-  });
 
   const hasValidApiKey = computed(() => userStore.apiKeyList.some((key) => !key.isExpire && key.enable));
   const showAgentDrawer = ref(false);
@@ -451,12 +366,6 @@
         break;
     }
   }
-
-  const licenseVersionMap: Record<string, string> = {
-    Standard: t('system.license.LicenseStandard'),
-    Enterprise: t('system.license.LicenseEnterprise'),
-    Professional: t('system.license.LicenseProfessional'),
-  };
 
   onBeforeMount(() => {
     appStore.getVersion();

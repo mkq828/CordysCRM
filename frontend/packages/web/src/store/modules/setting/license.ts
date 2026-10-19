@@ -1,13 +1,30 @@
 import { defineStore } from 'pinia';
 import dayjs from 'dayjs';
 
-import { useI18n } from '@lib/shared/hooks/useI18n';
 import { LicenseInfo } from '@lib/shared/models/system/authorizedManagement';
+import { TenantSubscription } from '@lib/shared/models/system/business';
 
-import { getLicense } from '@/api/modules';
-import type { DialogOptionsConfig } from '@/hooks/useModal';
+import { getSubscription } from '@/api/modules';
 
 let licenseValidationPromise: Promise<boolean> | null = null;
+
+// 租户订阅(tenant_plan)映射为 license 兼容结构：付费版(PRO/ENTERPRISE)视为企业版，BASIC/试用视为无
+function toLicenseInfo(sub: TenantSubscription): LicenseInfo {
+  const paid = ['PRO', 'ENTERPRISE'].includes(sub.version || '');
+  let status: string | null = null;
+  if (paid) {
+    status = sub.status === 'ACTIVE' ? 'valid' : 'expired';
+  }
+  return {
+    status,
+    corporation: '',
+    expired: sub.expireTime ? dayjs(sub.expireTime).format('YYYY-MM-DD') : '',
+    product: '',
+    edition: sub.version || '',
+    licenseVersion: '',
+    count: 0,
+  };
+}
 
 const useLicenseStore = defineStore('license', {
   persist: {
@@ -17,12 +34,10 @@ const useLicenseStore = defineStore('license', {
     licenseInfo: LicenseInfo | null;
     expiredDuring: boolean;
     expiredDays: number;
-    noLicenseFeature: string | null;
   } => ({
     licenseInfo: null,
     expiredDuring: false,
     expiredDays: 0,
-    noLicenseFeature: null,
   }),
   actions: {
     setLicenseInfo(info: LicenseInfo) {
@@ -83,20 +98,14 @@ const useLicenseStore = defineStore('license', {
     // license校验
     async getValidateLicense(): Promise<boolean> {
       try {
-        const result = await getLicense();
-        // 检查返回结果是否有效，不存在license自身值
-        if (!result || !result.status) {
+        const result = await getSubscription();
+        if (!result || !result.version) {
           this.removeLicenseStatus();
           return true;
         }
-        /* if (!result || !result.status || !result.license || !result.license.count) {
-          return;
-        } */
-        this.setLicenseInfo(result);
-        // 计算license时间
-        if (result) {
-          this.getExpirationTime(result.expired);
-        }
+        const info = toLicenseInfo(result);
+        this.setLicenseInfo(info);
+        this.getExpirationTime(info.expired);
         return true;
       } catch (error) {
         // eslint-disable-next-line no-console
@@ -116,35 +125,6 @@ const useLicenseStore = defineStore('license', {
     },
     resetLicenseValidation() {
       licenseValidationPromise = null;
-    },
-    setNoLicenseFeature(feature: string) {
-      this.noLicenseFeature = feature;
-    },
-    clearNoLicenseFeature() {
-      this.noLicenseFeature = null;
-    },
-    getNoLicenseModalConfig(): DialogOptionsConfig {
-      const { t } = useI18n();
-      return {
-        title: t('common.tip'),
-        type: 'warning',
-        positiveText: t('common.gotIt'),
-        positiveButtonProps: {
-          type: 'primary',
-        },
-        content: () =>
-          h('div', { class: 'flex flex-col gap-[8px]' }, [
-            t('common.businessFeatureTip'),
-            h(
-              'a',
-              { href: 'https://cordys.cn/pricing.html', target: '_blank', class: 'text-[var(--primary-8)]' },
-              { default: () => 'https://cordys.cn/pricing.html' }
-            ),
-          ]),
-        onPositiveClick: async () => {
-          return Promise.resolve();
-        },
-      };
     },
   },
 });
