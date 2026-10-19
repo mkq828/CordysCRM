@@ -1,5 +1,5 @@
 <template>
-  <div class="edition-page flex h-full flex-col gap-[16px] overflow-hidden">
+  <div class="edition-page flex h-full flex-col gap-[16px] overflow-auto">
     <!-- 版本列表 -->
     <CrmCard :title="t('edition.editionList')" hide-footer auto-height>
       <template #header-extra>
@@ -7,6 +7,7 @@
           {{ t('edition.addEdition') }}
         </n-button>
       </template>
+      <div class="mb-[12px] text-[12px] text-orange-500">{{ t('edition.quotaHint') }}</div>
       <n-data-table
         :columns="editionColumns"
         :data="editions"
@@ -14,7 +15,7 @@
         :bordered="false"
         :single-line="false"
         size="small"
-        :scroll-x="960"
+        :scroll-x="1300"
       />
     </CrmCard>
 
@@ -32,7 +33,7 @@
         :bordered="false"
         :single-line="false"
         size="small"
-        :scroll-x="640"
+        :scroll-x="800"
       />
     </CrmCard>
 
@@ -89,7 +90,12 @@
             <span class="w-[100px] shrink-0 pt-[6px] text-right">{{ t('edition.features') }}</span>
             <n-checkbox-group v-model:value="editionForm.featureIds" class="flex-1">
               <n-space vertical>
-                <n-checkbox v-for="f in features" :key="f.id" :value="f.id" :label="f.name" />
+                <n-checkbox
+                  v-for="f in features"
+                  :key="f.id"
+                  :value="f.id"
+                  :label="f.launched === false ? `${f.name}${t('edition.featurePlanningSuffix')}` : f.name"
+                />
               </n-space>
             </n-checkbox-group>
           </div>
@@ -129,6 +135,14 @@
           <n-switch v-model:value="featureForm.enable" />
         </div>
         <div class="ml-[102px] text-xs text-orange-500">{{ t('edition.featureEnableTip') }}</div>
+        <div class="flex items-center gap-[12px]">
+          <span class="w-[90px] shrink-0 text-right">{{ t('edition.featureLaunched') }}</span>
+          <n-switch v-model:value="featureForm.launched">
+            <template #checked>{{ t('edition.featureLaunched.launched') }}</template>
+            <template #unchecked>{{ t('edition.featureLaunched.planning') }}</template>
+          </n-switch>
+        </div>
+        <div class="ml-[102px] text-xs text-orange-500">{{ t('edition.featureLaunchedTip') }}</div>
       </div>
       <template #footer>
         <div class="flex justify-end gap-[12px]">
@@ -202,6 +216,18 @@
 
   function formatPrice(v?: number) {
     return v == null ? '-' : `¥${v}`;
+  }
+
+  // 估算口径：1 次 = 1 万 token（后端 ai.quota.tokensPerCall 默认），模型约 ¥2/百万 token（国产豆包/千问混合）
+  const TOKENS_PER_CALL = 10000;
+  const COST_PER_MILLION_TOKENS = 2;
+
+  function yearTokensWan(q: number) {
+    return (q * 12 * TOKENS_PER_CALL) / 10000;
+  }
+
+  function yearCostYuan(q: number) {
+    return ((q * 12 * TOKENS_PER_CALL) / 1000000) * COST_PER_MILLION_TOKENS;
   }
 
   // 版本新增/编辑
@@ -316,12 +342,20 @@
   // 功能新增/编辑
   const showFeature = ref(false);
   const featureSaving = ref(false);
-  const featureForm = ref<{ id: string; featureCode: string; name: string; category: string; enable: boolean }>({
+  const featureForm = ref<{
+    id: string;
+    featureCode: string;
+    name: string;
+    category: string;
+    enable: boolean;
+    launched: boolean;
+  }>({
     id: '',
     featureCode: '',
     name: '',
     category: '',
     enable: true,
+    launched: true,
   });
 
   function openFeatureEdit(row?: Feature) {
@@ -331,6 +365,7 @@
       name: row?.name || '',
       category: row?.category || '',
       enable: row?.enable ?? true,
+      launched: row?.launched ?? true,
     };
     showFeature.value = true;
   }
@@ -352,6 +387,7 @@
         name: featureForm.value.name.trim(),
         category: featureForm.value.category.trim(),
         enable: featureForm.value.enable,
+        launched: featureForm.value.launched,
       });
       Message.success(t('edition.saveSuccess'));
       showFeature.value = false;
@@ -419,6 +455,27 @@
       render: (row) => row.aiMonthlyQuota ?? '-',
     },
     {
+      title: t('edition.yearTokens'),
+      key: 'yearTokens',
+      width: 120,
+      render: (row) => (row.aiMonthlyQuota == null ? '-' : `${yearTokensWan(row.aiMonthlyQuota)} 万`),
+    },
+    {
+      title: t('edition.yearCost'),
+      key: 'yearCost',
+      width: 120,
+      render: (row) => (row.aiMonthlyQuota == null ? '-' : `≈¥${yearCostYuan(row.aiMonthlyQuota).toFixed(0)}`),
+    },
+    {
+      title: t('edition.costRatio'),
+      key: 'costRatio',
+      width: 100,
+      render: (row) =>
+        row.aiMonthlyQuota == null || !row.yearPrice
+          ? '-'
+          : `${((yearCostYuan(row.aiMonthlyQuota) / row.yearPrice) * 100).toFixed(1)}%`,
+    },
+    {
       title: t('edition.sort'),
       key: 'sort',
       width: 70,
@@ -472,6 +529,20 @@
         ),
     },
     {
+      title: t('edition.featureLaunched'),
+      key: 'launched',
+      width: 100,
+      render: (row) =>
+        h(
+          NTag,
+          { type: row.launched === false ? 'warning' : 'success', size: 'small' },
+          {
+            default: () =>
+              row.launched === false ? t('edition.featureLaunched.planning') : t('edition.featureLaunched.launched'),
+          }
+        ),
+    },
+    {
       title: t('common.operation'),
       key: 'operation',
       width: 140,
@@ -498,6 +569,6 @@
 
 <style lang="less" scoped>
   .edition-page {
-    @apply flex h-full flex-col overflow-hidden;
+    @apply flex h-full flex-col overflow-auto;
   }
 </style>

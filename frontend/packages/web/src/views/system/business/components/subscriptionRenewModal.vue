@@ -34,12 +34,12 @@
               @click="selectEdition(edition.code)"
             >
               <n-radio :checked="targetEdition === edition.code" @update:checked="selectEdition(edition.code)" />
-              <div class="flex flex-1 items-center justify-between">
-                <span class="font-medium text-[var(--text-n1)]">{{ edition.name }}</span>
-                <span class="text-[13px] text-[var(--text-n3)]">
-                  {{ editionFeatureLabel(edition) }}
-                </span>
-                <span class="text-orange-500">¥{{ edition.yearPrice ?? 0 }}/年</span>
+              <div class="flex flex-1 flex-col gap-[4px]">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-[var(--text-n1)]">{{ edition.name }}</span>
+                  <span class="text-orange-500">¥{{ edition.yearPrice ?? 0 }}/年</span>
+                </div>
+                <div class="text-[13px] text-[var(--text-n3)]">{{ editionFeatureLabel(edition) }}</div>
               </div>
             </div>
           </div>

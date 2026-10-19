@@ -26,4 +26,7 @@ public class FeatureSaveRequest {
 
     @Schema(description = "全局开关(1启用 0停用)")
     private Boolean enable;
+
+    @Schema(description = "是否已上线(1已上线 0规划中)")
+    private Boolean launched;
 }

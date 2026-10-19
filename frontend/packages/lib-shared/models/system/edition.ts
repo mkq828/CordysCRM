@@ -10,6 +10,7 @@ export interface Edition {
   aiMonthlyQuota?: number;
   sort?: number;
   status?: number;
+  featureNames?: string[];
 }
 
 // 功能（可配置功能点，含全局开关）
@@ -19,6 +20,7 @@ export interface Feature {
   name: string;
   category?: string;
   enable?: boolean;
+  launched?: boolean;
 }
 
 // 版本保存参数（含功能归属）
@@ -43,4 +45,5 @@ export interface FeatureSaveParams {
   name: string;
   category?: string;
   enable?: boolean;
+  launched?: boolean;
 }

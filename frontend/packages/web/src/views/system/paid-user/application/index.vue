@@ -1,5 +1,5 @@
 <template>
-  <div class="plan-application-page flex h-full flex-col gap-[16px] overflow-hidden">
+  <div class="plan-application-page flex h-full flex-col gap-[16px] overflow-auto">
     <CrmCard hide-footer auto-height>
       <div class="flex items-center gap-[12px]">
         <n-input
@@ -276,6 +276,6 @@
 
 <style lang="less" scoped>
   .plan-application-page {
-    @apply flex h-full flex-col overflow-hidden;
+    @apply flex h-full flex-col overflow-auto;
   }
 </style>

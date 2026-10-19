@@ -1,5 +1,5 @@
 <template>
-  <div class="pf-payment-page flex h-full flex-col overflow-hidden">
+  <div class="pf-payment-page flex h-full flex-col overflow-auto">
     <CrmCard hide-footer auto-height class="mb-[16px]">
       <div class="flex items-center gap-[12px]">
         <CrmSelect

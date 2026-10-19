@@ -30,6 +30,17 @@
           >
             {{ t('system.personal.renew.title') }}
           </n-button>
+          <n-tooltip trigger="hover">
+            <template #trigger>
+              <CrmIcon
+                type="iconicon_help_circle"
+                :size="16"
+                class="cursor-pointer text-orange-500 hover:opacity-80"
+                @click="showCompareModal = true"
+              />
+            </template>
+            {{ t('system.personal.compare.tip') }}
+          </n-tooltip>
         </div>
         <div
           class="mt-[16px] grid w-full grid-cols-4 gap-[8px] rounded-[var(--border-radius-small)] bg-[var(--text-n9)] p-[24px]"
@@ -249,12 +260,13 @@
   <EditPersonalInfoModal v-model:show="showEditPersonalModal" :integration="currentInfo" @init-sync="searchData()" />
   <EditPasswordModal v-model:show="showEditPasswordModal" @init-sync="searchData()" />
   <SubscriptionRenewModal v-model:show="showRenewModal" @success="loadApplications" />
+  <EditionCompareModal v-model:show="showCompareModal" />
   <ApplicationDetailModal v-model:show="showApplicationDetail" :application="detailApplication" />
 </template>
 
 <script setup lang="ts">
   import { ref } from 'vue';
-  import { NButton, NImage, NImagePreview, NP, NScrollbar, NTag, TabPaneProps } from 'naive-ui';
+  import { NButton, NImage, NImagePreview, NP, NScrollbar, NTag, NTooltip, TabPaneProps } from 'naive-ui';
   import dayjs from 'dayjs';
 
   import { PreviewAttachmentUrl } from '@lib/shared/api/requrls/system/module';
@@ -266,12 +278,14 @@
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import CrmDrawer from '@/components/pure/crm-drawer/index.vue';
+  import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import CrmTab from '@/components/pure/crm-tab/index.vue';
   import CrmTag from '@/components/pure/crm-tag/index.vue';
   import CrmAvatar from '@/components/business/crm-avatar/index.vue';
   import FollowDetail from '@/components/business/crm-follow-detail/index.vue';
   import apiKey from './apiKey.vue';
   import ApplicationDetailModal from '@/views/system/business/components/applicationDetailModal.vue';
+  import EditionCompareModal from '@/views/system/business/components/editionCompareModal.vue';
   import EditPasswordModal from '@/views/system/business/components/editPasswordModal.vue';
   import EditPersonalInfoModal from '@/views/system/business/components/editPersonalInfoModal.vue';
   import SubscriptionRenewModal from '@/views/system/business/components/subscriptionRenewModal.vue';
@@ -440,6 +454,7 @@
   const showEditPersonalModal = ref<boolean>(false); // 已配置
   const showEditPasswordModal = ref<boolean>(false); // 已配置
   const showRenewModal = ref<boolean>(false);
+  const showCompareModal = ref<boolean>(false);
   const showApplicationDetail = ref<boolean>(false);
   const detailApplication = ref<TenantPlanApplicationItem | null>(null);
 

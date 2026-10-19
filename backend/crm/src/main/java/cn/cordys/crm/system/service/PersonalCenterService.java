@@ -128,7 +128,11 @@ public class PersonalCenterService {
      * 启用中的版本列表（租户自助续费/升级选择目标版本）
      */
     public List<EditionResponse> listPlanEditions() {
-        return editionService.listEnabledEditions();
+        List<EditionResponse> editions = editionService.listEnabledEditions();
+        for (EditionResponse edition : editions) {
+            edition.setFeatureNames(editionService.listLaunchedFeatureNamesByEditionId(edition.getId()));
+        }
+        return editions;
     }
 
     /**

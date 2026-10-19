@@ -1,5 +1,5 @@
 <template>
-  <div class="register-audit-page flex h-full flex-col overflow-hidden">
+  <div class="register-audit-page flex h-full flex-col overflow-auto">
     <CrmCard hide-footer auto-height class="mb-[16px]">
       <div class="flex items-center gap-[12px]">
         <n-input
@@ -587,6 +587,6 @@
 
 <style lang="less" scoped>
   .register-audit-page {
-    @apply flex h-full flex-col overflow-hidden;
+    @apply flex h-full flex-col overflow-auto;
   }
 </style>

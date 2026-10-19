@@ -255,6 +255,7 @@ public class EditionService {
         feature.setName(request.getName());
         feature.setCategory(request.getCategory());
         feature.setEnable(request.getEnable() == null || request.getEnable());
+        feature.setLaunched(request.getLaunched() == null || request.getLaunched());
     }
 
     private void ensureFeatureCodeUnique(String code, String excludeId) {
@@ -276,6 +277,22 @@ public class EditionService {
                         .eq(SysEditionFeature::getEditionId, editionId))
                 .stream()
                 .map(SysEditionFeature::getFeatureId)
+                .toList();
+    }
+
+    /**
+     * 版本已上线功能的名称集合（租户续费/升级对比用，规划中功能不展示）
+     */
+    public List<String> listLaunchedFeatureNamesByEditionId(String editionId) {
+        List<String> featureIds = listFeatureIdsByEditionId(editionId);
+        if (featureIds.isEmpty()) {
+            return List.of();
+        }
+        return featureMapper.selectListByLambda(new LambdaQueryWrapper<SysFeature>()
+                        .in(SysFeature::getId, featureIds)
+                        .eq(SysFeature::getLaunched, true))
+                .stream()
+                .map(SysFeature::getName)
                 .toList();
     }
 

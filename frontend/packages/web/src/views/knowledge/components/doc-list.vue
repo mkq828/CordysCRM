@@ -1,5 +1,5 @@
 <template>
-  <div class="doc-list-page flex h-full flex-col overflow-hidden">
+  <div class="doc-list-page flex h-full flex-col overflow-auto">
     <div class="mb-[8px] text-[13px] text-orange-500">{{ t('knowledge.docDesc') }}</div>
 
     <CrmCard hide-footer auto-height class="mb-[16px]">

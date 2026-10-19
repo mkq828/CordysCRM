@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 版本响应
@@ -40,4 +41,7 @@ public class EditionResponse {
 
     @Schema(description = "状态(1启用 0停用)")
     private Integer status;
+
+    @Schema(description = "已上线功能名称列表(租户续费/升级对比用)")
+    private List<String> featureNames;
 }
