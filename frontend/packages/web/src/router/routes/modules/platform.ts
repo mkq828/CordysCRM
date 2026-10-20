@@ -45,6 +45,15 @@ const platformAdmin: AppRouteRecordRaw = {
         permissions: ['BUG_REPORT:READ'],
       },
     },
+    {
+      path: 'security-event',
+      name: SystemRouteEnum.SYSTEM_SECURITY_EVENT,
+      component: () => import('@/views/system/securityEvent/index.vue'),
+      meta: {
+        locale: 'menu.platformAdmin.securityEvent',
+        permissions: ['OPERATION_LOG:READ'],
+      },
+    },
   ],
 };
 

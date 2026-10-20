@@ -95,6 +95,7 @@ export default {
     'menu.platformAdmin.planApplication': '续费申请',
     'menu.platformAdmin.log': '系统日志',
     'menu.platformAdmin.bugReport': '问题反馈',
+    'menu.platformAdmin.securityEvent': '安全事件',
     'navbar.action.locale': '切换为中文',
     ...sys,
     ...localeSettings,

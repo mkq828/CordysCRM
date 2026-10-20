@@ -11,6 +11,7 @@ import { hasAnyPermission, topLevelMenuHasPermission } from '@/utils/permission'
  */
 const PENDING_ROUTE_NAME = 'aiPending';
 const EFFECTS_ROUTE_NAME = 'effects';
+const SECURITY_EVENT_ROUTE_NAME = 'systemSecurityEvent';
 
 /**
  * 用户权限
@@ -31,7 +32,7 @@ export default function usePermission() {
       // 前者是封存的半成品功能，后者是开发时选型特效的预览页，都不对普通用户开放。
       // 直接敲子路由 URL 时 route.name 是叶子名，需按 matched 链命中父级一并拦截。
       const matched = (route as RouteLocationNormalized).matched ?? [];
-      const adminOnly = [PENDING_ROUTE_NAME, EFFECTS_ROUTE_NAME].some(
+      const adminOnly = [PENDING_ROUTE_NAME, EFFECTS_ROUTE_NAME, SECURITY_EVENT_ROUTE_NAME].some(
         (n) => route.name === n || matched.some((r) => r.name === n)
       );
       if (adminOnly) {
