@@ -54,6 +54,15 @@ const platformAdmin: AppRouteRecordRaw = {
         permissions: ['OPERATION_LOG:READ'],
       },
     },
+    {
+      path: 'job-exec-log',
+      name: SystemRouteEnum.SYSTEM_JOB_EXEC_LOG,
+      component: () => import('@/views/system/jobExecLog/index.vue'),
+      meta: {
+        locale: 'menu.platformAdmin.jobExecLog',
+        permissions: ['OPERATION_LOG:READ'],
+      },
+    },
   ],
 };
 

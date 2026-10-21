@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import java.util.Set;
 
 /**
- * 自动补全数据扫描定时任务：每天 8:00 逐租户扫描「必填字段缺失」客户并生成待确认补全建议。
+ * 自动补全数据扫描定时任务：每天 6:00 逐租户扫描「必填字段缺失」客户并生成待确认补全建议。
  */
 @Component
 @Slf4j
@@ -22,7 +22,7 @@ public class AiFillFieldScanJob {
     @Resource
     private ExtOrganizationMapper extOrganizationMapper;
 
-    @QuartzScheduled(cron = "0 0 8 * * ?")
+    @QuartzScheduled(cron = "0 0 6 * * ?")
     public void onEvent() {
         try {
             Set<String> orgIds = extOrganizationMapper.selectAllOrganizationIds();

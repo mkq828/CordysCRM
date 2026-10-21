@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import java.util.Set;
 
 /**
- * 自动打标签扫描定时任务：每天 8:00 逐租户扫描「久未联系」客户并生成待确认打标签建议。
+ * 自动打标签扫描定时任务：每天 5:45 逐租户扫描「久未联系」客户并生成待确认打标签建议。
  */
 @Component
 @Slf4j
@@ -22,7 +22,7 @@ public class AiTagScanJob {
     @Resource
     private ExtOrganizationMapper extOrganizationMapper;
 
-    @QuartzScheduled(cron = "0 0 8 * * ?")
+    @QuartzScheduled(cron = "0 45 5 * * ?")
     public void onEvent() {
         try {
             Set<String> orgIds = extOrganizationMapper.selectAllOrganizationIds();

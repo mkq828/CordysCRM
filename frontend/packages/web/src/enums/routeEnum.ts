@@ -13,6 +13,7 @@ export enum SystemRouteEnum {
   SYSTEM_REGISTER_AUDIT = 'systemRegisterAudit',
   SYSTEM_BUG_REPORT = 'systemBugReport',
   SYSTEM_SECURITY_EVENT = 'systemSecurityEvent',
+  SYSTEM_JOB_EXEC_LOG = 'systemJobExecLog',
   SYSTEM_PAID_USER = 'systemPaidUser',
   SYSTEM_EDITION = 'systemEdition',
   SYSTEM_PLAN_APPLICATION = 'systemPlanApplication',

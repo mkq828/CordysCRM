@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import java.util.Set;
 
 /**
- * 自动催款扫描定时任务：每天 8:00 逐租户扫描「即将到期/已逾期」的合同与回款计划并生成待确认催款建议。
+ * 自动催款扫描定时任务：每天 5:30 逐租户扫描「即将到期/已逾期」的合同与回款计划并生成待确认催款建议。
  * 与 {@code NoticeExpireJob} 共存：后者是被动到期提醒，本任务是「可操作的两段确认 AI 催款建议」。
  */
 @Component
@@ -23,7 +23,7 @@ public class AiDunningScanJob {
     @Resource
     private ExtOrganizationMapper extOrganizationMapper;
 
-    @QuartzScheduled(cron = "0 0 8 * * ?")
+    @QuartzScheduled(cron = "0 30 5 * * ?")
     public void onEvent() {
         try {
             Set<String> orgIds = extOrganizationMapper.selectAllOrganizationIds();

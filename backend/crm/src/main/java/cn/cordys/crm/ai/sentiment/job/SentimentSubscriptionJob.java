@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 舆情监控订阅定时搜索：每天 8:40 对所有启用的订阅联网搜索负面舆情/风险信号，新结果站内信推送。
+ * 舆情监控订阅定时搜索：每天 6:45 对所有启用的订阅联网搜索负面舆情/风险信号，新结果站内信推送。
  */
 @Component
 @Slf4j
@@ -16,7 +16,7 @@ public class SentimentSubscriptionJob {
     @Resource
     private SentimentSubscriptionService sentimentSubscriptionService;
 
-    @QuartzScheduled(cron = "0 40 8 * * ?")
+    @QuartzScheduled(cron = "0 45 6 * * ?")
     public void onEvent() {
         try {
             sentimentSubscriptionService.searchAllSubscriptions();

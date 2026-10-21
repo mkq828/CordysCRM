@@ -12,6 +12,7 @@ export enum TableKeyEnum {
   SYSTEM_REGISTER_AUDIT_TABLE = 'systemRegisterAuditTable',
   SYSTEM_BUG_REPORT_TABLE = 'systemBugReportTable',
   SYSTEM_SECURITY_EVENT_TABLE = 'systemSecurityEventTable',
+  SYSTEM_JOB_EXEC_LOG_TABLE = 'systemJobExecLogTable',
   SYSTEM_PAID_USER_TABLE = 'systemPaidUserTable',
   PLATFORM_CONTRACT_TABLE = 'platformContractTable',
   PLATFORM_PAYMENT_RECORD_TABLE = 'platformPaymentRecordTable',

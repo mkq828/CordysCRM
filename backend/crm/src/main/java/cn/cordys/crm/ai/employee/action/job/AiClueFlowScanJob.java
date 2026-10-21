@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import java.util.Set;
 
 /**
- * 线索自动流转扫描定时任务：每天 8:00 逐租户扫描「感兴趣」线索并生成待确认流转建议。
+ * 线索自动流转扫描定时任务：每天 5:15 逐租户扫描「感兴趣」线索并生成待确认流转建议。
  */
 @Component
 @Slf4j
@@ -22,7 +22,7 @@ public class AiClueFlowScanJob {
     @Resource
     private ExtOrganizationMapper extOrganizationMapper;
 
-    @QuartzScheduled(cron = "0 0 8 * * ?")
+    @QuartzScheduled(cron = "0 15 5 * * ?")
     public void onEvent() {
         try {
             Set<String> orgIds = extOrganizationMapper.selectAllOrganizationIds();

@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 竞品动态订阅定时搜索：每天 8:20 对所有启用的订阅联网搜索竞品最新动态，新结果站内信推送。
+ * 竞品动态订阅定时搜索：每天 6:30 对所有启用的订阅联网搜索竞品最新动态，新结果站内信推送。
  */
 @Component
 @Slf4j
@@ -16,7 +16,7 @@ public class CompetitorSubscriptionJob {
     @Resource
     private CompetitorSubscriptionService competitorSubscriptionService;
 
-    @QuartzScheduled(cron = "0 20 8 * * ?")
+    @QuartzScheduled(cron = "0 30 6 * * ?")
     public void onEvent() {
         try {
             competitorSubscriptionService.searchAllSubscriptions();

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import java.util.Set;
 
 /**
- * 自动跟进扫描定时任务：每天 8:00 逐租户扫描「久未联系」客户并生成待确认跟进建议。
+ * 自动跟进扫描定时任务：每天 5:00 逐租户扫描「久未联系」客户并生成待确认跟进建议。
  * 无登录态，显式传 orgId；单个租户失败不影响其它租户。
  */
 @Component
@@ -23,7 +23,7 @@ public class AiFollowUpScanJob {
     @Resource
     private ExtOrganizationMapper extOrganizationMapper;
 
-    @QuartzScheduled(cron = "0 0 8 * * ?")
+    @QuartzScheduled(cron = "0 0 5 * * ?")
     public void onEvent() {
         try {
             Set<String> orgIds = extOrganizationMapper.selectAllOrganizationIds();
