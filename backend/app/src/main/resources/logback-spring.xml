@@ -156,6 +156,15 @@
         <appender-ref ref="errorAppender"/>
     </appender>
 
+    <!-- 全局 ERROR 采集落库（内存队列，SysErrorLogService 后台消费写 sys_error_log） -->
+    <appender name="errorLogAppender" class="cn.cordys.common.log.ErrorLogAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
     <!-- ===================== Logger ===================== -->
 
     <!-- cn.cordys 模块日志 -->
@@ -165,6 +174,7 @@
         <appender-ref ref="infoAsyncAppender"/>
         <appender-ref ref="warnAsyncAppender"/>
         <appender-ref ref="errorAsyncAppender"/>
+        <appender-ref ref="errorLogAppender"/>
     </logger>
 
     <!-- cn.cordys.Application 单独 INFO 输出 -->

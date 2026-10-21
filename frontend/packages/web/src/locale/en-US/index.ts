@@ -98,6 +98,7 @@ export default {
     'menu.platformAdmin.bugReport': 'Bug Report',
     'menu.platformAdmin.securityEvent': 'Security Events',
     'menu.platformAdmin.jobExecLog': 'Job Execution Logs',
+    'menu.platformAdmin.errorLog': 'System Errors',
     'navbar.action.locale': 'Switch to English',
     ...sys,
     ...localeSettings,

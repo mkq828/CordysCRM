@@ -97,6 +97,7 @@ export default {
     'menu.platformAdmin.bugReport': '问题反馈',
     'menu.platformAdmin.securityEvent': '安全事件',
     'menu.platformAdmin.jobExecLog': '定时任务执行记录',
+    'menu.platformAdmin.errorLog': '系统错误记录',
     'navbar.action.locale': '切换为中文',
     ...sys,
     ...localeSettings,

@@ -63,6 +63,15 @@ const platformAdmin: AppRouteRecordRaw = {
         permissions: ['OPERATION_LOG:READ'],
       },
     },
+    {
+      path: 'error-log',
+      name: SystemRouteEnum.SYSTEM_ERROR_LOG,
+      component: () => import('@/views/system/sysErrorLog/index.vue'),
+      meta: {
+        locale: 'menu.platformAdmin.errorLog',
+        permissions: ['OPERATION_LOG:READ'],
+      },
+    },
   ],
 };
 
