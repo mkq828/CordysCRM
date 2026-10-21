@@ -31,11 +31,15 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * AI 模型配置服务（租户级，agent_model 表）。
+ * AI 模型配置服务（平台级，agent_model 表）。
+ * 模型由 admin 统一配置在默认组织 100001 下，所有租户共享；租户 orgId 仅用于额度/权限判定，不影响模型选择。
  */
 @Service
 @Slf4j
 public class AgentModelService {
+
+    /** 模型配置平台级统一挂在默认组织 100001 下，所有真实租户共享，resolve 一律取该组织、不按租户隔离。 */
+    private static final String PLATFORM_MODEL_ORG = "100001";
 
     /** provider -> 默认 baseUrl（api_url 留空时兜底），仅 OpenAI 兼容协议厂商 */
     private static final Map<String, String> PROVIDER_DEFAULT_BASE_URL = Map.of(
@@ -108,7 +112,7 @@ public class AgentModelService {
         // 策略未配置或无可用模型时，回退到第一个启用模型
         if (candidates.isEmpty()) {
             AgentModel criteria = new AgentModel();
-            criteria.setOrganizationId(orgId);
+            criteria.setOrganizationId(PLATFORM_MODEL_ORG);
             criteria.setEnable(true);
             List<AgentModel> enabled = agentModelMapper.select(criteria);
             if (!enabled.isEmpty()) {
@@ -137,7 +141,7 @@ public class AgentModelService {
             }
         }
         AgentModel criteria = new AgentModel();
-        criteria.setOrganizationId(orgId);
+        criteria.setOrganizationId(PLATFORM_MODEL_ORG);
         criteria.setEnable(true);
         for (AgentModel model : agentModelMapper.select(criteria)) {
             if (TTS_PROVIDERS.contains(model.getProvider()) && hasTtsCredential(model)) {
@@ -154,7 +158,7 @@ public class AgentModelService {
      */
     public List<AgentModel> resolveAliyunTtsModels(String orgId) {
         AgentModel criteria = new AgentModel();
-        criteria.setOrganizationId(orgId);
+        criteria.setOrganizationId(PLATFORM_MODEL_ORG);
         criteria.setProvider("阿里云");
         criteria.setEnable(true);
         List<AgentModel> result = new ArrayList<>();
@@ -173,7 +177,7 @@ public class AgentModelService {
      */
     public List<AgentModel> resolveImageModels(String orgId) {
         AgentModel criteria = new AgentModel();
-        criteria.setOrganizationId(orgId);
+        criteria.setOrganizationId(PLATFORM_MODEL_ORG);
         criteria.setEnable(true);
         List<AgentModel> result = new ArrayList<>();
         for (AgentModel model : agentModelMapper.select(criteria)) {
@@ -193,7 +197,7 @@ public class AgentModelService {
      */
     public List<AgentModel> resolveVideoModels(String orgId) {
         AgentModel criteria = new AgentModel();
-        criteria.setOrganizationId(orgId);
+        criteria.setOrganizationId(PLATFORM_MODEL_ORG);
         criteria.setEnable(true);
         List<AgentModel> result = new ArrayList<>();
         for (AgentModel model : agentModelMapper.select(criteria)) {
@@ -216,7 +220,7 @@ public class AgentModelService {
         if (modelIds != null) {
             for (String id : modelIds) {
                 AgentModel model = agentModelMapper.selectByPrimaryKey(id);
-                if (model != null && Boolean.TRUE.equals(model.getEnable()) && orgId.equals(model.getOrganizationId())) {
+                if (model != null && Boolean.TRUE.equals(model.getEnable()) && PLATFORM_MODEL_ORG.equals(model.getOrganizationId())) {
                     candidates.add(model);
                 }
             }
@@ -238,7 +242,7 @@ public class AgentModelService {
      */
     public String resolveProviderApiKey(String orgId, String provider, String purpose) {
         AgentModel criteria = new AgentModel();
-        criteria.setOrganizationId(orgId);
+        criteria.setOrganizationId(PLATFORM_MODEL_ORG);
         criteria.setProvider(provider);
         criteria.setEnable(true);
         for (AgentModel model : agentModelMapper.select(criteria)) {
@@ -255,7 +259,7 @@ public class AgentModelService {
      */
     public AgentModel resolveEmbeddingModel(String orgId) {
         AgentModel criteria = new AgentModel();
-        criteria.setOrganizationId(orgId);
+        criteria.setOrganizationId(PLATFORM_MODEL_ORG);
         criteria.setProvider("阿里云");
         criteria.setEnable(true);
         AgentModel fallback = null;
@@ -287,7 +291,7 @@ public class AgentModelService {
      */
     public String resolveVoiceCloneModel(String orgId) {
         AgentModel criteria = new AgentModel();
-        criteria.setOrganizationId(orgId);
+        criteria.setOrganizationId(PLATFORM_MODEL_ORG);
         criteria.setProvider("阿里云");
         criteria.setEnable(true);
         for (AgentModel model : agentModelMapper.select(criteria)) {
