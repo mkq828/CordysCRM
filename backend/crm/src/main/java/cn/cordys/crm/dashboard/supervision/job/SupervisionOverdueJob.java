@@ -37,7 +37,7 @@ public class SupervisionOverdueJob {
             List<SupervisionTask> overdueTasks = supervisionTaskMapper.selectListByLambda(
                     new LambdaQueryWrapper<SupervisionTask>()
                             .eq(SupervisionTask::getStatus, SupervisionTask.STATUS_PENDING)
-                            .lt(SupervisionTask::getDeadline, now));
+                            .ltT(SupervisionTask::getDeadline, now));
             for (SupervisionTask task : overdueTasks) {
                 task.setStatus(SupervisionTask.STATUS_OVERDUE);
                 task.setUpdateTime(now);

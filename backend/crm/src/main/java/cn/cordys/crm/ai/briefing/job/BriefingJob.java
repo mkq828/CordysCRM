@@ -1,5 +1,6 @@
 package cn.cordys.crm.ai.briefing.job;
 
+import cn.cordys.common.exception.GenericException;
 import cn.cordys.crm.ai.briefing.domain.AiBriefing;
 import cn.cordys.crm.ai.briefing.service.BriefingService;
 import cn.cordys.crm.system.mapper.ExtOrganizationMapper;
@@ -45,7 +46,12 @@ public class BriefingJob {
                     briefingService.generate(orgId, type, null);
                     success++;
                 } catch (Exception e) {
-                    log.error("生成经营简报失败，orgId={}, type={}", orgId, type, e);
+                    if (e instanceof GenericException) {
+                        // 业务失败(如租户未配置模型)是预期跳过，非系统错误
+                        log.warn("经营简报跳过，orgId={}, type={}, 原因: {}", orgId, type, e.getMessage());
+                    } else {
+                        log.error("生成经营简报失败，orgId={}, type={}", orgId, type, e);
+                    }
                 }
             }
             log.info("经营简报定时生成完成，type={}, 成功 {}/{}", type, success, orgIds.size());
