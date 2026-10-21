@@ -15,10 +15,7 @@ import cn.cordys.common.dto.RoleUserTreeNode;
 import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.Translator;
-import cn.cordys.crm.system.constants.OrganizationConfigConstants;
 import cn.cordys.crm.system.domain.Module;
-import cn.cordys.crm.system.domain.OrganizationConfig;
-import cn.cordys.crm.system.domain.OrganizationConfigDetail;
 import cn.cordys.crm.system.domain.Parameter;
 import cn.cordys.crm.system.dto.ModuleDTO;
 import cn.cordys.crm.system.dto.request.ModuleRequest;
@@ -60,10 +57,6 @@ public class ModuleService {
     @Resource
     private DepartmentService departmentService;
     @Resource
-    private BaseMapper<OrganizationConfig> organizationConfigMapper;
-    @Resource
-    private BaseMapper<OrganizationConfigDetail> organizationConfigDetailMapper;
-    @Resource
     private BaseMapper<Parameter> parameterMapper;
     @Resource
     private EditionService editionService;
@@ -85,7 +78,7 @@ public class ModuleService {
                 .map(module -> {
                     ModuleDTO dto = new ModuleDTO();
                     BeanUtils.copyProperties(module, dto);
-                    dto.setDisabled(Strings.CS.equals(dto.getModuleKey(), "dashboard") && !isDashboardEnabled(request.getOrganizationId()));
+                    dto.setDisabled(Strings.CS.equals(dto.getModuleKey(), "dashboard"));
                     return dto;
                 })
                 .sorted(Comparator.comparing(ModuleDTO::getPos))
@@ -313,41 +306,6 @@ public class ModuleService {
         request.setOrganizationId(organizationId);
         List<ModuleDTO> moduleList = getModuleList(request);
         return moduleList.stream().map(Module::getModuleKey).toList();
-    }
-
-    /**
-     * 检查仪表盘功能是否启用
-     *
-     * @param organizationId 组织ID
-     * @return 仪表盘是否启用
-     */
-    private boolean isDashboardEnabled(String organizationId) {
-        // 查询第三方配置
-        LambdaQueryWrapper<OrganizationConfig> configQuery = new LambdaQueryWrapper<>();
-        configQuery.eq(OrganizationConfig::getOrganizationId, organizationId)
-                .eq(OrganizationConfig::getType, OrganizationConfigConstants.ConfigType.THIRD.name());
-
-        // 直接获取第一个配置或返回null
-        OrganizationConfig config = organizationConfigMapper.selectListByLambda(configQuery)
-                .stream()
-                .findFirst()
-                .orElse(null);
-
-        if (config == null) {
-            return false;
-        }
-
-        // 查询仪表盘配置详情
-        LambdaQueryWrapper<OrganizationConfigDetail> detailQuery = new LambdaQueryWrapper<>();
-        detailQuery.eq(OrganizationConfigDetail::getConfigId, config.getId())
-                .like(OrganizationConfigDetail::getType, "DE_BOARD");
-
-        // 查找配置并判断是否启用
-        return organizationConfigDetailMapper.selectListByLambda(detailQuery)
-                .stream()
-                .findFirst()
-                .map(OrganizationConfigDetail::getEnable)
-                .orElse(false);
     }
 
     //删除多余模块

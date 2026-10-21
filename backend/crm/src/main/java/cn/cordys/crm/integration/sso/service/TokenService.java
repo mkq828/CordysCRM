@@ -39,7 +39,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.HttpURLConnection;
-import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
 import java.util.HashMap;
@@ -168,35 +167,6 @@ public class TokenService {
         }
 
         return larkToken != null ? larkToken.getTenantAccessToken() : null;
-    }
-
-    /**
-     * IP + 端口 是否连通
-     *
-     * @param fullUrl 完整的URL地址
-     * @return bool
-     */
-    public boolean pingDeUrl(String fullUrl) {
-        try {
-            // 禁用系统代理设置
-            System.setProperty("java.net.useSystemProxies", "false");
-
-            URL url = URI.create(fullUrl).toURL();
-            String host = url.getHost();
-            // 根据协议选择默认端口
-            int defaultPort = "https".equalsIgnoreCase(url.getProtocol()) ? 443 : 80;
-            int port = url.getPort() != -1 ? url.getPort() : defaultPort;
-
-            // 直接测试连接
-            try (Socket socket = new Socket()) {
-                socket.connect(new java.net.InetSocketAddress(host, port), 3000);
-            }
-        } catch (Exception e) {
-            log.error("de embedded url connect error: {}", e.getMessage());
-            return false;
-        }
-
-        return true;
     }
 
     /**

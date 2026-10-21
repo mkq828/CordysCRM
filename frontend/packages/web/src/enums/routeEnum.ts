@@ -14,6 +14,7 @@ export enum SystemRouteEnum {
   SYSTEM_BUG_REPORT = 'systemBugReport',
   SYSTEM_SECURITY_EVENT = 'systemSecurityEvent',
   SYSTEM_JOB_EXEC_LOG = 'systemJobExecLog',
+  SYSTEM_ERROR_LOG = 'systemErrorLog',
   SYSTEM_PAID_USER = 'systemPaidUser',
   SYSTEM_EDITION = 'systemEdition',
   SYSTEM_PLAN_APPLICATION = 'systemPlanApplication',
@@ -85,8 +86,6 @@ export enum AgentRouteEnum {
 export enum DashboardRouteEnum {
   DASHBOARD = 'dashboard',
   DASHBOARD_INDEX = 'dashboardIndex',
-  DASHBOARD_LINK = 'dashboardLink',
-  DASHBOARD_MODULE = 'dashboardModule',
   PLATFORM_DASHBOARD = 'platformDashboard',
   PLATFORM_DASHBOARD_INDEX = 'platformDashboardIndex',
 }
@@ -122,7 +121,6 @@ export enum CityManagerRouteEnum {
 
 export enum FullPageEnum {
   FULL_PAGE = 'fullPage',
-  FULL_PAGE_DASHBOARD = 'fullPageDashboard',
   FULL_PAGE_EXPORT_QUOTATION = 'fullPageExportQuotation',
   FULL_PAGE_EXPORT_ORDER = 'fullPageExportOrder',
 }

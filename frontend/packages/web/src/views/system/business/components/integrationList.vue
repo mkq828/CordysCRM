@@ -17,13 +17,7 @@
       >
         <div class="flex">
           <div class="mr-[8px] flex h-[40px] w-[40px] items-center justify-center rounded-[2px] bg-[var(--text-n9)]">
-            <CrmSvgIcon
-              v-if="[CompanyTypeEnum.DATA_EASE].includes(item.type as CompanyTypeEnum)"
-              :name="item.logo"
-              width="24px"
-              height="24px"
-            />
-            <CrmIcon v-else :type="item.logo" :size="24"></CrmIcon>
+            <CrmIcon :type="item.logo" :size="24"></CrmIcon>
           </div>
           <div class="flex-1">
             <div class="flex justify-between gap-[8px]">
@@ -56,16 +50,6 @@
               </div>
 
               <div>
-                <n-button
-                  v-if="item.type === CompanyTypeEnum.DATA_EASE"
-                  v-permission="['SYSTEM_SETTING:UPDATE']"
-                  size="small"
-                  type="default"
-                  class="outline--secondary mr-[8px] px-[8px]"
-                  @click="handleSyncDE(item)"
-                >
-                  {{ t('common.sync') }}
-                </n-button>
                 <n-button
                   v-permission="['SYSTEM_SETTING:UPDATE']"
                   size="small"
@@ -136,13 +120,7 @@
       >
         <div class="flex">
           <div class="mr-[8px] flex h-[40px] w-[40px] items-center justify-center rounded-[2px] bg-[var(--text-n9)]">
-            <CrmSvgIcon
-              v-if="[CompanyTypeEnum.DATA_EASE].includes(item.type as CompanyTypeEnum)"
-              :name="item.logo"
-              width="24px"
-              height="24px"
-            />
-            <CrmIcon v-else :type="item.logo" :size="24"></CrmIcon>
+            <CrmIcon :type="item.logo" :size="24"></CrmIcon>
           </div>
           <div class="flex-1">
             <div class="flex justify-between gap-[8px]">
@@ -176,16 +154,6 @@
 
               <div>
                 <n-button
-                  v-if="item.type === CompanyTypeEnum.DATA_EASE"
-                  v-permission="['SYSTEM_SETTING:UPDATE']"
-                  size="small"
-                  type="default"
-                  class="outline--secondary mr-[8px] px-[8px]"
-                  @click="handleSyncDE(item)"
-                >
-                  {{ t('common.sync') }}
-                </n-button>
-                <n-button
                   v-permission="['SYSTEM_SETTING:UPDATE']"
                   size="small"
                   type="default"
@@ -207,21 +175,6 @@
             </div>
             <p class="text-[12px] text-[var(--text-n4)]">{{ item.description }}</p>
           </div>
-        </div>
-        <div v-if="item.type === CompanyTypeEnum.DATA_EASE" class="flex items-center gap-[8px]">
-          <n-tooltip :disabled="item.verify">
-            <template #trigger>
-              <n-switch
-                size="small"
-                :rubber-band="false"
-                :value="item.config.deBoardEnable"
-                :disabled="!item.hasConfig || !item.verify || !hasAnyPermission(['SYSTEM_SETTING:UPDATE'])"
-                @update:value="handleChangeEnable(item, 'deBoardEnable')"
-              />
-            </template>
-            {{ t('system.business.notConfiguredTip') }}
-          </n-tooltip>
-          <div class="text-[12px]">{{ t('common.dashboard') }}</div>
         </div>
       </div>
     </div>
@@ -494,7 +447,6 @@
   import {
     getConfigSynchronization,
     switchThirdParty,
-    syncDE,
     testConfigSynchronization,
     updateConfigSynchronization,
   } from '@/api/modules';
@@ -628,20 +580,6 @@
     showEditIntegrationModal.value = true;
   }
 
-  async function handleSyncDE(item: IntegrationItem) {
-    try {
-      loading.value = true;
-      await syncDE();
-      Message.success(t('org.syncSuccess'));
-      await initSyncList();
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.log(error);
-    } finally {
-      loading.value = false;
-    }
-  }
-
   function makeParams(item: IntegrationItem, key?: string) {
     const config = {
       ...item.config,
@@ -661,14 +599,7 @@
 
   async function handleChangeEnable(
     item: IntegrationItem,
-    key:
-      | 'deBoardEnable'
-      | 'sqlBotBoardEnable'
-      | 'sqlBotChatEnable'
-      | 'startEnable'
-      | 'mkEnable'
-      | 'tenderEnable'
-      | 'qccEnable'
+    key: 'sqlBotBoardEnable' | 'sqlBotChatEnable' | 'startEnable' | 'mkEnable' | 'tenderEnable' | 'qccEnable'
   ) {
     try {
       loading.value = true;

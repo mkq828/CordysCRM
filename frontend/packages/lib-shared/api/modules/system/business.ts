@@ -33,8 +33,6 @@ import {
   GetAuthsUrl,
   GetConfigEmailUrl,
   GetConfigSynchronizationUrl,
-  GetDEOrgListUrl,
-  GetDETokenUrl,
   GetExportCenterListUrl,
   GetPageConfigUrl,
   GetPersonalFollowUrl,
@@ -61,7 +59,6 @@ import {
   SwitchAgentTaskUrl,
   SwitchTermUrl,
   SwitchThirdPartyUrl,
-  SyncDEUrl,
   TestConfigEmailUrl,
   TestConfigSynchronizationUrl,
   UpdateAgentTaskUrl,
@@ -98,10 +95,8 @@ import type {
   AuthTableQueryParams,
   AuthUpdateParams,
   ConfigEmailParams,
-  DEOrgItem,
   PageConfigReturns,
   SavePageConfigParams,
-  ThirdPartyDEConfig,
   ThirdPartyResource,
   ThirdPartyResourceConfig,
   UpdateApiKeyParams,
@@ -116,7 +111,7 @@ import {
   TenantSubscription,
 } from '@lib/shared/models/system/business';
 import type { Edition } from '@lib/shared/models/system/edition';
-import { type DEToken, OrgUserInfo, type ValidateInfo } from '@lib/shared/models/system/org';
+import { OrgUserInfo, type ValidateInfo } from '@lib/shared/models/system/org';
 import type { PlatformBankAccount } from '@lib/shared/models/system/platformFinance';
 import type {
   TenantPlanApplicationItem,
@@ -235,24 +230,9 @@ export default function useProductApi(CDR: CordysAxios) {
     return CDR.get({ url: `${DeleteAuthUrl}/${id}` });
   }
 
-  // 获取DEToken
-  function getDEToken(isModule = false) {
-    return CDR.get<DEToken>({ url: GetDETokenUrl, params: { isModule } });
-  }
-
-  // 同步 DE
-  function syncDE() {
-    return CDR.get({ url: SyncDEUrl });
-  }
-
   // 获取第三方配置
   function getThirdPartyConfig(type: string) {
     return CDR.get<ThirdPartyResourceConfig>({ url: `${GetThirdPartyConfigUrl}/${type}` }, { noErrorTip: true });
-  }
-
-  // 获取 DE 组织列表
-  function getDEOrgList(data: ThirdPartyDEConfig) {
-    return CDR.post<DEOrgItem[]>({ url: GetDEOrgListUrl, data });
   }
 
   // 获取个人信息
@@ -578,9 +558,6 @@ export default function useProductApi(CDR: CordysAxios) {
     getExportCenterList,
     exportCenterDownload,
     cancelCenterExport,
-    getDEToken,
-    syncDE,
-    getDEOrgList,
     getThirdPartyConfig,
     updateApiKey,
     getApiKeyList,

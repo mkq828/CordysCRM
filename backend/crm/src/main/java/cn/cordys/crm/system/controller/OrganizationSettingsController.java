@@ -4,10 +4,6 @@ import cn.cordys.common.constants.PermissionConstants;
 import cn.cordys.common.dto.OptionDTO;
 import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.integration.common.dto.ThirdConfigBaseDTO;
-import cn.cordys.crm.integration.common.request.DeThirdConfigRequest;
-import cn.cordys.crm.integration.dataease.dto.DeAuthDTO;
-import cn.cordys.crm.integration.dataease.service.DataEaseService;
-import cn.cordys.crm.integration.dataease.service.DataEaseSyncService;
 import cn.cordys.crm.system.domain.OrganizationConfig;
 import cn.cordys.crm.system.dto.response.EmailDTO;
 import cn.cordys.crm.system.service.IntegrationConfigService;
@@ -30,10 +26,6 @@ public class OrganizationSettingsController {
     private static final String DEFAULT_ORGANIZATION_ID = "100001";
     @Resource
     private IntegrationConfigService integrationConfigService;
-    @Resource
-    private DataEaseService dataEaseService;
-    @Resource
-    private DataEaseSyncService dataEaseSyncService;
     @Resource
     private OrganizationConfigService organizationConfigService;
 
@@ -95,27 +87,6 @@ public class OrganizationSettingsController {
     @RequiresPermissions(PermissionConstants.SYSTEM_SETTING_READ)
     public boolean validate(@RequestBody ThirdConfigBaseDTO<Object> baseDTO) {
         return integrationConfigService.testConnection(baseDTO, OrganizationContext.getOrganizationId(), SessionUtils.getUserId());
-    }
-
-    @GetMapping(value = "/de-token")
-    @Operation(summary = "生成DE-Token")
-    @RequiresPermissions(PermissionConstants.DASHBOARD_READ)
-    public DeAuthDTO generateToken(@RequestParam(required = false) boolean isModule) {
-        return dataEaseService.getEmbeddedDeToken(OrganizationContext.getOrganizationId(), SessionUtils.getUserId(), isModule);
-    }
-
-    @GetMapping(value = "/de/sync")
-    @Operation(summary = "同步DE数据")
-    @RequiresPermissions(PermissionConstants.SYSTEM_SETTING_UPDATE)
-    public void syncDataEase() {
-        dataEaseSyncService.syncDataEase(OrganizationContext.getOrganizationId(), false);
-    }
-
-    @PostMapping(value = "/de/org/list")
-    @Operation(summary = "获取de组织列表")
-    @RequiresPermissions(PermissionConstants.SYSTEM_SETTING_READ)
-    public List<OptionDTO> getDeOrgList(@RequestBody DeThirdConfigRequest deThirdConfigRequest) {
-        return dataEaseSyncService.getDeOrgList(deThirdConfigRequest);
     }
 
     @GetMapping("/third-party/get/{type}")

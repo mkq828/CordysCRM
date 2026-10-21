@@ -22,10 +22,6 @@ public enum ThirdConfigTypeConstants {
      */
     LARK,
     /**
-     * DE
-     */
-    DE,
-    /**
      * maxKB
      */
     MAXKB,

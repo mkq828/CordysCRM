@@ -8,7 +8,6 @@ import useClueApi from '@lib/shared/api/modules/clue';
 import useContractApi from '@lib/shared/api/modules/contract';
 import useCustomerApi from '@lib/shared/api/modules/customer';
 import useCustomFormApi from '@lib/shared/api/modules/customForm';
-import useDashboard from '@lib/shared/api/modules/dashboard';
 import useFinanceApi from '@lib/shared/api/modules/finance';
 import useFollowApi from '@lib/shared/api/modules/follow';
 import useHomeApi from '@lib/shared/api/modules/home';
@@ -61,7 +60,6 @@ const licenseApi = useLicenseApi(CDR);
 const customerApi = useCustomerApi(CDR);
 const businessApi = useBusinessApi(CDR);
 const callReviewApi = useCallReviewApi(CDR);
-const dashboardApi = useDashboard(CDR);
 const businessScreenApi = useBusinessScreenApi(CDR);
 const opportunityApi = useOpportunityApi(CDR);
 const contractApi = useContractApi(CDR);
@@ -646,14 +644,11 @@ export const {
 } = contractApi;
 
 export const {
-  syncDE,
   addApiKey,
   updateAuth,
   createAuth,
   deleteAuth,
-  getDEToken,
   getAuthList,
-  getDEOrgList,
   updateApiKey,
   enableApiKey,
   deleteApiKey,
@@ -1075,25 +1070,6 @@ export const {
 } = suggestionApi;
 
 export const { getPlatformDashboard } = platformDashboardApi;
-
-export const {
-  dashboardAdd,
-  dashboardPage,
-  dashboardDrag,
-  dashboardDelete,
-  dashboardDetail,
-  dashboardRename,
-  dashboardUpdate,
-  dashboardCollect,
-  dashboardModuleAdd,
-  dashboardUnCollect,
-  dashboardModuleTree,
-  dashboardModuleDrag,
-  dashboardCollectPage,
-  dashboardModuleCount,
-  dashboardModuleDelete,
-  dashboardModuleRename,
-} = dashboardApi;
 
 export const {
   getHomeDepartmentTree,

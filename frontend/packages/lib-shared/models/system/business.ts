@@ -33,17 +33,6 @@ export interface ThirdPartyLarkLoginConfig extends ThirdPartyBaseLoginConfig {
   redirectUrl: string;
 }
 
-// DE配置类型
-export interface ThirdPartyDEConfig {
-  agentId: string;
-  appSecret: string;
-  deAccessKey: string;
-  deAutoSync: boolean;
-  deBoardEnable: boolean;
-  deOrgID: string;
-  deSecretKey: string;
-  redirectUrl: string;
-}
 // sql智能体配置类型
 export interface ThirdPartySQLBotConfig {
   appSecret: string;
@@ -94,11 +83,6 @@ export interface ThirdPartyResource {
   sync: boolean;
   syncResource: CompanyTypeEnum;
   enable: boolean;
-}
-
-export interface DEOrgItem {
-  id: string;
-  name: string;
 }
 
 // 同步组织和扫码卡片数据类型

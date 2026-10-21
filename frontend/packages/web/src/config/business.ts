@@ -4,7 +4,6 @@ import { CompanyTypeEnum } from '@lib/shared/enums/commonEnum';
 import { useI18n } from '@lib/shared/hooks/useI18n';
 import {
   ThirdPartyBaseLoginConfig,
-  ThirdPartyDEConfig,
   ThirdPartyDingTalkLoginConfig,
   ThirdPartyLarkLoginConfig,
   ThirdPartyMKConfig,
@@ -461,17 +460,6 @@ export const defaultThirdPartLarkLoginConfig: ThirdPartyLarkLoginConfig = {
   redirectUrl: '',
 };
 
-export const defaultThirdPartDEConfig: ThirdPartyDEConfig = {
-  agentId: '',
-  appSecret: '',
-  deAccessKey: '',
-  deAutoSync: false,
-  deBoardEnable: false,
-  deOrgID: '',
-  deSecretKey: '',
-  redirectUrl: '',
-};
-
 export const defaultThirdPartMaxKBConfig: ThirdPartyMKConfig = {
   appSecret: '',
   mkAddress: '',
@@ -494,7 +482,6 @@ export const defaultThirdPartyConfigMap = {
   [CompanyTypeEnum.WECOM]: defaultThirdPartyBaseLoginConfig,
   [CompanyTypeEnum.DINGTALK]: defaultThirdPartDingTalkLoginConfig,
   [CompanyTypeEnum.LARK]: defaultThirdPartLarkLoginConfig,
-  [CompanyTypeEnum.DATA_EASE]: defaultThirdPartDEConfig,
   [CompanyTypeEnum.MAXKB]: defaultThirdPartMaxKBConfig,
   [CompanyTypeEnum.TENDER]: defaultThirdPartTenderConfig,
   [CompanyTypeEnum.QCC]: defaultThirdPartQichachaConfig,

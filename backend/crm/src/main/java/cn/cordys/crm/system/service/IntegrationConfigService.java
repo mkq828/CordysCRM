@@ -14,7 +14,6 @@ import cn.cordys.common.util.JSON;
 import cn.cordys.common.util.Translator;
 import cn.cordys.crm.integration.common.dto.ThirdConfigBaseDTO;
 import cn.cordys.crm.integration.common.request.*;
-import cn.cordys.crm.integration.dataease.DataEaseClient;
 import cn.cordys.crm.integration.sso.service.TokenService;
 import cn.cordys.crm.integration.sync.dto.ThirdSwitchLogDTO;
 import cn.cordys.crm.integration.tender.constant.TenderApiPaths;
@@ -316,15 +315,6 @@ public class IntegrationConfigService {
                 );
                 configDTOs.add(dto);
 
-            } else if (Strings.CI.equals(type, ThirdDetailType.DE_BOARD.name())) {
-                ThirdConfigBaseDTO<?> dto = buildDto(
-                        content,
-                        DeThirdConfigRequest.class,
-                        cfg -> cfg.setDeBoardEnable(detail.getEnable()),
-                        ThirdConfigTypeConstants.DE.name()
-                );
-                configDTOs.add(dto);
-
             } else if (Strings.CI.equals(type, ThirdDetailType.MAXKB.name())) {
                 ThirdConfigBaseDTO<?> dto = buildDto(
                         content,
@@ -445,10 +435,6 @@ public class IntegrationConfigService {
     private ThirdConfigBaseDTO<?> getThirdConfigurationDTOByType(
             List<OrganizationConfigDetail> organizationConfigDetails, String type) {
 
-        if (Strings.CI.equals(ThirdConfigTypeConstants.DE.name(), type)) {
-            type = ThirdDetailType.DE_BOARD.name();
-        }
-
         String finalType = type;
         List<OrganizationConfigDetail> detailList = organizationConfigDetails.stream()
                 .filter(t -> t.getType().contains(finalType))
@@ -549,16 +535,6 @@ public class IntegrationConfigService {
                 jsonContent = JSON.toJSONString(configDTO);
                 verify = configDTO.getVerify();
                 addLog(new HashMap<>(), configDTO, null, JSON.parseToMap(JSON.toJSONString(larkConfig)));
-            }
-            case DE -> {
-                DeThirdConfigRequest deConfig = JSON.MAPPER.convertValue(configDTO.getConfig(), DeThirdConfigRequest.class);
-                if (BooleanUtils.isTrue(deConfig.getDeBoardEnable())) {
-                    verifyDe(token, configDTO);
-                }
-                configDTO.setConfig(deConfig);
-                jsonContent = JSON.toJSONString(configDTO);
-                verify = configDTO.getVerify();
-                addLog(new HashMap<>(), configDTO, null, JSON.parseToMap(JSON.toJSONString(deConfig)));
             }
             case MAXKB -> {
                 MaxKBThirdConfigRequest mkConfig = JSON.MAPPER.convertValue(configDTO.getConfig(), MaxKBThirdConfigRequest.class);
@@ -749,22 +725,6 @@ public class IntegrationConfigService {
                 addConfigLog(oldConfig, configDTO, id, config);
             }
 
-            case DE -> {
-                DeThirdConfigRequest config = JSON.MAPPER.convertValue(configDTO.getConfig(), DeThirdConfigRequest.class);
-
-                if (BooleanUtils.isTrue(config.getDeBoardEnable())) {
-                    verifyDe(token, configDTO);
-                }
-
-                configDTO.setConfig(config);
-                jsonContent = JSON.toJSONString(configDTO);
-                openEnable = enable;
-
-                DeThirdConfigRequest oldConfig = parseOldConfig(detail, DeThirdConfigRequest.class);
-
-                addConfigLog(oldConfig, configDTO, id, config);
-            }
-
             case MAXKB -> {
                 MaxKBThirdConfigRequest config = JSON.MAPPER.convertValue(configDTO.getConfig(), MaxKBThirdConfigRequest.class);
 
@@ -880,16 +840,6 @@ public class IntegrationConfigService {
     }
 
     /**
-     * 验证De配置
-     *
-     * @param token    Token
-     * @param deConfig 配置DTO
-     */
-    private void verifyDe(String token, ThirdConfigBaseDTO<?> deConfig) {
-        deConfig.setVerify(StringUtils.isNotBlank(token) && Strings.CI.equals(token, "true"));
-    }
-
-    /**
      * 保存详情
      *
      * @param userId             用户ID
@@ -998,7 +948,6 @@ public class IntegrationConfigService {
             case WECOM -> List.of(ThirdDetailType.WECOM_SYNC.toString());
             case DINGTALK -> List.of(ThirdDetailType.DINGTALK_SYNC.name());
             case LARK -> List.of(ThirdDetailType.LARK_SYNC.name());
-            case DE -> List.of(ThirdDetailType.DE_BOARD.name());
             case MAXKB -> List.of(ThirdDetailType.MAXKB.name());
             case TENDER -> List.of(ThirdDetailType.TENDER.name());
             case QCC -> List.of(ThirdDetailType.QCC.name());
@@ -1030,10 +979,6 @@ public class IntegrationConfigService {
             case LARK -> {
                 LarkThirdConfigRequest config = JSON.MAPPER.convertValue(configDTO.getConfig(), LarkThirdConfigRequest.class);
                 map.put(ThirdDetailType.LARK_SYNC.name(), config.getStartEnable());
-            }
-            case DE -> {
-                DeThirdConfigRequest config = JSON.MAPPER.convertValue(configDTO.getConfig(), DeThirdConfigRequest.class);
-                map.put(ThirdDetailType.DE_BOARD.name(), config.getDeBoardEnable());
             }
             case MAXKB -> {
                 MaxKBThirdConfigRequest config = JSON.MAPPER.convertValue(configDTO.getConfig(), MaxKBThirdConfigRequest.class);
@@ -1077,11 +1022,6 @@ public class IntegrationConfigService {
                 LarkThirdConfigRequest larkConfig = JSON.MAPPER.convertValue(configDTO.getConfig(), LarkThirdConfigRequest.class);
                 return tokenService.getLarkToken(larkConfig.getAgentId(), larkConfig.getAppSecret());
             }
-            case DE -> {
-                DeThirdConfigRequest deConfig = JSON.MAPPER.convertValue(configDTO.getConfig(), DeThirdConfigRequest.class);
-                boolean verify = validDeConfig(deConfig);
-                return verify ? "true" : null;
-            }
             case MAXKB -> {
                 MaxKBThirdConfigRequest mkConfig = JSON.MAPPER.convertValue(configDTO.getConfig(), MaxKBThirdConfigRequest.class);
                 return tokenService.getMaxKBToken(mkConfig.getMkAddress(), mkConfig.getAppSecret()) ? "true" : null;
@@ -1097,25 +1037,6 @@ public class IntegrationConfigService {
                 return null;
             }
         }
-    }
-
-    /**
-     * 验证De配置
-     *
-     * @param configDTO 配置请求
-     * @return 是否有效
-     */
-    private boolean validDeConfig(DeThirdConfigRequest configDTO) {
-        // 校验url
-        boolean verify = tokenService.pingDeUrl(configDTO.getRedirectUrl());
-        DataEaseClient dataEaseClient = new DataEaseClient(configDTO);
-        if (StringUtils.isNotBlank(configDTO.getDeAccessKey())
-                && StringUtils.isNotBlank(configDTO.getDeSecretKey())
-                && StringUtils.isNotBlank(configDTO.getRedirectUrl())) {
-            // 校验 ak，sk
-            verify = verify && dataEaseClient.validate();
-        }
-        return verify;
     }
 
     /**
@@ -1306,12 +1227,6 @@ public class IntegrationConfigService {
                 LarkThirdConfigRequest larkConfig = JSON.MAPPER.convertValue(thirdConfig.getConfig(), LarkThirdConfigRequest.class);
                 larkConfig.setAppSecret(StringUtils.EMPTY);
                 ((ThirdConfigBaseDTO<Object>) thirdConfig).setConfig(larkConfig);
-            }
-            case DE -> {
-                DeThirdConfigRequest deConfig = JSON.MAPPER.convertValue(thirdConfig.getConfig(), DeThirdConfigRequest.class);
-                deConfig.setAppSecret(StringUtils.EMPTY);
-                deConfig.setDeSecretKey(StringUtils.EMPTY);
-                ((ThirdConfigBaseDTO<Object>) thirdConfig).setConfig(deConfig);
             }
             case MAXKB -> {
                 MaxKBThirdConfigRequest maxKBConfig = JSON.MAPPER.convertValue(thirdConfig.getConfig(), MaxKBThirdConfigRequest.class);
