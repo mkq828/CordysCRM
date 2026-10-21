@@ -12,6 +12,7 @@ export function getThemeOverrides(): GlobalThemeOverrides {
   return {
     common: {
       fontSize: '14px',
+      fontFamily: "'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif",
       borderRadiusSmall: '6px',
       borderColor: getLessVariableValue('--text-n7'), // 边框颜色
       primaryColor: getLessVariableValue('--primary-8'), // 主题品牌色

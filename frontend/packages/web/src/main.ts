@@ -10,6 +10,11 @@ import useLocale from '@lib/shared/locale/useLocale';
 import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
 import App from './App.vue';
 
+// 全局字体：思源黑体（Noto Sans SC）子集化自托管，跨 Windows/macOS 一致
+import '@fontsource/noto-sans-sc/400.css';
+import '@fontsource/noto-sans-sc/500.css';
+import '@fontsource/noto-sans-sc/600.css';
+import '@fontsource/noto-sans-sc/700.css';
 import 'virtual:svg-icons-register';
 import directive from './directive/index';
 import useDiscreteApi from './hooks/useDiscreteApi';

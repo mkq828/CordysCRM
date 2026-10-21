@@ -333,7 +333,7 @@
     span.style.visibility = 'hidden';
     span.style.position = 'absolute';
     span.style.fontSize = `${fontSize}px`;
-    span.style.fontFamily = "'Helvetica Neue', Arial, 'PingFang SC', 'Source Han Serif'";
+    span.style.fontFamily = "'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif";
     span.innerText = text;
     document.body.appendChild(span);
     const width = span.offsetWidth;

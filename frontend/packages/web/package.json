@@ -22,6 +22,7 @@
     "@ai-sdk/vue": "^2.0.0",
     "@antv/x6": "^3.1.7",
     "@antv/x6-vue-shape": "^3.0.2",
+    "@fontsource/noto-sans-sc": "^5.3.1",
     "@types/color": "^4.2.1",
     "@vicons/ionicons5": "^0.13.0",
     "@vscode/markdown-it-katex": "^1.1.2",
