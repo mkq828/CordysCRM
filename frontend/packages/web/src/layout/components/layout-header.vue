@@ -346,21 +346,12 @@
       key: 'helpDoc',
       iconType: 'iconicon_help_circle',
     },
-    {
-      label: t('settings.help.apiDoc'),
-      key: 'apiDoc',
-      iconType: 'iconicon_info_circle',
-    },
   ];
 
   function selectMoreActions(item: ActionsItem) {
     switch (item.key) {
       case 'helpDoc':
         window.open(appStore.pageConfig.helpDoc, '_blank');
-        break;
-      case 'apiDoc':
-        const apiDocUrl = `${window.location.origin}/swagger-ui/index.html`;
-        window.open(apiDocUrl, '_blank');
         break;
       default:
         break;

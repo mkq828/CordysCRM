@@ -12,6 +12,6 @@ public class CopyrightUtils {
     }
 
     public static String getOperator() {
-        return "广州哆咪科技";
+        return "广州哆咪科技有限公司";
     }
 }

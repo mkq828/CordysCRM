@@ -27,6 +27,12 @@
   </n-layout>
   <PersonalInfoDrawer v-model:visible="showPersonalInfo" :active-tab-value="personalTab" />
   <AiChatFloatingEntry />
+  <!-- 合规署名：保留上游 Cordys 出处（GPLv3+FIT2CLOUD 附加条款要求，勿删） -->
+  <div class="powered-by-cordys">
+    <span>Powered by Cordys</span>
+    <span>|</span>
+    <a class="icp-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">粤ICP备2026159020号-1</a>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -109,6 +115,28 @@
     height: 100vh;
     .n-layout-scroll-container {
       @apply flex w-full flex-col overflow-hidden;
+    }
+  }
+  .powered-by-cordys {
+    position: fixed;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--text-n4);
+    pointer-events: none;
+    .icp-link {
+      text-decoration: none;
+      color: var(--text-n4);
+      pointer-events: auto;
+      &:hover {
+        color: var(--primary);
+      }
     }
   }
 </style>

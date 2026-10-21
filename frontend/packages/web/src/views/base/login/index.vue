@@ -13,6 +13,9 @@
       </n-spin>
     </div>
   </NScrollbar>
+  <div class="login-footer">
+    <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">粤ICP备2026159020号-1</a>
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -33,5 +36,21 @@
 <style lang="less" scoped>
   .login-page {
     @apply flex items-center;
+  }
+  .login-footer {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    font-size: 12px;
+    line-height: 16px;
+    a {
+      text-decoration: none;
+      color: var(--text-n4);
+      &:hover {
+        color: var(--primary);
+      }
+    }
   }
 </style>
