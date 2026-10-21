@@ -29,6 +29,8 @@
   <AiChatFloatingEntry />
   <!-- 合规署名：保留上游 Cordys 出处（GPLv3+FIT2CLOUD 附加条款要求，勿删） -->
   <div class="powered-by-cordys">
+    <span>© 2026 广州哆咪科技有限公司</span>
+    <span>|</span>
     <span>Powered by Cordys</span>
     <span>|</span>
     <a class="icp-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">粤ICP备2026159020号-1</a>

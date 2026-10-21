@@ -14,6 +14,8 @@
     </div>
   </NScrollbar>
   <div class="login-footer">
+    <span>© 2026 广州哆咪科技有限公司</span>
+    <span>|</span>
     <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">粤ICP备2026159020号-1</a>
   </div>
 </template>
@@ -45,6 +47,7 @@
     z-index: 100;
     font-size: 12px;
     line-height: 16px;
+    color: var(--text-n4);
     a {
       text-decoration: none;
       color: var(--text-n4);
