@@ -210,6 +210,32 @@ public class TokenService {
         qrCodeClient.postExchange(detailUrl, null, null, weComSendDTO, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON);
     }
 
+    /**
+     * 企业微信群机器人推送（Webhook 模式）：无需 token/可信IP，直接 POST markdown 消息到群机器人地址
+     *
+     * @param webhookUrl 群机器人 Webhook 地址
+     * @param content    markdown 内容
+     * @return 是否推送成功
+     */
+    public boolean sendWebhookMarkdown(String webhookUrl, String content) {
+        if (StringUtils.isBlank(webhookUrl)) {
+            return false;
+        }
+        try {
+            Map<String, Object> markdown = new HashMap<>();
+            markdown.put("content", content);
+            Map<String, Object> body = new HashMap<>();
+            body.put("msgtype", "markdown");
+            body.put("markdown", markdown);
+            String response = HttpClientUtils.sendPostRequest(webhookUrl, JSON.toJSONString(body), null);
+            WeComToken result = JSON.parseObject(response, WeComToken.class);
+            return result != null && result.getErrCode() != null && result.getErrCode() == 0;
+        } catch (Exception e) {
+            log.error("企业微信群机器人推送失败：{}", e.getMessage());
+            return false;
+        }
+    }
+
     public void sendDingNoticeByToken(DingTalkSendDTO dingTalkSendDTO, String agentId, String appSecret) {
         String assessToken = getDingTalkToken(agentId, appSecret);
         String detailUrl = HttpClientUtils.urlTransfer(DingTalkApiPaths.DING_NOTICE_URL, assessToken);

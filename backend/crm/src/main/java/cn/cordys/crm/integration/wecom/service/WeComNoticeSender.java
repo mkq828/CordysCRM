@@ -19,9 +19,11 @@ import cn.cordys.crm.system.notice.sender.AbstractNoticeSender;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 @Component
 @Slf4j
@@ -50,20 +52,6 @@ public class WeComNoticeSender extends AbstractNoticeSender {
     }
 
     private void sendWeCom(String context, NoticeModel noticeModel, String organizationId) {
-        List<Receiver> receivers = super.getReceivers(noticeModel.getReceivers(), noticeModel.isExcludeSelf(), noticeModel.getOperator());
-        if (CollectionUtils.isEmpty(receivers)) {
-            return;
-        }
-        List<String> userIds = receivers.stream()
-                .map(Receiver::getUserId)
-                .distinct()
-                .toList();
-        //查询同步过的resourceId，这里已经确定是否同步了企业微信，没同步，消息无法发送
-        List<String> resourceUserIds = super.getResourceUserIds(userIds, organizationId);
-        if (CollectionUtils.isEmpty(resourceUserIds)) {
-            log.warn("没有同步企业微信用户，无法发送消息");
-            return;
-        }
         //查询三方配置
         OrganizationConfig organizationConfig = extOrganizationConfigMapper
                 .getOrganizationConfig(organizationId, OrganizationConfigConstants.ConfigType.THIRD.name());
@@ -85,6 +73,35 @@ public class WeComNoticeSender extends AbstractNoticeSender {
             wecomThirdConfigRequest = JSON.parseObject(new String(orgConfigDetailByIdAndType.getContent()), WecomThirdConfigRequest.class);
         } else {
             wecomThirdConfigRequest = JSON.MAPPER.convertValue(thirdConfigurationDTO.getConfig(), WecomThirdConfigRequest.class);
+        }
+
+        //群机器人 Webhook 模式：直接推送到群，无需同步用户/token/可信IP（当前仅企业注册申请走此通道）
+        if (StringUtils.isNotBlank(wecomThirdConfigRequest.getWebhookUrl())) {
+            Map<String, Object> paramMap = noticeModel.getParamMap();
+            String content = "**企业注册申请待审批**\n"
+                    + "公司名称：" + paramMap.get("name") + "\n"
+                    + "联系人：" + paramMap.get("legalPersonName") + "\n"
+                    + "联系电话：" + paramMap.get("phone") + "\n"
+                    + "申请时间：" + paramMap.get("createTime") + "\n"
+                    + "[点击进入后台审批](https://duomicrm.com/#/platformFinance/register-audit)";
+            tokenService.sendWebhookMarkdown(wecomThirdConfigRequest.getWebhookUrl(), content);
+            return;
+        }
+
+        //应用消息模式：需要已同步企业微信的用户
+        List<Receiver> receivers = super.getReceivers(noticeModel.getReceivers(), noticeModel.isExcludeSelf(), noticeModel.getOperator());
+        if (CollectionUtils.isEmpty(receivers)) {
+            return;
+        }
+        List<String> userIds = receivers.stream()
+                .map(Receiver::getUserId)
+                .distinct()
+                .toList();
+        //查询同步过的resourceId，这里已经确定是否同步了企业微信，没同步，消息无法发送
+        List<String> resourceUserIds = super.getResourceUserIds(userIds, organizationId);
+        if (CollectionUtils.isEmpty(resourceUserIds)) {
+            log.warn("没有同步企业微信用户，无法发送消息");
+            return;
         }
 
         //构建企业微信消息

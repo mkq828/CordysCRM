@@ -122,6 +122,17 @@ public class IntegrationConfigService {
      * @return 是否连接成功
      */
     public boolean testConnection(ThirdConfigBaseDTO<?> configDTO, String orgId, String userId) {
+        // 群机器人 Webhook 模式：直接发测试消息到群，无需 token/可信IP/应用校验
+        if (ThirdConfigTypeConstants.WECOM.name().equals(configDTO.getType())) {
+            WecomThirdConfigRequest webhookConfig = JSON.MAPPER.convertValue(configDTO.getConfig(), WecomThirdConfigRequest.class);
+            if (StringUtils.isNotBlank(webhookConfig.getWebhookUrl())) {
+                boolean ok = tokenService.sendWebhookMarkdown(webhookConfig.getWebhookUrl(), "**Cordys CRM 企业微信连接测试**");
+                configDTO.setVerify(ok);
+                editThirdConfig((ThirdConfigBaseDTO<Object>) configDTO, orgId, userId);
+                return ok;
+            }
+        }
+
         String token = getToken(configDTO);
         if (ThirdConfigTypeConstants.WECOM.name().equals(configDTO.getType()) && StringUtils.isNotBlank(token)) {
             WecomThirdConfigRequest config = JSON.MAPPER.convertValue(configDTO.getConfig(), WecomThirdConfigRequest.class);
@@ -894,6 +905,11 @@ public class IntegrationConfigService {
      * @param weComConfig 配置DTO
      */
     private void verifyWeCom(String agentId, String token, ThirdConfigBaseDTO<?> weComConfig) {
+        WecomThirdConfigRequest wecomConfig = JSON.MAPPER.convertValue(weComConfig.getConfig(), WecomThirdConfigRequest.class);
+        if (StringUtils.isNotBlank(wecomConfig.getWebhookUrl())) {
+            // 群机器人 Webhook 模式：无需应用校验，verify 已在测试连接时设置
+            return;
+        }
         if (StringUtils.isNotBlank(token)) {
             // 验证应用ID
             Boolean weComAgent = tokenService.checkWeComAgentAvailable(token, agentId);
@@ -1012,6 +1028,10 @@ public class IntegrationConfigService {
         switch (type) {
             case WECOM -> {
                 WecomThirdConfigRequest weComConfig = JSON.MAPPER.convertValue(configDTO.getConfig(), WecomThirdConfigRequest.class);
+                if (StringUtils.isNotBlank(weComConfig.getWebhookUrl())) {
+                    // 群机器人 Webhook 模式：无需 token，返回非空占位避免下游判空失败
+                    return "webhook";
+                }
                 return tokenService.getAssessToken(weComConfig.getCorpId(), weComConfig.getAppSecret());
             }
             case DINGTALK -> {

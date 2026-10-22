@@ -22,6 +22,8 @@ export interface ThirdPartyBaseLoginConfig {
   appSecret: string;
   corpId: string;
   startEnable: boolean;
+  // 企业微信群机器人 Webhook 地址（可选，配置后走群机器人推送）
+  webhookUrl?: string;
 }
 // 钉钉扫码登录配置类型
 export interface ThirdPartyDingTalkLoginConfig extends ThirdPartyBaseLoginConfig {

@@ -17,4 +17,7 @@ public class WecomThirdConfigRequest {
 
     @Schema(description = "同步用户", requiredMode = Schema.RequiredMode.REQUIRED)
     private Boolean startEnable;
+
+    @Schema(description = "群机器人 Webhook 地址（填了就走群机器人推送，无需企业ID/应用ID/密钥/可信IP）")
+    private String webhookUrl;
 }

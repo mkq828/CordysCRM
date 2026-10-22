@@ -51,6 +51,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -206,12 +210,18 @@ public class RegisterService {
         application.setUpdateUser(phone);
         registerApplicationMapper.insert(application);
 
-        // 企业注册需人工审核：站内信通知平台管理员及时处理（避免企业用户流失）
+        // 企业注册需人工审核：站内信/企微群机器人通知平台管理员及时处理（避免企业用户流失）
         if (enterprise) {
+            Map<String, Object> registerParams = new HashMap<>();
+            registerParams.put("name", application.getName());
+            registerParams.put("legalPersonName", application.getLegalPersonName());
+            registerParams.put("phone", application.getPhone());
+            registerParams.put("createTime", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .format(LocalDateTime.ofInstant(Instant.ofEpochMilli(now), ZoneId.systemDefault())));
             commonNoticeSendService.sendNotice(
                     NotificationConstants.Module.SYSTEM,
                     NotificationConstants.Event.ENTERPRISE_REGISTER_APPLY,
-                    Map.of("name", application.getName()),
+                    registerParams,
                     InternalUser.ADMIN.getValue(),
                     OrganizationContext.DEFAULT_ORGANIZATION_ID,
                     List.of(InternalUser.ADMIN.getValue()),

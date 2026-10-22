@@ -35,6 +35,15 @@
           <n-input v-model:value="form.config.corpId" :placeholder="t('common.pleaseInput')" />
         </n-form-item>
       </template>
+      <!-- 企业微信群机器人 Webhook 地址 -->
+      <template v-if="form?.type === CompanyTypeEnum.WECOM">
+        <n-form-item path="webhookUrl" :label="t('system.business.webhookUrl')">
+          <n-input v-model:value="form.config.webhookUrl" :placeholder="t('system.business.webhookUrlPlaceholder')" />
+        </n-form-item>
+        <div class="mb-[16px] ml-[100px] text-[12px] text-[var(--text-n1)]">
+          {{ t('system.business.webhookUrlTip') }}
+        </div>
+      </template>
       <!-- 应用 ID -->
       <template
         v-if="
@@ -204,18 +213,21 @@
     return t('system.business.appSecret');
   });
 
+  // 企业微信走群机器人 Webhook 时，企业ID/应用ID/密钥可留空
+  const isWecomWebhook = computed(() => form.value.type === CompanyTypeEnum.WECOM && !!form.value.config.webhookUrl);
+
   const rules = computed<FormRules>(() => ({
     corpId: [
       {
         trigger: ['input', 'blur'],
-        required: true,
+        required: !isWecomWebhook.value,
         message: t('common.notNull', { value: `${t('system.business.corpId')} ` }),
       },
     ],
     agentId: [
       {
         trigger: ['input', 'blur'],
-        required: true,
+        required: !isWecomWebhook.value,
         message: t('common.notNull', {
           value: `${t('system.business.agentId')} `,
         }),
@@ -231,7 +243,7 @@
     appSecret: [
       {
         trigger: ['input', 'blur'],
-        required: true,
+        required: !isWecomWebhook.value,
         message: t('common.notNull', {
           value: getAppSecretText.value,
         }),

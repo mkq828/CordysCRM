@@ -448,6 +448,7 @@ export const defaultThirdPartyBaseLoginConfig: ThirdPartyBaseLoginConfig = {
   appSecret: '',
   corpId: '',
   startEnable: false,
+  webhookUrl: '',
 };
 
 export const defaultThirdPartDingTalkLoginConfig: ThirdPartyDingTalkLoginConfig = {

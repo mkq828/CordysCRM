@@ -166,6 +166,10 @@ export default {
   'system.business.agentId': 'App ID',
   'system.business.appKey': 'App Key',
   'system.business.appSecret': 'App Secret',
+  'system.business.webhookUrl': 'Group Bot Webhook',
+  'system.business.webhookUrlPlaceholder': 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...',
+  'system.business.webhookUrlTip':
+    'If set, notifications are pushed to the group (no CorpID/App ID/Secret/trusted IP needed); leave empty to use app messages',
   'system.business.callBack': 'Callback URL',
   'system.business.SQLBot.description': 'Intelligent query system based on large models and RAG',
   'system.business.SQLBot.switch': 'intelligent question count',

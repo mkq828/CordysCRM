@@ -162,6 +162,10 @@ export default {
   'system.business.agentId': '应用 ID',
   'system.business.appKey': '应用 key',
   'system.business.appSecret': '应用密钥',
+  'system.business.webhookUrl': '群机器人 Webhook',
+  'system.business.webhookUrlPlaceholder': 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...',
+  'system.business.webhookUrlTip':
+    '填写群机器人地址后走群推送，免费且无需企业ID/应用ID/密钥/可信IP；留空则走应用消息模式',
   'system.business.callBack': '回调域名',
   'system.business.SQLBot.description': '基于大模型和RAG的智能问数系统',
   'system.business.SQLBot.switch': '智能问数',
