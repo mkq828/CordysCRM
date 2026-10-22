@@ -42,6 +42,7 @@
               v-model:value="formModel.password"
               type="password"
               show-password-on="click"
+              :input-props="{ autocomplete: 'new-password' }"
               :placeholder="t('register.password.placeholder')"
             />
           </n-form-item>
@@ -50,6 +51,7 @@
               v-model:value="formModel.confirmPassword"
               type="password"
               show-password-on="click"
+              :input-props="{ autocomplete: 'new-password' }"
               :placeholder="t('register.confirmPassword.placeholder')"
             />
           </n-form-item>
