@@ -986,7 +986,9 @@ public class IntegrationConfigService {
         switch (type) {
             case WECOM -> {
                 WecomThirdConfigRequest config = JSON.MAPPER.convertValue(configDTO.getConfig(), WecomThirdConfigRequest.class);
-                map.put(ThirdDetailType.WECOM_SYNC.name(), config.getStartEnable());
+                // 群机器人 Webhook 模式无需「同步用户」开关，填了 Webhook 即视为已启用
+                boolean enable = Boolean.TRUE.equals(config.getStartEnable()) || StringUtils.isNotBlank(config.getWebhookUrl());
+                map.put(ThirdDetailType.WECOM_SYNC.name(), enable);
             }
             case DINGTALK -> {
                 DingTalkThirdConfigRequest config = JSON.MAPPER.convertValue(configDTO.getConfig(), DingTalkThirdConfigRequest.class);

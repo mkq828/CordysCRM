@@ -78,12 +78,13 @@ public class WeComNoticeSender extends AbstractNoticeSender {
         //群机器人 Webhook 模式：直接推送到群，无需同步用户/token/可信IP（当前仅企业注册申请走此通道）
         if (StringUtils.isNotBlank(wecomThirdConfigRequest.getWebhookUrl())) {
             Map<String, Object> paramMap = noticeModel.getParamMap();
-            String content = "**企业注册申请待审批**\n"
-                    + "公司名称：" + paramMap.get("name") + "\n"
-                    + "联系人：" + paramMap.get("legalPersonName") + "\n"
-                    + "联系电话：" + paramMap.get("phone") + "\n"
-                    + "申请时间：" + paramMap.get("createTime") + "\n"
-                    + "[点击进入后台审批](https://duomicrm.com/#/platformFinance/register-audit)";
+            String content = "### ⏳ 企业租户申请待审批\n"
+                    + "> 公司名称：" + paramMap.get("name") + "\n"
+                    + "> 联系人：" + paramMap.get("legalPersonName") + "\n"
+                    + "> 联系电话：" + paramMap.get("phone") + "\n"
+                    + "> 申请时间：" + paramMap.get("createTime") + "\n"
+                    + "> [点击进入后台审批](https://crm.duomicrm.com/#/platformFinance/register-audit)\n"
+                    + "> 💡 提示：暂不支持企微一键登录，请使用账号密码登录";
             tokenService.sendWebhookMarkdown(wecomThirdConfigRequest.getWebhookUrl(), content);
             return;
         }

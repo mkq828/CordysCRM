@@ -111,9 +111,8 @@
       navigator.userAgent.includes('lark') ||
       getQueryVariable('state')?.startsWith('lark.') === true;
     if (!hasToken()) {
-      if (isWXWork) {
-        await handleOauthLogin('wecom', CompanyTypeEnum.WE_COM_OAUTH2, false);
-      } else if (isDingTalk) {
+      // 企微当前走群机器人 Webhook 方案，无可信域名，禁用企微 OAuth 自动登录，直接展示账号密码登录页
+      if (isDingTalk) {
         await handleOauthLogin('ding-talk', CompanyTypeEnum.DINGTALK_OAUTH2, isDingTalk);
       } else if (isLark) {
         await handleOauthLogin('lark', CompanyTypeEnum.LARK_OAUTH2, false);

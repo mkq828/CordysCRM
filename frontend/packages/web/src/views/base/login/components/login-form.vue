@@ -107,7 +107,11 @@
           <span class="text-[12px] font-normal text-[var(--text-n4)]">{{ t('login.form.modeLoginMethods') }}</span>
         </n-divider>
         <div class="mt-4 flex items-center justify-center">
-          <div v-if="isShowQRCode && !showQrCodeTab" class="loginType" @click="switchLoginType('QR_CODE')">
+          <div
+            v-if="activePlatformType !== 'WECOM' && isShowQRCode && !showQrCodeTab"
+            class="loginType"
+            @click="switchLoginType('QR_CODE')"
+          >
             <CrmIcon type="iconicon_scan" class="text-[var(--primary-8)]" :size="20" />
           </div>
           <div v-if="userInfo.authenticate !== 'LDAP' && isShowLDAP" class="loginType" @click="switchLoginType('LDAP')">

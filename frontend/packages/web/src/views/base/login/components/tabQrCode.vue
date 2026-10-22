@@ -1,9 +1,4 @@
 <template>
-  <div v-if="activeQrCodeName === 'WECOM'" class="login-qrcode">
-    <div class="qrcode">
-      <wecom-qr v-if="activeQrCodeName === 'WECOM'" />
-    </div>
-  </div>
   <div v-if="activeQrCodeName === 'DINGTALK'" class="login-qrcode">
     <div class="qrcode">
       <div class="title">
@@ -40,9 +35,8 @@
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import dingTalkQr from './dingTalkQrCode.vue';
   import LarkQrCode from './larkQrCode.vue';
-  // import LarkSuiteQrCode from './larkSuiteQrCode.vue';
-  import WecomQr from './weComQrCode.vue';
 
+  // import LarkSuiteQrCode from './larkSuiteQrCode.vue';
   import { useAppStore } from '@/store';
 
   const { t } = useI18n();
