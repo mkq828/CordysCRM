@@ -127,7 +127,9 @@ public class AiQuotaService {
         result.setQuota(getMonthlyQuota(organizationId));
         result.setUsedCalls(getUsedCalls(organizationId));
         String status;
-        if (isCircuitBroken(organizationId)) {
+        if (isDemoOrg(organizationId)) {
+            status = STATUS_NORMAL;
+        } else if (isCircuitBroken(organizationId)) {
             status = STATUS_CIRCUIT_BROKEN;
         } else if (readRateExceeded(organizationId)) {
             status = STATUS_RATE_LIMITED;
@@ -149,6 +151,10 @@ public class AiQuotaService {
         AiQuotaRecordResult result = new AiQuotaRecordResult();
         result.setQuota(getMonthlyQuota(organizationId));
 
+        if (isDemoOrg(organizationId)) {
+            result.setStatus(STATUS_NORMAL);
+            return result;
+        }
         if (isCircuitBroken(organizationId)) {
             result.setStatus(STATUS_CIRCUIT_BROKEN);
             return result;
@@ -206,7 +212,7 @@ public class AiQuotaService {
      * 超限抛异常；null 或 &lt;=0 表示不限制。今日已消耗按 ai_usage_record 当日 total_tokens 累计。
      */
     public void checkModelDailyLimit(String organizationId, AgentModel model, String userId) {
-        if (isPlatformInternalUser(userId)) {
+        if (isDemoOrg(organizationId) || isPlatformInternalUser(userId)) {
             return;
         }
         if (model == null) {
@@ -600,6 +606,20 @@ public class AiQuotaService {
      */
     private boolean isPlatformInternalUser(String userId) {
         return InternalUser.ADMIN.getValue().equals(userId) || PlatformSessionUtils.isCityManager();
+    }
+
+    /**
+     * 演示租户（is_demo=1）AI 完全放开：不限月配额、不限流、不限单日成本、不限模型日 token；
+     * 且不记账不落明细，避免演示数据污染真实用量统计与计费。
+     */
+    private boolean isDemoOrg(String organizationId) {
+        if (StringUtils.isBlank(organizationId)) {
+            return false;
+        }
+        List<Organization> list = DataAccessLayer.with(Organization.class)
+                .selectListByLambda(new LambdaQueryWrapper<Organization>()
+                        .eq(Organization::getId, organizationId));
+        return !list.isEmpty() && Boolean.TRUE.equals(list.getFirst().getDemo());
     }
 
     /**
