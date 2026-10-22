@@ -56,9 +56,10 @@ public class PlatformDashboardService {
     }
 
     private PlatformDashboardResponse build() {
-        // 排除内置默认组织(100001)：它是配置模板、非真实租户，不应出现在平台大屏
+        // 排除内置默认组织(100001)与演示租户(is_demo=1)：前者是配置模板、后者是演示数据，都不应计入平台大屏租户统计
         List<Organization> organizations = extPlatformDashboardMapper.selectAllOrganizations().stream()
-                .filter(org -> !OrganizationContext.DEFAULT_ORGANIZATION_ID.equals(org.getId()))
+                .filter(org -> !OrganizationContext.DEFAULT_ORGANIZATION_ID.equals(org.getId())
+                        && !Boolean.TRUE.equals(org.getDemo()))
                 .toList();
         Map<String, Long> userCounts = toLongMap(extPlatformDashboardMapper.countUsersGroupByOrg());
         Map<String, Long> customerCounts = toLongMap(extPlatformDashboardMapper.countCustomersGroupByOrg());
