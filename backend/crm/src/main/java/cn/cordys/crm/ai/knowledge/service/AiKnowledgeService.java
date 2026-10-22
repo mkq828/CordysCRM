@@ -50,6 +50,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -143,6 +144,9 @@ public class AiKnowledgeService {
     @Resource
     private DeepSeekSearchClient deepSeekSearchClient;
 
+    /** 按租户串行化上传：并发上传会在 revokeSameName 的 UPDATE 与插入之间互锁触发 MySQL 死锁，同租户排队即可消除 */
+    private final ConcurrentHashMap<String, Object> uploadLocks = new ConcurrentHashMap<>();
+
     // ==================== 文档维护 ====================
 
     public Pager<List<AiKnowledgeDocResponse>> page(AiKnowledgeDocPageRequest request, String orgId) {
@@ -154,6 +158,14 @@ public class AiKnowledgeService {
     /** 上传并同步解析：抽文本 + 分块 + 落库。解析失败直接抛异常，不落脏数据。 */
     @Transactional(rollbackFor = Exception.class)
     public AiKnowledgeDocResponse upload(MultipartFile file, String orgId, String userId,
+            String version, LocalDate effectiveDate) {
+        Object lock = uploadLocks.computeIfAbsent(orgId, k -> new Object());
+        synchronized (lock) {
+            return doUpload(file, orgId, userId, version, effectiveDate);
+        }
+    }
+
+    private AiKnowledgeDocResponse doUpload(MultipartFile file, String orgId, String userId,
             String version, LocalDate effectiveDate) {
         if (file == null || file.isEmpty()) {
             throw new GenericException("请上传文档");
