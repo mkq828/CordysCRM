@@ -5,7 +5,7 @@ export default {
   'platformManualConfigItems.section.aiModel.title': 'AI 模型配置（只有 admin 能改）',
   'platformManualConfigItems.item.dualModel.name': '对话、任务两类模型分开配',
   'platformManualConfigItems.item.dualModel.desc':
-    'AI 用「对话模型」做日常对话和通用任务，用「任务模型」做洞察评估类任务，两列分开，都在系统设置里由 admin 统一配，按租户隔离。',
+    'AI 用「对话模型」做日常对话和通用任务，用「任务模型」做洞察评估类任务，两列分开，都在系统设置里由 admin 统一配，平台级共享，所有租户用同一套。',
   'platformManualConfigItems.item.tenantNoSelf.name': '租户不能自配模型',
   'platformManualConfigItems.item.tenantNoSelf.desc':
     '租户用哪个模型由 admin 定，租户只按「套餐版本 + AI 额度」被放行使用，看不到、也不能自己改模型。',

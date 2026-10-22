@@ -12,7 +12,7 @@ export default {
     '每个 AI 功能对应一个功能标识（比如会话军师 = ai_advisor），是否放行由「套餐版本 + AI 额度」共同决定，租户不能自己开。举例：企业版能用，免费试用也能用，区别只在额度多少。',
   'platformManualAiFeatures.item.model.name': 'AI 模型由 admin 统一配',
   'platformManualAiFeatures.item.model.desc':
-    'AI 用哪个模型、对话模型和任务模型分开配，只有平台 admin 能在「系统设置」里改，并按租户隔离。举例：想换更强的模型，只有 admin 去改，租户看不到也改不了。',
+    'AI 用哪个模型、对话模型和任务模型分开配，只有平台 admin 能在「系统设置」里改；这套配置是平台级共享的，所有租户通用。举例：想换更强的模型，只有 admin 去改，一次改完全平台都生效，租户看不到也改不了。',
 
   'platformManualAiFeatures.section.quota.title': 'AI 额度怎么扣',
   'platformManualAiFeatures.item.monthFirst.name': '先扣月配额，再扣额度包',

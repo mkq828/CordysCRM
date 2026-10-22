@@ -4,13 +4,16 @@ import cityAccount from '@/assets/platform-manual/city-account.png';
 import cityDashboard from '@/assets/platform-manual/city-dashboard.png';
 import contract from '@/assets/platform-manual/contract.png';
 import edition from '@/assets/platform-manual/edition.png';
+import errorLog from '@/assets/platform-manual/error-log.png';
 import invoice from '@/assets/platform-manual/invoice.png';
+import jobExecLog from '@/assets/platform-manual/job-exec-log.png';
 import log from '@/assets/platform-manual/log.png';
 import paidUser from '@/assets/platform-manual/paid-user.png';
 import paymentRecord from '@/assets/platform-manual/payment-record.png';
 import planApplication from '@/assets/platform-manual/plan-application.png';
 import registerAudit from '@/assets/platform-manual/register-audit.png';
 import revenue from '@/assets/platform-manual/revenue.png';
+import securityEvent from '@/assets/platform-manual/security-event.png';
 
 export interface GuideMeta {
   key: string;
@@ -100,6 +103,27 @@ export const guideMetas: GuideMeta[] = [
     icon: 'iconicon_notification',
     color: '#f59e0b',
     screenshot: bugReport,
+  },
+  {
+    key: 'securityEvent',
+    label: 'menu.platformAdmin.securityEvent',
+    icon: 'iconicon_notification',
+    color: '#f59e0b',
+    screenshot: securityEvent,
+  },
+  {
+    key: 'jobExecLog',
+    label: 'menu.platformAdmin.jobExecLog',
+    icon: 'iconicon_refresh',
+    color: '#f59e0b',
+    screenshot: jobExecLog,
+  },
+  {
+    key: 'errorLog',
+    label: 'menu.platformAdmin.errorLog',
+    icon: 'iconicon_file',
+    color: '#f59e0b',
+    screenshot: errorLog,
   },
   {
     key: 'aiQuota',

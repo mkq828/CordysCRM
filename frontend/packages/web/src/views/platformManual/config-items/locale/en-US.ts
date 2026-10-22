@@ -5,7 +5,7 @@ export default {
   'platformManualConfigItems.section.aiModel.title': 'AI model config (admin only)',
   'platformManualConfigItems.item.dualModel.name': 'Chat and task models are configured separately',
   'platformManualConfigItems.item.dualModel.desc':
-    'AI uses a "chat model" for daily conversation and general tasks, and a "task model" for insight/evaluation tasks — two separate columns, configured centrally by admin in System Settings and isolated per tenant.',
+    'AI uses a "chat model" for daily conversation and general tasks, and a "task model" for insight/evaluation tasks — two separate columns, configured centrally by admin in System Settings and platform-shared across all tenants.',
   'platformManualConfigItems.item.tenantNoSelf.name': 'Tenants cannot configure models themselves',
   'platformManualConfigItems.item.tenantNoSelf.desc':
     'Which model a tenant uses is decided by admin; tenants are only allowed to use it per "plan version + AI quota" and cannot see or change the model.',

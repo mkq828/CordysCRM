@@ -161,7 +161,11 @@
       keys: ['registerAudit', 'paidUser', 'planApplication', 'contract', 'paymentRecord', 'invoice', 'revenue'],
     },
     { key: 'city-partner', title: 'menu.cityManager', keys: ['cityAccount', 'cityDashboard'] },
-    { key: 'platform-ops', title: 'menu.platformAdmin', keys: ['edition', 'log', 'bugReport'] },
+    {
+      key: 'platform-ops',
+      title: 'menu.platformAdmin',
+      keys: ['edition', 'log', 'bugReport', 'securityEvent', 'jobExecLog', 'errorLog'],
+    },
     { key: 'ai-quota', title: 'menu.platformAiQuota', keys: ['aiQuota'] },
   ];
 

@@ -163,7 +163,7 @@ export default {
   'platformManualUsage.log.example':
     'Someone wrongly edited a customer record. In Operation logs, filter by operator to find who changed it and when.',
   'platformManualUsage.log.tip':
-    'Server errors also land here with a traceId, which is very useful for troubleshooting.',
+    'Server errors don\'t land here — look them up by traceId in "System error logs" next door; check whether scheduled jobs ran and why they failed in "Scheduled job execution logs".',
 
   // Bug reports
   'platformManualUsage.bugReport.intro': 'User-submitted issue reports with page and traceId for easy tracing.',
@@ -193,4 +193,50 @@ export default {
   'platformManualUsage.aiQuota.example':
     'A newly signed Enterprise tenant should get 1000 AI calls. You create a pack under Quota packs and assign it under Tenant quota.',
   'platformManualUsage.aiQuota.tip': 'The platform admin account doesn’t consume quota when using AI itself.',
+
+  // Security events
+  'platformManualUsage.securityEvent.intro':
+    'Records malicious requests and attacks the system detects, exportable as evidence.',
+  'platformManualUsage.securityEvent.screenshotCaption': 'Security events list',
+  'platformManualUsage.securityEvent.what':
+    'The system detects SQL injection, XSS, path traversal, scanner probing and error flooding in real time — it only records, never blocks. Here you see who attacked the system and when, and export CSV as security evidence when needed.',
+  'platformManualUsage.securityEvent.where': 'Left menu “Platform ops” → “Security events”',
+  'platformManualUsage.securityEvent.step1': 'Open the page and filter by event type, IP, or time.',
+  'platformManualUsage.securityEvent.step2':
+    'Click View on a row to see IP, User-Agent, request URI, forward chain, region, traceId, etc.',
+  'platformManualUsage.securityEvent.step3':
+    'To keep evidence, click Export CSV to export the current filtered results.',
+  'platformManualUsage.securityEvent.example':
+    'An IP keeps probing your login endpoint. You filter by that IP here, see a run of “Scanner” events, and export the CSV as evidence.',
+  'platformManualUsage.securityEvent.tip':
+    'Security events are recorded, not auto-blocked; if there is a real attack, block the IP on your firewall or WAF.',
+
+  // System error logs
+  'platformManualUsage.errorLog.intro': 'See server errors in one place, locate by traceId, with the full stack trace.',
+  'platformManualUsage.errorLog.screenshotCaption': 'System error logs',
+  'platformManualUsage.errorLog.what':
+    'Every server error is recorded with the error class, message, stack trace, traceId and time. When a user reports a problem or a page returns 500, come here to pinpoint it by traceId.',
+  'platformManualUsage.errorLog.where': 'Left menu “Platform ops” → “System error logs”',
+  'platformManualUsage.errorLog.step1': 'Filter by error class, traceId, or a keyword in the message.',
+  'platformManualUsage.errorLog.step2': 'Click View stack to see the full trace and locate which code or SQL failed.',
+  'platformManualUsage.errorLog.step3': 'Match the traceId to a Bug report or user report, fix it, then follow up.',
+  'platformManualUsage.errorLog.example':
+    'A user reports a 500 on a page. You take the traceId from the report, search it here, read the stack to find a null pointer, fix it, and confirm it no longer occurs.',
+  'platformManualUsage.errorLog.tip':
+    'Error records keep piling up, so clean them periodically; prefer traceId when troubleshooting — it is the fastest way to locate.',
+
+  // Scheduled job execution logs
+  'platformManualUsage.jobExecLog.intro': 'See whether each scheduled job ran, how long it took, and why it failed.',
+  'platformManualUsage.jobExecLog.screenshotCaption': 'Scheduled job execution logs',
+  'platformManualUsage.jobExecLog.what':
+    'Every scheduled job (e.g. AI-employee follow-up, morning report push, data rollup) records a row per run: job name, status (running/success/failed), start/end time, and duration. Failures also record the failure message.',
+  'platformManualUsage.jobExecLog.where': 'Left menu “Platform ops” → “Scheduled job execution logs”',
+  'platformManualUsage.jobExecLog.step1': 'Filter by job name, status, or time range.',
+  'platformManualUsage.jobExecLog.step2':
+    'Read the status and duration columns to spot jobs that failed or ran very slowly.',
+  'platformManualUsage.jobExecLog.step3': 'Open a failed record to read the failure message, then fix the cause.',
+  'platformManualUsage.jobExecLog.example':
+    'The AI employee didn’t auto-follow-up today. You filter by the job name, find status “Failed”, open it and see the failure was an API timeout.',
+  'platformManualUsage.jobExecLog.tip':
+    'Scheduled jobs have been moved to run off-peak around midnight; if one fails overnight, check here during the day.',
 };

@@ -133,7 +133,8 @@ export default {
   'platformManualUsage.log.step2': '按操作人、时间、操作类型、操作对象筛选。',
   'platformManualUsage.log.step3': '点开看明细。',
   'platformManualUsage.log.example': '有人误改了客户资料，你在「操作日志」里按操作人筛选，定位到是谁、什么时候改的。',
-  'platformManualUsage.log.tip': '服务端报错也会落到这里，带 traceId，排查问题很管用。',
+  'platformManualUsage.log.tip':
+    '服务端报错不在这里，去隔壁「系统错误记录」按 traceId 查；定时任务跑没跑、为什么失败去「定时任务执行记录」查。',
 
   // 问题反馈
   'platformManualUsage.bugReport.intro': '用户提交的问题反馈，带页面和 traceId，方便定位。',
@@ -161,4 +162,44 @@ export default {
   'platformManualUsage.aiQuota.example':
     '新签的企业版租户要送 1000 次 AI 额度，你在「额度包」里建包、在「租户额度」里分配给它。',
   'platformManualUsage.aiQuota.tip': '平台 admin 账号自己用 AI 不扣额度。',
+
+  // 安全事件
+  'platformManualUsage.securityEvent.intro': '记录系统检测到的恶意请求与攻击行为，可导出取证。',
+  'platformManualUsage.securityEvent.screenshotCaption': '安全事件列表页',
+  'platformManualUsage.securityEvent.what':
+    '系统会实时检测 SQL 注入、跨站脚本(XSS)、路径穿越、扫描器探测、高频报错这几类恶意请求，只记录、不拦截。你在这里查看谁在什么时候攻击了系统，必要时导出 CSV 作为安全取证。',
+  'platformManualUsage.securityEvent.where': '左侧菜单「平台运营」→「安全事件」',
+  'platformManualUsage.securityEvent.step1': '打开页面，按事件类型、IP、时间筛选。',
+  'platformManualUsage.securityEvent.step2':
+    '点某条的「查看」，看 IP、User-Agent、请求 URI、转发链、归属地、traceId 等详情。',
+  'platformManualUsage.securityEvent.step3': '要留证就点「导出 CSV」，把当前筛选结果导出来。',
+  'platformManualUsage.securityEvent.example':
+    '某 IP 反复扫你的登录接口，你在「安全事件」里按该 IP 筛选，看到一串「扫描器」事件，导出 CSV 存证。',
+  'platformManualUsage.securityEvent.tip': '安全事件只记录、不自动拦截；如果发现真有攻击，去防火墙或 WAF 上封 IP。',
+
+  // 系统错误记录
+  'platformManualUsage.errorLog.intro': '集中看服务端报错，按 traceId 定位，带异常堆栈。',
+  'platformManualUsage.errorLog.screenshotCaption': '系统错误记录页',
+  'platformManualUsage.errorLog.what':
+    '服务端每次报错都会记一条，包含报错类、错误信息、异常堆栈、traceId 和发生时间。用户反馈问题、或页面报 500 时，来这按 traceId 精确定位。',
+  'platformManualUsage.errorLog.where': '左侧菜单「平台运营」→「系统错误记录」',
+  'platformManualUsage.errorLog.step1': '按报错类、traceId 或错误信息关键词筛选。',
+  'platformManualUsage.errorLog.step2': '点「查看堆栈」看完整异常栈，定位是哪段代码、哪条 SQL 出错。',
+  'platformManualUsage.errorLog.step3': '用这条记录的 traceId 去「问题反馈」或用户反馈里对号，修复后回填。',
+  'platformManualUsage.errorLog.example':
+    '用户反馈某页面报 500，你从反馈里拿到 traceId，来这搜到对应报错，看堆栈定位到是空指针，修完确认不再报。',
+  'platformManualUsage.errorLog.tip': '报错记录会越积越多，定期清理；排查时优先用 traceId，最快定位。',
+
+  // 定时任务执行记录
+  'platformManualUsage.jobExecLog.intro': '看每个定时任务跑没跑、耗时多久、失败原因。',
+  'platformManualUsage.jobExecLog.screenshotCaption': '定时任务执行记录页',
+  'platformManualUsage.jobExecLog.what':
+    '系统里所有定时任务（比如 AI 员工定时跟进、晨报推送、数据汇总）每次执行都会记一条：任务名、状态（运行中/成功/失败）、开始结束时间、耗时。失败还会记失败信息。',
+  'platformManualUsage.jobExecLog.where': '左侧菜单「平台运营」→「定时任务执行记录」',
+  'platformManualUsage.jobExecLog.step1': '按任务名、状态、时间范围筛选。',
+  'platformManualUsage.jobExecLog.step2': '看列表里的状态和耗时，找出跑失败或跑得特别慢的任务。',
+  'platformManualUsage.jobExecLog.step3': '点开失败的记录看失败信息，定位原因后修复。',
+  'platformManualUsage.jobExecLog.example':
+    'AI 员工今天没自动跟进，你来这按任务名筛「AI 员工跟进」，发现状态是「失败」，点开看失败信息是接口超时。',
+  'platformManualUsage.jobExecLog.tip': '定时任务已错峰到凌晨执行，凌晨失败白天记得来这看一眼。',
 };

@@ -118,7 +118,13 @@
     { key: 'paymentVerified', receiverType: 'tenant' },
   ];
 
-  const specials = [{ key: 'paymentNoSms' }, { key: 'renewalNoDup' }, { key: 'personalNoAudit' }];
+  const specials = [
+    { key: 'paymentNoSms' },
+    { key: 'renewalNoDup' },
+    { key: 'personalNoAudit' },
+    { key: 'registerApplyWecomGroup' },
+    { key: 'wecomLoginClosed' },
+  ];
 </script>
 
 <style lang="less" scoped>

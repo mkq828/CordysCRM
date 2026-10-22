@@ -12,7 +12,7 @@ export default {
     'Each AI feature maps to a feature code (e.g. Sales Advisor = ai_advisor). Whether it is available is decided by "plan version + AI quota" together; tenants cannot turn it on themselves.',
   'platformManualAiFeatures.item.model.name': 'AI model is configured centrally by admin',
   'platformManualAiFeatures.item.model.desc':
-    'Which model AI uses — chat model and task model configured separately — can only be changed by platform admin in "System Settings", and is isolated per tenant.',
+    'Which model AI uses — chat model and task model configured separately — can only be changed by platform admin in "System Settings", and this config is platform-shared: all tenants use the same set.',
 
   'platformManualAiFeatures.section.quota.title': 'How AI quota is deducted',
   'platformManualAiFeatures.item.monthFirst.name': 'Monthly quota first, then quota packs',

@@ -40,4 +40,8 @@ export default {
   'platformManualNoticeRules.special.renewalNoDup':
     '续费核销通过走「续费通过」这条通知，不会再重复发「回款核销」通知，避免租户收到两条。',
   'platformManualNoticeRules.special.personalNoAudit': '个人注册默认免审、不发通知，提交后直接开通免费试用。',
+  'platformManualNoticeRules.special.registerApplyWecomGroup':
+    '企业注册申请现在会推送到企业微信群：在「组织设置 → 第三方集成/企业微信」里填「群机器人 Webhook」后，企业一提交注册就会推一条消息到管理员群（含公司名、联系人、电话、申请时间、审批链接），个人注册不推。群机器人模式不用填企业 ID / 应用 ID / 密钥，也不用配企业可信 IP。',
+  'platformManualNoticeRules.special.wecomLoginClosed':
+    '企微扫码登录已关闭：登录页只保留账号密码和短信验证码两种方式。注册审批通知里会附一句「暂不支持企微一键登录」的提示，引导用户用账号密码登录。',
 };
