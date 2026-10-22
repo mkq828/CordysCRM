@@ -60,6 +60,9 @@ public final class ShiroFilter {
         FILTER_CHAIN_DEFINITION_MAP.put("/js/**", "anon");
         FILTER_CHAIN_DEFINITION_MAP.put("/images/**", "anon");
         FILTER_CHAIN_DEFINITION_MAP.put("/assets/**", "anon");
+        FILTER_CHAIN_DEFINITION_MAP.put("/media/**", "anon");
+        FILTER_CHAIN_DEFINITION_MAP.put("/image-styles/**", "anon");
+        FILTER_CHAIN_DEFINITION_MAP.put("/downloads/**", "anon");
         FILTER_CHAIN_DEFINITION_MAP.put("/fonts/**", "anon");
         FILTER_CHAIN_DEFINITION_MAP.put("/favicon.ico", "anon");
         FILTER_CHAIN_DEFINITION_MAP.put("/logo.*", "anon");
