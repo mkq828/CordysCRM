@@ -12,6 +12,8 @@ const tender: AppRouteRecordRaw = {
     locale: 'menu.tender',
     permissions: ['TENDER:READ'],
     icon: 'iconicon_target',
+    // 「大单/招标」已停用，菜单隐藏，仅保留路由占位（可恢复）
+    hideInMenu: true,
     hideChildrenInMenu: true,
     collapsedLocale: 'menu.tender',
   },

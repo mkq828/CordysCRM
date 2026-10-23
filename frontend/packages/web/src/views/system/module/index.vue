@@ -170,19 +170,9 @@
       icon: 'iconicon_set_up',
     },
     {
-      label: t('menu.dashboard'),
-      key: ModuleConfigEnum.DASHBOARD,
-      icon: 'iconicon_dashboard1',
-    },
-    {
       label: t('module.agent'),
       key: ModuleConfigEnum.AGENT,
       icon: 'iconicon_bot',
-    },
-    {
-      label: t('module.tender'),
-      key: ModuleConfigEnum.TENDER,
-      icon: 'iconicon_target',
     },
     {
       label: t('module.customForm'),
@@ -197,17 +187,21 @@
   ]);
 
   const moduleNavList = ref<ModuleNavItem[]>([]);
+  // 已停用/被取代的模块，不在模块配置里展示（可恢复）
+  const HIDDEN_MODULE_KEYS: ModuleConfigEnum[] = [ModuleConfigEnum.DASHBOARD, ModuleConfigEnum.TENDER];
   async function initModuleNavList() {
     await appStore.initModuleConfig();
-    moduleNavList.value = appStore.moduleConfigList.map((item) => {
-      const navItem = navList.value.find((e) => e.key === item.moduleKey);
-      return {
-        ...item,
-        key: item.moduleKey,
-        label: navItem?.label ?? '',
-        icon: navItem?.icon ?? '',
-      };
-    });
+    moduleNavList.value = appStore.moduleConfigList
+      .filter((item) => !HIDDEN_MODULE_KEYS.includes(item.moduleKey as ModuleConfigEnum))
+      .map((item) => {
+        const navItem = navList.value.find((e) => e.key === item.moduleKey);
+        return {
+          ...item,
+          key: item.moduleKey,
+          label: navItem?.label ?? '',
+          icon: navItem?.icon ?? '',
+        };
+      });
   }
 
   // 模块排序

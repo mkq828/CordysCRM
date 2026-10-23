@@ -141,6 +141,8 @@ const aiCreation: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.aiTenderSubscription',
         permissions: [],
+        // 「AI 招标订阅」随大单一起停用，菜单隐藏（可恢复）
+        hideInMenu: true,
       },
     },
     {
