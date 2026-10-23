@@ -415,9 +415,9 @@ public class ModuleFieldService {
     }
 
     /**
-     * 报价模块字段初始化：金额 = 产品定价 × 折扣 × (1 + 税点)；累计金额 = SUM(报价产品.金额)。
+     * 报价模块字段初始化：金额 = 产品定价 × 折扣 ÷ 10 × (1 + 税点)；累计金额 = SUM(报价产品.金额)。
      * <p>报价产品明细的金额/累计金额为 FORMULA 字段，但此前未生成公式，导致新建报价时
-     * 金额无法自动计算。折扣默认 1（原价）、税点默认 0（无税），此处遍历所有租户补齐。</p>
+     * 金额无法自动计算。折扣按整数填写（默认 10 原价、9 即 9 折）、税点默认 0（无税），遍历所有租户补齐。</p>
      */
     @SuppressWarnings("unchecked")
     @Transactional(rollbackFor = Exception.class)
@@ -457,16 +457,15 @@ public class ModuleFieldService {
                     amountSubField = subField;
                 }
             }
-            // 折扣默认 1（原价）、税点默认 0（无税），避免留空导致金额算成 0
-            if (discountSubField != null && discountSubField.get("defaultValue") == null) {
-                discountSubField.put("defaultValue", "1");
+            // 折扣默认 10（原价，按整数填写：10=原价、9=9折）、税点默认 0（无税），避免留空导致金额算成 0
+            if (discountSubField != null) {
+                discountSubField.put("defaultValue", "10");
             }
-            if (taxSubField != null && taxSubField.get("defaultValue") == null) {
+            if (taxSubField != null) {
                 taxSubField.put("defaultValue", "0");
             }
-            // 金额 = 产品定价 × 折扣 × (1 + 税点)
-            if (amountSubField != null && priceId != null && discountId != null && taxId != null
-                    && StringUtils.isEmpty((String) amountSubField.get("formula"))) {
+            // 金额 = 产品定价 × 折扣 ÷ 10 × (1 + 税点)，无条件覆盖以迁移旧公式（折扣语义由直接乘数改为 ÷10）
+            if (amountSubField != null && priceId != null && discountId != null && taxId != null) {
                 amountSubField.put("formula", getQuotationProductAmountFormula(priceId, discountId, taxId));
                 // 金额按数值渲染（否则浮点尾差如 22373.999999999996 直接以文本展示），保留两位小数与千分位
                 amountSubField.put("formulaResultFormat", "number");
@@ -615,13 +614,14 @@ public class ModuleFieldService {
     }
 
     /**
-     * 生成报价明细金额公式：产品定价 × 折扣 × (1 + 税点)。税点为 percent，引擎自动 ÷100。
+     * 生成报价明细金额公式：产品定价 × 折扣 ÷ 10 × (1 + 税点)。
+     * 折扣按整数填写（10=原价、9=9折），税点为 percent（引擎自动 ÷100）。
      */
     private String getQuotationProductAmountFormula(String priceId, String discountId, String taxId) {
         return String.format("""
                 {
-                     "source": "${%s} * ${%s} * (1 + ${%s})",
-                     "display": "产品定价 * 折扣 * (1 + 税点)",
+                     "source": "${%s} * ${%s} / 10 * (1 + ${%s})",
+                     "display": "产品定价 * 折扣 / 10 * (1 + 税点)",
                      "fields": [
                          {
                              "fieldId": "%s",
@@ -644,24 +644,33 @@ public class ModuleFieldService {
                          "operator": "*",
                          "left": {
                              "type": "binary",
-                             "operator": "*",
+                             "operator": "/",
                              "left": {
-                                 "type": "field",
-                                 "fieldId": "%s",
-                                 "name": "产品定价",
-                                 "fieldType": "INPUT_NUMBER",
-                                 "numberType": "number",
-                                 "startTokenIndex": 0,
-                                 "endTokenIndex": 0
+                                 "type": "binary",
+                                 "operator": "*",
+                                 "left": {
+                                     "type": "field",
+                                     "fieldId": "%s",
+                                     "name": "产品定价",
+                                     "fieldType": "INPUT_NUMBER",
+                                     "numberType": "number",
+                                     "startTokenIndex": 0,
+                                     "endTokenIndex": 0
+                                 },
+                                 "right": {
+                                     "type": "field",
+                                     "fieldId": "%s",
+                                     "name": "折扣",
+                                     "fieldType": "INPUT_NUMBER",
+                                     "numberType": "number",
+                                     "startTokenIndex": 2,
+                                     "endTokenIndex": 2
+                                 }
                              },
                              "right": {
-                                 "type": "field",
-                                 "fieldId": "%s",
-                                 "name": "折扣",
-                                 "fieldType": "INPUT_NUMBER",
-                                 "numberType": "number",
-                                 "startTokenIndex": 2,
-                                 "endTokenIndex": 2
+                                 "type": "literal",
+                                 "value": 10,
+                                 "valueType": "number"
                              }
                          },
                          "right": {
@@ -678,8 +687,8 @@ public class ModuleFieldService {
                                  "name": "税点",
                                  "fieldType": "INPUT_NUMBER",
                                  "numberType": "percent",
-                                 "startTokenIndex": 5,
-                                 "endTokenIndex": 5
+                                 "startTokenIndex": 8,
+                                 "endTokenIndex": 8
                              }
                          }
                      }

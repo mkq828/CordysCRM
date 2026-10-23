@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
- * 验证报价金额公式：金额 = 产品定价 × 折扣 × (1 + 税点)，税点按 percent 自动 ÷100。
+ * 验证报价金额公式：金额 = 产品定价 × 折扣 ÷ 10 × (1 + 税点)，折扣按整数（9=9折）、税点按 percent 自动 ÷100。
  */
 class QuotationFormulaTest {
 
@@ -32,7 +32,7 @@ class QuotationFormulaTest {
 
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("p", 100);
-        values.put("d", 0.9);
+        values.put("d", 9);
         values.put("t", 6);
         Map<String, FormulaFieldMetadata> metadata = Map.of(
                 "p", new FormulaFieldMetadata("产品定价", "INPUT_NUMBER",
@@ -46,7 +46,7 @@ class QuotationFormulaTest {
         Object result = engine.evaluate(formula,
                 new FormulaEvaluationContext(values, metadata, LocalDateTime.now()));
 
-        // 100 × 0.9 × (1 + 6/100) = 95.4
+        // 100 × 9 ÷ 10 × (1 + 6/100) = 95.4
         assertEquals(95.4D, result);
     }
 
