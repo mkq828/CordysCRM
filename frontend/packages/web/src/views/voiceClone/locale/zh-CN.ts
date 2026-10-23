@@ -14,7 +14,6 @@ export default {
   'voiceClone.training': '正在复刻…',
   'voiceClone.success': '复刻成功',
   'voiceClone.failed': '复刻失败',
-  'voiceClone.preview': '试听',
   'voiceClone.previewing': '合成中…',
   'voiceClone.delete': '删除',
   'voiceClone.empty': '还没有克隆音色，上传样本开始创建第一个吧',

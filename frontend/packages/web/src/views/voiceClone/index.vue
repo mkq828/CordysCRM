@@ -54,17 +54,14 @@
             </div>
             <p v-if="voice.errorMsg" class="voiceclone-card-error">{{ voice.errorMsg }}</p>
           </div>
+          <!-- 复刻成功常驻声浪播放器 -->
+          <div v-if="voice.status === 'SUCCESS'" class="voiceclone-card-player">
+            <div v-if="previewLoadingIds.includes(voice.id)" class="voiceclone-card-loading">
+              <ShimmerText size="13px">{{ t('voiceClone.previewing') }}</ShimmerText>
+            </div>
+            <FlowAudioPlayer v-else-if="previewUrls[voice.id]" :src="previewUrls[voice.id]" />
+          </div>
           <div class="voiceclone-card-actions">
-            <n-button
-              v-if="voice.status === 'SUCCESS'"
-              size="small"
-              type="primary"
-              ghost
-              :loading="previewingId === voice.id"
-              @click="handlePreview(voice)"
-            >
-              {{ previewingId === voice.id ? t('voiceClone.previewing') : t('voiceClone.preview') }}
-            </n-button>
             <n-button size="small" quaternary type="error" @click="handleDelete(voice)">
               {{ t('voiceClone.delete') }}
             </n-button>
@@ -91,6 +88,7 @@
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import type { AiCloneVoice } from '@lib/shared/models/ai';
 
+  import FlowAudioPlayer from '@/components/pure/effects/FlowAudioPlayer.vue';
   import ShimmerText from '@/components/pure/effects/ShimmerText.vue';
   import AiActionButton from '@/components/business/ai-action-button/index.vue';
 
@@ -113,7 +111,8 @@
   const sampleAttachmentId = ref('');
   const submitting = ref(false);
   const voices = ref<AiCloneVoice[]>([]);
-  const previewingId = ref('');
+  const previewLoadingIds = ref<string[]>([]);
+  const previewUrls = ref<Record<string, string>>({});
 
   let pollTimer: number | undefined;
 
@@ -139,9 +138,36 @@
     return voices.value.some((v) => v.status === 'TRAINING');
   }
 
+  function base64ToBlobUrl(base64: string): string {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
+  }
+
+  async function ensurePreviewUrl(voice: AiCloneVoice) {
+    if (!voice.id || voice.status !== 'SUCCESS' || previewUrls.value[voice.id]) {
+      return;
+    }
+    previewLoadingIds.value.push(voice.id);
+    try {
+      const res = await previewAiVoiceClone(voice.id);
+      if (res.audio) {
+        previewUrls.value = { ...previewUrls.value, [voice.id]: base64ToBlobUrl(res.audio) };
+      }
+    } catch (error) {
+      Message.error((error as Error)?.message || t('common.operationFailed'));
+    } finally {
+      previewLoadingIds.value = previewLoadingIds.value.filter((id) => id !== voice.id);
+    }
+  }
+
   async function loadVoices() {
     try {
       voices.value = await getAiVoiceCloneTasks();
+      await Promise.all(voices.value.map((v) => ensurePreviewUrl(v)));
     } catch (error) {
       Message.error((error as Error)?.message || t('common.operationFailed'));
     }
@@ -166,36 +192,6 @@
       }
       await loadVoices();
     }, 4000);
-  }
-
-  function playBase64Wav(base64: string) {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i += 1) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    const blob = new Blob([bytes], { type: 'audio/wav' });
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.onended = () => URL.revokeObjectURL(url);
-    audio.play().catch(() => URL.revokeObjectURL(url));
-  }
-
-  async function handlePreview(voice: AiCloneVoice) {
-    if (!voice.id || previewingId.value) {
-      return;
-    }
-    previewingId.value = voice.id;
-    try {
-      const res = await previewAiVoiceClone(voice.id);
-      if (res.audio) {
-        playBase64Wav(res.audio);
-      }
-    } catch (error) {
-      Message.error((error as Error)?.message || t('common.operationFailed'));
-    } finally {
-      previewingId.value = '';
-    }
   }
 
   async function handleSubmit() {
@@ -262,6 +258,7 @@
 
   onUnmounted(() => {
     stopPolling();
+    Object.values(previewUrls.value).forEach((url) => URL.revokeObjectURL(url));
   });
 </script>
 
@@ -332,7 +329,6 @@
   }
   .voiceclone-card {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
     border-radius: 12px;
@@ -386,5 +382,16 @@
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+  }
+  .voiceclone-card-player {
+    width: 360px;
+    max-width: 40vw;
+    flex-shrink: 1;
+  }
+  .voiceclone-card-loading {
+    display: flex;
+    align-items: center;
+    height: 56px;
+    color: #f97316;
   }
 </style>

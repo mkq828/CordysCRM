@@ -14,7 +14,6 @@ export default {
   'voiceClone.training': 'Cloning…',
   'voiceClone.success': 'Ready',
   'voiceClone.failed': 'Failed',
-  'voiceClone.preview': 'Preview',
   'voiceClone.previewing': 'Synthesizing…',
   'voiceClone.delete': 'Delete',
   'voiceClone.empty': 'No cloned voice yet. Upload a sample to create your first one.',
