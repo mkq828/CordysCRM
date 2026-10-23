@@ -39,4 +39,17 @@ export default {
   'cityManager.signManagerRequired': 'Please select signing manager',
   'cityManager.followManagerRequired': 'Please select following manager',
   'cityManager.assignSuccess': 'Assigned',
+  'cityManager.demoAccount': 'Demo account',
+  'cityManager.bindDemo': 'Bind demo account',
+  'cityManager.bindDemoTitle': 'Bind demo account',
+  'cityManager.demoAccountPlaceholder': 'Select a demo account (clear to unbind)',
+  'cityManager.bindDemoHint':
+    'Each demo account can only be bound to one partner to avoid kicking each other out. Log in with the bound account when demoing.',
+  'cityManager.demoAccountBound': 'Bound to {name}',
+  'cityManager.bindDemoSuccess': 'Bound',
+  'cityManager.addDemoAccount': 'Add demo account',
+  'cityManager.addDemoAccountTitle': 'Add demo account',
+  'cityManager.addDemoAccountHint':
+    'After adding, assign it to a partner under "Bind demo account" to avoid sharing one account.',
+  'cityManager.addDemoAccountSuccess': 'Added',
 };

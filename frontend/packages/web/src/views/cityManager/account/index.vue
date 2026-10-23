@@ -21,6 +21,7 @@
         <div class="flex-1" />
         <n-button type="primary" ghost @click="openAdd">{{ t('cityManager.add') }}</n-button>
         <n-button type="primary" ghost @click="openAssign">{{ t('cityManager.assign') }}</n-button>
+        <n-button type="primary" ghost @click="openAddDemoAccount">{{ t('cityManager.addDemoAccount') }}</n-button>
       </div>
     </CrmCard>
 
@@ -191,6 +192,80 @@
         </div>
       </template>
     </n-modal>
+
+    <!-- 绑定演示账号 -->
+    <n-modal
+      v-model:show="showBindDemo"
+      preset="card"
+      :title="t('cityManager.bindDemoTitle')"
+      class="w-[480px]"
+      :mask-closable="false"
+    >
+      <div class="flex flex-col gap-[16px]">
+        <div class="flex items-center gap-[12px]">
+          <span class="w-[100px] shrink-0 text-right">{{ t('cityManager.demoAccount') }}</span>
+          <CrmSelect
+            v-model:value="bindForm.demoUserId"
+            :options="bindDemoOptions"
+            clearable
+            class="flex-1"
+            :placeholder="t('cityManager.demoAccountPlaceholder')"
+          />
+        </div>
+        <div class="text-[13px] text-orange-500">{{ t('cityManager.bindDemoHint') }}</div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-[12px]">
+          <n-button @click="showBindDemo = false">{{ t('common.cancel') }}</n-button>
+          <n-button type="primary" :loading="bindDemoLoading" @click="confirmBindDemo">
+            {{ t('common.confirm') }}
+          </n-button>
+        </div>
+      </template>
+    </n-modal>
+
+    <!-- 新增演示账号 -->
+    <n-modal
+      v-model:show="showAddDemoAccount"
+      preset="card"
+      :title="t('cityManager.addDemoAccountTitle')"
+      class="w-[480px]"
+      :mask-closable="false"
+    >
+      <div class="flex flex-col gap-[16px]">
+        <div class="flex items-center gap-[12px]">
+          <span class="w-[100px] shrink-0 text-right"
+            ><span class="text-[var(--error-red)]">*</span>{{ t('cityManager.name') }}</span
+          >
+          <n-input v-model:value="addDemoForm.name" :placeholder="t('cityManager.namePlaceholder')" class="flex-1" />
+        </div>
+        <div class="flex items-center gap-[12px]">
+          <span class="w-[100px] shrink-0 text-right"
+            ><span class="text-[var(--error-red)]">*</span>{{ t('cityManager.phone') }}</span
+          >
+          <n-input v-model:value="addDemoForm.phone" :placeholder="t('cityManager.phonePlaceholder')" class="flex-1" />
+        </div>
+        <div class="flex items-center gap-[12px]">
+          <span class="w-[100px] shrink-0 text-right">{{ t('cityManager.password') }}</span>
+          <n-input
+            v-model:value="addDemoForm.password"
+            type="password"
+            show-password-on="click"
+            :placeholder="t('cityManager.passwordPlaceholder')"
+            class="flex-1"
+          />
+        </div>
+        <div class="text-[13px] text-orange-500">{{ t('cityManager.addDemoAccountHint') }}</div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-[12px]">
+          <n-button @click="showAddDemoAccount = false">{{ t('common.cancel') }}</n-button>
+          <n-button type="primary" :loading="addDemoLoading" @click="confirmAddDemoAccount">
+            {{ t('common.confirm') }}
+          </n-button>
+        </div>
+      </template>
+    </n-modal>
   </div>
 </template>
 
@@ -200,7 +275,12 @@
 
   import { SpecialColumnEnum, TableKeyEnum } from '@lib/shared/enums/tableEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
-  import type { CityManagerItem, CityManagerOrgItem, CityManagerStatus } from '@lib/shared/models/system/cityManager';
+  import type {
+    CityManagerDemoAccountItem,
+    CityManagerItem,
+    CityManagerOrgItem,
+    CityManagerStatus,
+  } from '@lib/shared/models/system/cityManager';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
   import type { ActionsItem } from '@/components/pure/crm-more-action/type';
@@ -212,7 +292,10 @@
 
   import {
     cityManagerAdd,
+    cityManagerAddDemoAccount,
     cityManagerAssign,
+    cityManagerBindDemo,
+    cityManagerDemoAccounts,
     cityManagerDisable,
     cityManagerOrgOptions,
     cityManagerPageList,
@@ -256,6 +339,25 @@
   const showAssign = ref(false);
   const assignLoading = ref(false);
   const assignForm = reactive({ organizationId: '', signManagerId: '', followManagerId: '' });
+
+  // 绑定演示账号
+  const showBindDemo = ref(false);
+  const bindDemoLoading = ref(false);
+  const demoAccounts = ref<CityManagerDemoAccountItem[]>([]);
+  const bindForm = reactive({ managerId: '', demoUserId: null as string | null });
+
+  const bindDemoOptions = computed(() =>
+    demoAccounts.value.map((a) => {
+      const occupiedByOther = a.boundManagerId && a.boundManagerId !== bindForm.managerId;
+      return {
+        label: occupiedByOther
+          ? `${a.name}（${a.phone}）${t('cityManager.demoAccountBound', { name: a.boundManagerName || '' })}`
+          : `${a.name}（${a.phone}）`,
+        value: a.id,
+        disabled: !!occupiedByOther,
+      };
+    })
+  );
 
   const managerOptions = computed(() =>
     allManagers.value.map((m) => ({ label: `${m.name}（${m.phone}）`, value: m.id }))
@@ -444,8 +546,78 @@
     }
   }
 
+  async function openBindDemo(row: CityManagerItem) {
+    bindForm.managerId = row.id;
+    bindForm.demoUserId = row.demoUserId ?? null;
+    try {
+      demoAccounts.value = (await cityManagerDemoAccounts()) || [];
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
+    showBindDemo.value = true;
+  }
+
+  async function confirmBindDemo() {
+    bindDemoLoading.value = true;
+    try {
+      await cityManagerBindDemo({
+        managerId: bindForm.managerId,
+        demoUserId: bindForm.demoUserId ?? undefined,
+      });
+      Message.success(t('cityManager.bindDemoSuccess'));
+      showBindDemo.value = false;
+      tableRefreshId.value += 1;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    } finally {
+      bindDemoLoading.value = false;
+    }
+  }
+
+  // 新增演示账号
+  const showAddDemoAccount = ref(false);
+  const addDemoLoading = ref(false);
+  const addDemoForm = reactive({ name: '', phone: '', password: '' });
+
+  function openAddDemoAccount() {
+    Object.assign(addDemoForm, { name: '', phone: '', password: '' });
+    showAddDemoAccount.value = true;
+  }
+
+  async function confirmAddDemoAccount() {
+    if (!addDemoForm.name.trim()) {
+      Message.warning(t('cityManager.nameRequired'));
+      return;
+    }
+    if (!addDemoForm.phone.trim()) {
+      Message.warning(t('cityManager.phoneRequired'));
+      return;
+    }
+    addDemoLoading.value = true;
+    try {
+      await cityManagerAddDemoAccount({
+        name: addDemoForm.name.trim(),
+        phone: addDemoForm.phone.trim(),
+        password: addDemoForm.password || undefined,
+      });
+      Message.success(t('cityManager.addDemoAccountSuccess'));
+      showAddDemoAccount.value = false;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    } finally {
+      addDemoLoading.value = false;
+    }
+  }
+
   function buildActions(row: CityManagerItem): ActionsItem[] {
-    const list: ActionsItem[] = [{ label: t('cityManager.reassign'), key: 'reassign' }];
+    const list: ActionsItem[] = [];
+    if (row.status === 'ENABLED') {
+      list.push({ label: t('cityManager.bindDemo'), key: 'bindDemo' });
+    }
+    list.push({ label: t('cityManager.reassign'), key: 'reassign' });
     if (row.status === 'ENABLED') {
       list.push({ label: t('cityManager.disable'), key: 'disable', danger: true });
     }
@@ -454,6 +626,9 @@
 
   function handleActionSelect(row: CityManagerItem, key: string) {
     switch (key) {
+      case 'bindDemo':
+        openBindDemo(row);
+        break;
       case 'disable':
         handleDisable(row);
         break;
@@ -485,6 +660,12 @@
       title: t('cityManager.phone'),
       key: 'phone',
       width: 140,
+    },
+    {
+      title: t('cityManager.demoAccount'),
+      key: 'demoUserName',
+      width: 170,
+      render: (row: CityManagerItem) => (row.demoUserName ? `${row.demoUserName}（${row.demoPhone || ''}）` : '-'),
     },
     {
       title: t('cityManager.status'),

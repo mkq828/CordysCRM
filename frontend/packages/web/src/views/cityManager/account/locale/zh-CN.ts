@@ -39,4 +39,16 @@ export default {
   'cityManager.signManagerRequired': '请选择签约经理',
   'cityManager.followManagerRequired': '请选择跟进经理',
   'cityManager.assignSuccess': '分配成功',
+  'cityManager.demoAccount': '演示账号',
+  'cityManager.bindDemo': '绑定演示账号',
+  'cityManager.bindDemoTitle': '绑定演示账号',
+  'cityManager.demoAccountPlaceholder': '请选择演示账号（清空即解绑）',
+  'cityManager.bindDemoHint':
+    '每个演示账号只能绑定一个合伙人，避免多人共用时互相顶下线；给客户演示时用绑定的账号登录即可。',
+  'cityManager.demoAccountBound': '已绑定 {name}',
+  'cityManager.bindDemoSuccess': '绑定成功',
+  'cityManager.addDemoAccount': '新增演示账号',
+  'cityManager.addDemoAccountTitle': '新增演示账号',
+  'cityManager.addDemoAccountHint': '新增后可在「绑定演示账号」中分配给合伙人，避免多人共用同一账号互相顶下线。',
+  'cityManager.addDemoAccountSuccess': '新增成功',
 };

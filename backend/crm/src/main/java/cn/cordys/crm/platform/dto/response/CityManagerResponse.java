@@ -18,6 +18,15 @@ public class CityManagerResponse {
     @Schema(description = "手机号")
     private String phone;
 
+    @Schema(description = "绑定的演示账号用户ID")
+    private String demoUserId;
+
+    @Schema(description = "绑定的演示账号姓名")
+    private String demoUserName;
+
+    @Schema(description = "绑定的演示账号手机号")
+    private String demoPhone;
+
     @Schema(description = "状态(ENABLED/DISABLED)")
     private String status;
 

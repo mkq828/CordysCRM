@@ -8,3 +8,6 @@ export const cityManagerBatchAssignUrl = '/platform/city-manager/batch-assign'; 
 export const cityManagerOrgOptionsUrl = '/platform/city-manager/org-options'; // 租户下拉
 export const cityManagerMyOrgsUrl = '/platform/city-manager/my-orgs'; // 本人名下租户
 export const cityManagerPerformanceOverviewUrl = '/platform/city-manager/performance/overview'; // 业绩看板-总览
+export const cityManagerDemoAccountsUrl = '/platform/city-manager/demo-accounts'; // 演示账号下拉
+export const cityManagerBindDemoUrl = '/platform/city-manager/bind-demo'; // 绑定/解绑演示账号
+export const cityManagerDemoAccountAddUrl = '/platform/city-manager/demo-account/add'; // 新增演示账号

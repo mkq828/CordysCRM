@@ -16,12 +16,16 @@ import cn.cordys.crm.platform.domain.PlatformCityManager;
 import cn.cordys.crm.platform.dto.request.CityManagerAddRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerAssignRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerBatchAssignRequest;
+import cn.cordys.crm.platform.dto.request.CityManagerDemoAccountAddRequest;
+import cn.cordys.crm.platform.dto.request.CityManagerDemoBindRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerOrgEditRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerPageRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerReassignRequest;
+import cn.cordys.crm.platform.dto.response.CityManagerDemoAccountResponse;
 import cn.cordys.crm.platform.dto.response.CityManagerOrgResponse;
 import cn.cordys.crm.platform.dto.response.CityManagerResponse;
 import cn.cordys.crm.system.domain.Organization;
+import cn.cordys.crm.system.domain.OrganizationUser;
 import cn.cordys.crm.system.domain.User;
 import cn.cordys.crm.system.domain.UserRole;
 import cn.cordys.mybatis.BaseMapper;
@@ -53,6 +57,8 @@ public class CityManagerService {
     private BaseMapper<User> userMapper;
     @Resource
     private BaseMapper<UserRole> userRoleMapper;
+    @Resource
+    private BaseMapper<OrganizationUser> organizationUserMapper;
 
     /**
      * 新增城市经理（三写：sys_user + sys_user_role + platform_city_manager）
@@ -130,6 +136,7 @@ public class CityManagerService {
                         || (c.getPhone() != null && c.getPhone().contains(request.getKeyword())))
                 .toList();
 
+        Map<String, User> demoUsers = resolveDemoUsers(all);
         Pager<List<PlatformCityManager>> paged = paginate(filtered, request.getCurrent(), request.getPageSize());
         List<CityManagerResponse> responses = paged.getList().stream().map(c -> {
             CityManagerResponse response = new CityManagerResponse();
@@ -140,6 +147,12 @@ public class CityManagerService {
             response.setSignedCount(signedCount.getOrDefault(c.getId(), 0L));
             response.setFollowCount(followCount.getOrDefault(c.getId(), 0L));
             response.setCreateTime(c.getCreateTime());
+            User demoUser = StringUtils.isNotBlank(c.getDemoUserId()) ? demoUsers.get(c.getDemoUserId()) : null;
+            if (demoUser != null) {
+                response.setDemoUserId(demoUser.getId());
+                response.setDemoUserName(demoUser.getName());
+                response.setDemoPhone(demoUser.getPhone());
+            }
             return response;
         }).toList();
 
@@ -161,6 +174,8 @@ public class CityManagerService {
             throw new GenericException(Translator.get("city.manager.not.exist"));
         }
         manager.setStatus(PlatformCityManagerStatus.DISABLED.name());
+        // 释放绑定的演示账号，避免占用导致他人无法绑定
+        manager.setDemoUserId(null);
         manager.setUpdateTime(System.currentTimeMillis());
         manager.setUpdateUser(operatorId);
         cityManagerMapper.updateById(manager);
@@ -310,6 +325,157 @@ public class CityManagerService {
         response.setSignManagerId(o.getSignManagerId());
         response.setFollowManagerId(o.getFollowManagerId());
         return response;
+    }
+
+    /**
+     * 演示账号下拉：演示租户(is_demo=1)下的账号，附当前绑定人，供 admin 分配。
+     */
+    public List<CityManagerDemoAccountResponse> demoAccountOptions() {
+        Map<String, PlatformCityManager> boundMap = cityManagerMapper.selectListByLambda(
+                        new LambdaQueryWrapper<PlatformCityManager>()).stream()
+                .filter(m -> StringUtils.isNotBlank(m.getDemoUserId()))
+                .collect(Collectors.toMap(PlatformCityManager::getDemoUserId, m -> m, (a, b) -> a));
+        return listDemoUsers().stream().map(u -> {
+            CityManagerDemoAccountResponse response = new CityManagerDemoAccountResponse();
+            response.setId(u.getId());
+            response.setName(u.getName());
+            response.setPhone(u.getPhone());
+            PlatformCityManager bound = boundMap.get(u.getId());
+            if (bound != null) {
+                response.setBoundManagerId(bound.getId());
+                response.setBoundManagerName(bound.getName());
+            }
+            return response;
+        }).toList();
+    }
+
+    /**
+     * 绑定/解绑演示账号（admin 分配；同一演示账号仅能绑给一个在职合伙人，避免多人共用演示时互相顶下线）。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @OperationLog(module = LogModule.CITY_MANAGER, type = LogType.UPDATE, resourceName = "城市经理绑定演示账号", resourceId = "{#request.managerId}")
+    public void bindDemoAccount(CityManagerDemoBindRequest request, String operatorId) {
+        PlatformCityManager manager = cityManagerMapper.selectByPrimaryKey(request.getManagerId());
+        if (manager == null) {
+            throw new GenericException(Translator.get("city.manager.not.exist"));
+        }
+        String demoUserId = StringUtils.trimToNull(request.getDemoUserId());
+        if (demoUserId == null) {
+            manager.setDemoUserId(null);
+            manager.setUpdateTime(System.currentTimeMillis());
+            manager.setUpdateUser(operatorId);
+            cityManagerMapper.updateById(manager);
+            return;
+        }
+        if (!isDemoAccount(demoUserId)) {
+            throw new GenericException(Translator.get("demo.account.not.exist"));
+        }
+        boolean taken = cityManagerMapper.selectListByLambda(new LambdaQueryWrapper<PlatformCityManager>()).stream()
+                .anyMatch(m -> demoUserId.equals(m.getDemoUserId())
+                        && !m.getId().equals(manager.getId())
+                        && PlatformCityManagerStatus.ENABLED.name().equals(m.getStatus()));
+        if (taken) {
+            throw new GenericException(Translator.get("demo.account.bound"));
+        }
+        manager.setDemoUserId(demoUserId);
+        manager.setUpdateTime(System.currentTimeMillis());
+        manager.setUpdateUser(operatorId);
+        cityManagerMapper.updateById(manager);
+    }
+
+    /**
+     * 新增演示账号：在演示租户(is_demo=1)下建一个租户管理员账号，供合伙人演示时各自占用。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @OperationLog(module = LogModule.CITY_MANAGER, type = LogType.ADD, resourceName = "演示账号")
+    public void addDemoAccount(CityManagerDemoAccountAddRequest request, String operatorId) {
+        String phone = StringUtils.trim(request.getPhone());
+        List<User> exist = DataAccessLayer.with(User.class).selectListByLambda(
+                new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
+        if (CollectionUtils.isNotEmpty(exist)) {
+            throw new GenericException(Translator.get("phone.exist"));
+        }
+        List<Organization> demoOrgs = DataAccessLayer.with(Organization.class)
+                .selectListByLambda(new LambdaQueryWrapper<Organization>()).stream()
+                .filter(o -> Boolean.TRUE.equals(o.getDemo()))
+                .toList();
+        if (CollectionUtils.isEmpty(demoOrgs)) {
+            throw new GenericException(Translator.get("demo.org.not.exist"));
+        }
+        String orgId = demoOrgs.getFirst().getId();
+        long now = System.currentTimeMillis();
+        String userId = IDGenerator.nextStr();
+
+        User user = new User();
+        user.setId(userId);
+        user.setName(StringUtils.trim(request.getName()));
+        user.setPhone(phone);
+        user.setPassword(PasswordUtils.encode(StringUtils.isBlank(request.getPassword())
+                ? PasswordUtils.DEFAULT_PASSWORD : request.getPassword()));
+        user.setGender(false);
+        user.setLanguage(Locale.SIMPLIFIED_CHINESE.toString());
+        user.setLastOrganizationId(orgId);
+        user.setCreateTime(now);
+        user.setUpdateTime(now);
+        user.setCreateUser(operatorId);
+        user.setUpdateUser(operatorId);
+        userMapper.insert(user);
+
+        OrganizationUser organizationUser = new OrganizationUser();
+        organizationUser.setId(IDGenerator.nextStr());
+        organizationUser.setOrganizationId(orgId);
+        organizationUser.setUserId(userId);
+        organizationUser.setEnable(true);
+        organizationUser.setCreateTime(now);
+        organizationUser.setUpdateTime(now);
+        organizationUser.setCreateUser(operatorId);
+        organizationUser.setUpdateUser(operatorId);
+        organizationUserMapper.insert(organizationUser);
+
+        UserRole userRole = new UserRole();
+        userRole.setId(IDGenerator.nextStr());
+        userRole.setUserId(userId);
+        userRole.setRoleId(InternalRole.ORG_ADMIN.getValue());
+        userRole.setCreateTime(now);
+        userRole.setUpdateTime(now);
+        userRole.setCreateUser(operatorId);
+        userRole.setUpdateUser(operatorId);
+        userRoleMapper.insert(userRole);
+    }
+
+    private Map<String, User> resolveDemoUsers(List<PlatformCityManager> managers) {
+        List<String> demoUserIds = managers.stream()
+                .map(PlatformCityManager::getDemoUserId)
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .toList();
+        if (CollectionUtils.isEmpty(demoUserIds)) {
+            return Map.of();
+        }
+        return DataAccessLayer.with(User.class).selectByIds(demoUserIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
+    }
+
+    private List<User> listDemoUsers() {
+        List<String> demoOrgIds = DataAccessLayer.with(Organization.class)
+                .selectListByLambda(new LambdaQueryWrapper<Organization>()).stream()
+                .filter(o -> Boolean.TRUE.equals(o.getDemo()))
+                .map(Organization::getId)
+                .toList();
+        if (CollectionUtils.isEmpty(demoOrgIds)) {
+            return List.of();
+        }
+        return DataAccessLayer.with(User.class).selectListByLambda(
+                new LambdaQueryWrapper<User>().in(User::getLastOrganizationId, demoOrgIds));
+    }
+
+    private boolean isDemoAccount(String userId) {
+        List<User> users = DataAccessLayer.with(User.class).selectByIds(List.of(userId));
+        if (CollectionUtils.isEmpty(users) || StringUtils.isBlank(users.getFirst().getLastOrganizationId())) {
+            return false;
+        }
+        Organization org = organizationMapper.selectByPrimaryKey(users.getFirst().getLastOrganizationId());
+        return org != null && Boolean.TRUE.equals(org.getDemo());
     }
 
     private <T> Pager<List<T>> paginate(List<T> list, int current, int pageSize) {

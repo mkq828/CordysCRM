@@ -24,7 +24,7 @@ INSERT IGNORE INTO sys_department
 VALUES
     ('468047840653369346', '广州华辰科技有限公司', @ORG, 'NONE', 1, 'INTERNAL', @TS, @TS, 'admin', 'admin');
 
--- 2) 企业版订阅（全功能特性集，AI 月额度 1000）
+-- 2) 企业版订阅（全功能特性集；AI 额度代码豁免：is_demo=1 走 AiQuotaService.isDemoOrg 不限量不记账，此列 1000 仅为占位）
 INSERT IGNORE INTO tenant_edition
     (id, organization_id, edition_code, edition_name, price, features_json, ai_monthly_quota,
      start_time, expire_time, status, create_time, update_time, create_user, update_user)

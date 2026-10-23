@@ -3,6 +3,9 @@ import {
   cityManagerAddUrl,
   cityManagerAssignUrl,
   cityManagerBatchAssignUrl,
+  cityManagerBindDemoUrl,
+  cityManagerDemoAccountAddUrl,
+  cityManagerDemoAccountsUrl,
   cityManagerDisableUrl,
   cityManagerListUrl,
   cityManagerMyOrgsUrl,
@@ -15,6 +18,9 @@ import type {
   CityManagerAddParams,
   CityManagerAssignParams,
   CityManagerBatchAssignParams,
+  CityManagerDemoAccountAddParams,
+  CityManagerDemoAccountItem,
+  CityManagerDemoBindParams,
   CityManagerItem,
   CityManagerOrgItem,
   CityManagerPageParams,
@@ -42,6 +48,15 @@ export default function useCityManagerApi(CDR: CordysAxios) {
   function batchAssign(data: CityManagerBatchAssignParams) {
     return CDR.post({ url: cityManagerBatchAssignUrl, data });
   }
+  function demoAccounts() {
+    return CDR.get<CityManagerDemoAccountItem[]>({ url: cityManagerDemoAccountsUrl });
+  }
+  function bindDemo(data: CityManagerDemoBindParams) {
+    return CDR.post({ url: cityManagerBindDemoUrl, data });
+  }
+  function addDemoAccount(data: CityManagerDemoAccountAddParams) {
+    return CDR.post({ url: cityManagerDemoAccountAddUrl, data });
+  }
   function orgOptions() {
     return CDR.get<CityManagerOrgItem[]>({ url: cityManagerOrgOptionsUrl });
   }
@@ -59,6 +74,9 @@ export default function useCityManagerApi(CDR: CordysAxios) {
     assign,
     reassign,
     batchAssign,
+    demoAccounts,
+    bindDemo,
+    addDemoAccount,
     orgOptions,
     myOrgs,
     performanceOverview,

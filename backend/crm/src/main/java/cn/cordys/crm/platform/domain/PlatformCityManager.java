@@ -18,6 +18,9 @@ public class PlatformCityManager extends BaseModel {
     @Schema(description = "手机号(快照,登录标识)")
     private String phone;
 
+    @Schema(description = "绑定的演示账号用户ID(sys_user.id)，离职时解绑")
+    private String demoUserId;
+
     @Schema(description = "ENABLED在职/DISABLED离职")
     private String status;
 }

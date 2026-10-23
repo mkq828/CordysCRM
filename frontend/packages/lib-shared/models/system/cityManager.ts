@@ -12,6 +12,9 @@ export interface CityManagerItem {
   signedCount: number;
   followCount: number;
   createTime: number;
+  demoUserId?: string;
+  demoUserName?: string;
+  demoPhone?: string;
 }
 
 // 城市经理视角的租户（组织）
@@ -55,6 +58,28 @@ export interface CityManagerBatchAssignParams {
     signManagerId?: string;
     followManagerId?: string;
   }[];
+}
+
+// 演示账号下拉项（含当前绑定人）
+export interface CityManagerDemoAccountItem {
+  id: string;
+  name: string;
+  phone: string;
+  boundManagerId?: string;
+  boundManagerName?: string;
+}
+
+// 绑定/解绑演示账号
+export interface CityManagerDemoBindParams {
+  managerId: string;
+  demoUserId?: string;
+}
+
+// 新增演示账号
+export interface CityManagerDemoAccountAddParams {
+  name: string;
+  phone: string;
+  password?: string;
 }
 
 // 业绩看板

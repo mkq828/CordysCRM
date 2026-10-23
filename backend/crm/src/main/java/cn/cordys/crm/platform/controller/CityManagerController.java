@@ -5,11 +5,14 @@ import cn.cordys.common.pager.Pager;
 import cn.cordys.common.permission.CsPermission;
 import cn.cordys.crm.platform.dto.request.CityManagerAddRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerAssignRequest;
+import cn.cordys.crm.platform.dto.request.CityManagerDemoAccountAddRequest;
+import cn.cordys.crm.platform.dto.request.CityManagerDemoBindRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerBatchAssignRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerOrgEditRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerPageRequest;
 import cn.cordys.crm.platform.dto.request.CityManagerReassignRequest;
 import cn.cordys.crm.platform.dto.response.CityManagerOrgResponse;
+import cn.cordys.crm.platform.dto.response.CityManagerDemoAccountResponse;
 import cn.cordys.crm.platform.dto.response.CityManagerResponse;
 import cn.cordys.crm.platform.service.CityManagerService;
 import cn.cordys.security.SessionUtils;
@@ -93,5 +96,26 @@ public class CityManagerController {
     @Operation(summary = "城市经理-编辑本人归属租户基本信息")
     public void editMyOrg(@Validated @RequestBody CityManagerOrgEditRequest request) {
         cityManagerService.editMyOrg(request, SessionUtils.getUserId());
+    }
+
+    @GetMapping("/demo-accounts")
+    @CsPermission(PermissionConstants.CITY_MANAGER_MANAGE)
+    @Operation(summary = "城市经理-演示账号下拉")
+    public List<CityManagerDemoAccountResponse> demoAccounts() {
+        return cityManagerService.demoAccountOptions();
+    }
+
+    @PostMapping("/bind-demo")
+    @CsPermission(PermissionConstants.CITY_MANAGER_MANAGE)
+    @Operation(summary = "城市经理-绑定/解绑演示账号")
+    public void bindDemo(@RequestBody CityManagerDemoBindRequest request) {
+        cityManagerService.bindDemoAccount(request, SessionUtils.getUserId());
+    }
+
+    @PostMapping("/demo-account/add")
+    @CsPermission(PermissionConstants.CITY_MANAGER_MANAGE)
+    @Operation(summary = "城市经理-新增演示账号")
+    public void addDemoAccount(@RequestBody CityManagerDemoAccountAddRequest request) {
+        cityManagerService.addDemoAccount(request, SessionUtils.getUserId());
     }
 }
