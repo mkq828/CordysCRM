@@ -258,6 +258,8 @@ public class OpportunityQuotationService implements ApprovalResourceHandler {
         OpportunityQuotationSnapshot snapshot = snapshotBaseMapper.selectListByLambda(wrapper).stream().findFirst().orElse(null);
         if (snapshot != null) {
             response = JSON.parseObject(snapshot.getQuotationValue(), OpportunityQuotationGetResponse.class);
+        } else {
+            response = BeanUtils.copyBean(new OpportunityQuotationGetResponse(), opportunityQuotation);
         }
         response.setApprovalStatus(opportunityQuotation.getApprovalStatus());
         ModuleFormConfigDTO moduleFormConfigDTO = getFormConfig(opportunityQuotation.getOrganizationId());

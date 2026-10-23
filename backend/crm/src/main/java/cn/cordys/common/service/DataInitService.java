@@ -119,6 +119,8 @@ public class DataInitService {
 			initOneTime(moduleFormMigrationService::splitCustomerAreaField, "split.customer.area.field");
 			// 回填合同表单的金额/累计金额公式（金额=产品单价×数量，累计金额=SUM(合同报价信息.金额)）
 			initOneTime(moduleFieldService::initContractFields, "init.contract.fields");
+			// 回填报价表单的金额/累计金额公式（金额=产品定价×折扣×(1+税点)，累计金额=SUM(报价产品.金额)）
+			initOneTime(moduleFieldService::initQuotationFields, "init.quotation.fields");
 		} finally {
             lock.unlock();
         }

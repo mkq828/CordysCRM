@@ -284,38 +284,64 @@ public class ModuleFieldService {
      */
 	@SuppressWarnings("unchecked")
     private void initOrderProducts() {
-        ModuleField orderProducts = selectFieldByInternalKey("orderProducts");
-        ModuleFieldBlob orderProductsFieldBlob = moduleFieldBlobMapper.selectByPrimaryKey(orderProducts.getId());
-        Map<String, Object> orderProductsField = JSON.parseMap(orderProductsFieldBlob.getProp());
-
-        List<Map<String, Object>> subFields = (List<Map<String, Object>>) orderProductsField.get("subFields");
-        Map<String, Object> orderProductAmount = new HashMap<>();
-        String orderProductPriceId = null;
-        String orderProductNumberId = null;
-        for (Map<String, Object> subField : subFields) {
-            String subFieldInternalKey = (String) subField.get("internalKey");
-            if (Strings.CI.equals(subFieldInternalKey, "orderProductPrice")) {
-                orderProductPriceId = (String) subField.get("id");
+        LambdaQueryWrapper<ModuleField> productsWrapper = new LambdaQueryWrapper<>();
+        productsWrapper.eq(ModuleField::getInternalKey, "orderProducts");
+        List<ModuleField> productsFields = moduleFieldMapper.selectListByLambda(productsWrapper);
+        for (ModuleField productsField : productsFields) {
+            ModuleFieldBlob productsBlob = moduleFieldBlobMapper.selectByPrimaryKey(productsField.getId());
+            if (productsBlob == null) {
+                continue;
             }
-            if (Strings.CI.equals(subFieldInternalKey, "orderProductNumber")) {
-                orderProductNumberId = (String) subField.get("id");
+            Map<String, Object> productsFieldMap = JSON.parseMap(productsBlob.getProp());
+            List<Map<String, Object>> subFields = (List<Map<String, Object>>) productsFieldMap.get("subFields");
+            if (CollectionUtils.isEmpty(subFields)) {
+                continue;
             }
-            if (Strings.CI.equals(subFieldInternalKey, "orderProductAmount")) {
-                orderProductAmount = subField;
+            String priceId = null;
+            String numberId = null;
+            String amountId = null;
+            Map<String, Object> amountSubField = null;
+            for (Map<String, Object> subField : subFields) {
+                String key = (String) subField.get("internalKey");
+                if (Strings.CI.equals(key, "orderProductPrice")) {
+                    priceId = (String) subField.get("id");
+                } else if (Strings.CI.equals(key, "orderProductNumber")) {
+                    numberId = (String) subField.get("id");
+                } else if (Strings.CI.equals(key, "orderProductAmount")) {
+                    amountId = (String) subField.get("id");
+                    amountSubField = subField;
+                }
             }
+            // 金额 = 产品单价 × 数量
+            if (amountSubField != null && priceId != null && numberId != null) {
+                amountSubField.put("formula", getOrderProductAmountFormula(priceId, numberId));
+                // 金额按数值渲染（否则浮点尾差直接以文本展示），保留两位小数与千分位
+                amountSubField.put("formulaResultFormat", "number");
+                amountSubField.put("decimalPlaces", true);
+                amountSubField.put("precision", 2);
+                productsBlob.setProp(JSON.toJSONString(productsFieldMap));
+                moduleFieldBlobMapper.updateById(productsBlob);
+            }
+            // 订单金额 = SUM(产品明细.金额)
+            if (amountId == null) {
+                continue;
+            }
+            ModuleField orderAmount = selectFieldByFormIdAndInternalKey(productsField.getFormId(), "orderAmount");
+            if (orderAmount == null) {
+                continue;
+            }
+            ModuleFieldBlob orderAmountBlob = moduleFieldBlobMapper.selectByPrimaryKey(orderAmount.getId());
+            if (orderAmountBlob == null) {
+                continue;
+            }
+            Map<String, Object> orderAmountField = JSON.parseMap(orderAmountBlob.getProp());
+            orderAmountField.put("formula", getOrderAmountFormula(productsField.getId() + "." + amountId));
+            orderAmountField.put("formulaResultFormat", "number");
+            orderAmountField.put("decimalPlaces", true);
+            orderAmountField.put("precision", 2);
+            orderAmountBlob.setProp(JSON.toJSONString(orderAmountField));
+            moduleFieldBlobMapper.updateById(orderAmountBlob);
         }
-        orderProductAmount.put("formula", getOrderProductAmountFormula(orderProductPriceId, orderProductNumberId));
-
-        orderProductsFieldBlob.setProp(JSON.toJSONString(orderProductsField));
-        moduleFieldBlobMapper.updateById(orderProductsFieldBlob);
-
-        ModuleField orderAmount = selectFieldByInternalKey("orderAmount");
-        String orderAmountFormulaId = orderProductsField.get("id").toString() + "." + orderProductAmount.get("id").toString();
-        ModuleFieldBlob orderAmountFieldBlob = moduleFieldBlobMapper.selectByPrimaryKey(orderAmount.getId());
-        Map<String, Object> orderAmountField = JSON.parseMap(orderAmountFieldBlob.getProp());
-        orderAmountField.put("formula", getOrderAmountFormula(orderAmountFormulaId));
-        orderAmountFieldBlob.setProp(JSON.toJSONString(orderAmountField));
-        moduleFieldBlobMapper.updateById(orderAmountFieldBlob);
     }
 
     /**
@@ -358,6 +384,9 @@ public class ModuleFieldService {
             if (sumAmountSubField != null && amountId != null && numberId != null
                     && StringUtils.isEmpty((String) sumAmountSubField.get("formula"))) {
                 sumAmountSubField.put("formula", getOrderProductAmountFormula(amountId, numberId));
+                sumAmountSubField.put("formulaResultFormat", "number");
+                sumAmountSubField.put("decimalPlaces", true);
+                sumAmountSubField.put("precision", 2);
                 productsBlob.setProp(JSON.toJSONString(productsFieldMap));
                 moduleFieldBlobMapper.updateById(productsBlob);
             }
@@ -376,6 +405,94 @@ public class ModuleFieldService {
             Map<String, Object> totalFieldMap = JSON.parseMap(totalBlob.getProp());
             if (StringUtils.isEmpty((String) totalFieldMap.get("formula"))) {
                 totalFieldMap.put("formula", getContractTotalAmountFormula(productsField.getId() + "." + sumAmountId));
+                totalFieldMap.put("formulaResultFormat", "number");
+                totalFieldMap.put("decimalPlaces", true);
+                totalFieldMap.put("precision", 2);
+                totalBlob.setProp(JSON.toJSONString(totalFieldMap));
+                moduleFieldBlobMapper.updateById(totalBlob);
+            }
+        }
+    }
+
+    /**
+     * 报价模块字段初始化：金额 = 产品定价 × 折扣 × (1 + 税点)；累计金额 = SUM(报价产品.金额)。
+     * <p>报价产品明细的金额/累计金额为 FORMULA 字段，但此前未生成公式，导致新建报价时
+     * 金额无法自动计算。折扣默认 1（原价）、税点默认 0（无税），此处遍历所有租户补齐。</p>
+     */
+    @SuppressWarnings("unchecked")
+    @Transactional(rollbackFor = Exception.class)
+    public void initQuotationFields() {
+        LambdaQueryWrapper<ModuleField> productsWrapper = new LambdaQueryWrapper<>();
+        productsWrapper.eq(ModuleField::getInternalKey, "quotationProducts");
+        List<ModuleField> productsFields = moduleFieldMapper.selectListByLambda(productsWrapper);
+        for (ModuleField productsField : productsFields) {
+            ModuleFieldBlob productsBlob = moduleFieldBlobMapper.selectByPrimaryKey(productsField.getId());
+            if (productsBlob == null) {
+                continue;
+            }
+            Map<String, Object> productsFieldMap = JSON.parseMap(productsBlob.getProp());
+            List<Map<String, Object>> subFields = (List<Map<String, Object>>) productsFieldMap.get("subFields");
+            if (CollectionUtils.isEmpty(subFields)) {
+                continue;
+            }
+            String priceId = null;
+            String discountId = null;
+            String taxId = null;
+            String amountId = null;
+            Map<String, Object> amountSubField = null;
+            Map<String, Object> discountSubField = null;
+            Map<String, Object> taxSubField = null;
+            for (Map<String, Object> subField : subFields) {
+                String key = (String) subField.get("internalKey");
+                if (Strings.CI.equals(key, "quotationProductAmount")) {
+                    priceId = (String) subField.get("id");
+                } else if (Strings.CI.equals(key, "quotationDiscount")) {
+                    discountId = (String) subField.get("id");
+                    discountSubField = subField;
+                } else if (Strings.CI.equals(key, "quotationTax")) {
+                    taxId = (String) subField.get("id");
+                    taxSubField = subField;
+                } else if (Strings.CI.equals(key, "quotationAmount")) {
+                    amountId = (String) subField.get("id");
+                    amountSubField = subField;
+                }
+            }
+            // 折扣默认 1（原价）、税点默认 0（无税），避免留空导致金额算成 0
+            if (discountSubField != null && discountSubField.get("defaultValue") == null) {
+                discountSubField.put("defaultValue", "1");
+            }
+            if (taxSubField != null && taxSubField.get("defaultValue") == null) {
+                taxSubField.put("defaultValue", "0");
+            }
+            // 金额 = 产品定价 × 折扣 × (1 + 税点)
+            if (amountSubField != null && priceId != null && discountId != null && taxId != null
+                    && StringUtils.isEmpty((String) amountSubField.get("formula"))) {
+                amountSubField.put("formula", getQuotationProductAmountFormula(priceId, discountId, taxId));
+                // 金额按数值渲染（否则浮点尾差如 22373.999999999996 直接以文本展示），保留两位小数与千分位
+                amountSubField.put("formulaResultFormat", "number");
+                amountSubField.put("decimalPlaces", true);
+                amountSubField.put("precision", 2);
+            }
+            productsBlob.setProp(JSON.toJSONString(productsFieldMap));
+            moduleFieldBlobMapper.updateById(productsBlob);
+            // 累计金额 = SUM(报价产品.金额)
+            if (amountId == null) {
+                continue;
+            }
+            ModuleField totalField = selectFieldByFormIdAndInternalKey(productsField.getFormId(), "quotationTotalAmount");
+            if (totalField == null) {
+                continue;
+            }
+            ModuleFieldBlob totalBlob = moduleFieldBlobMapper.selectByPrimaryKey(totalField.getId());
+            if (totalBlob == null) {
+                continue;
+            }
+            Map<String, Object> totalFieldMap = JSON.parseMap(totalBlob.getProp());
+            if (StringUtils.isEmpty((String) totalFieldMap.get("formula"))) {
+                totalFieldMap.put("formula", getQuotationTotalAmountFormula(productsField.getId() + "." + amountId));
+                totalFieldMap.put("formulaResultFormat", "number");
+                totalFieldMap.put("decimalPlaces", true);
+                totalFieldMap.put("precision", 2);
                 totalBlob.setProp(JSON.toJSONString(totalFieldMap));
                 moduleFieldBlobMapper.updateById(totalBlob);
             }
@@ -498,31 +615,147 @@ public class ModuleFieldService {
     }
 
     /**
+     * 生成报价明细金额公式：产品定价 × 折扣 × (1 + 税点)。税点为 percent，引擎自动 ÷100。
+     */
+    private String getQuotationProductAmountFormula(String priceId, String discountId, String taxId) {
+        return String.format("""
+                {
+                     "source": "${%s} * ${%s} * (1 + ${%s})",
+                     "display": "产品定价 * 折扣 * (1 + 税点)",
+                     "fields": [
+                         {
+                             "fieldId": "%s",
+                             "fieldType": "INPUT_NUMBER",
+                             "numberType": "number"
+                         },
+                         {
+                             "fieldId": "%s",
+                             "fieldType": "INPUT_NUMBER",
+                             "numberType": "number"
+                         },
+                         {
+                             "fieldId": "%s",
+                             "fieldType": "INPUT_NUMBER",
+                             "numberType": "percent"
+                         }
+                     ],
+                     "ir": {
+                         "type": "binary",
+                         "operator": "*",
+                         "left": {
+                             "type": "binary",
+                             "operator": "*",
+                             "left": {
+                                 "type": "field",
+                                 "fieldId": "%s",
+                                 "name": "产品定价",
+                                 "fieldType": "INPUT_NUMBER",
+                                 "numberType": "number",
+                                 "startTokenIndex": 0,
+                                 "endTokenIndex": 0
+                             },
+                             "right": {
+                                 "type": "field",
+                                 "fieldId": "%s",
+                                 "name": "折扣",
+                                 "fieldType": "INPUT_NUMBER",
+                                 "numberType": "number",
+                                 "startTokenIndex": 2,
+                                 "endTokenIndex": 2
+                             }
+                         },
+                         "right": {
+                             "type": "binary",
+                             "operator": "+",
+                             "left": {
+                                 "type": "literal",
+                                 "value": 1,
+                                 "valueType": "number"
+                             },
+                             "right": {
+                                 "type": "field",
+                                 "fieldId": "%s",
+                                 "name": "税点",
+                                 "fieldType": "INPUT_NUMBER",
+                                 "numberType": "percent",
+                                 "startTokenIndex": 5,
+                                 "endTokenIndex": 5
+                             }
+                         }
+                     }
+                 }""", priceId, discountId, taxId, priceId, discountId, taxId, priceId, discountId, taxId);
+    }
+
+    /**
+     * 生成报价累计金额公式：SUM(报价产品.金额)。格式与合同累计金额一致。
+     */
+    private String getQuotationTotalAmountFormula(String quotationAmountFormulaId) {
+        return String.format("""
+                {
+                    "source": "SUM(${%s})",
+                    "display": "SUM(报价产品.金额)",
+                    "fields": [
+                        {
+                            "fieldId": "%s",
+                            "fieldType": "FORMULA",
+                            "numberType": "number"
+                        }
+                    ],
+                    "ir": {
+                        "type": "function",
+                        "name": "SUM",
+                        "args": [
+                            {
+                                "type": "field",
+                                "fieldId": "%s",
+                                "name": "报价产品.金额",
+                                "fieldType": "FORMULA",
+                                "numberType": "number",
+                                "startTokenIndex": 2,
+                                "endTokenIndex": 2
+                            }
+                        ]
+                    }
+                }""", quotationAmountFormulaId, quotationAmountFormulaId, quotationAmountFormulaId);
+    }
+
+    /**
      * 订单合同字段增加订单客户过滤条件
      */
     private void initOrderContractFilter() {
-        ModuleField orderContract = selectFieldByInternalKey(BusinessModuleField.ORDER_CONTRACT.getKey());
-        ModuleField orderCustomer = selectFieldByInternalKey(BusinessModuleField.ORDER_CUSTOMER.getKey());
-        ModuleFieldBlob orderContractFieldBlob = moduleFieldBlobMapper.selectByPrimaryKey(orderContract.getId());
-        DatasourceField datasourceField = JSON.parseObject(orderContractFieldBlob.getProp(), DatasourceField.class);
-        String customerConditionJson = String.format("""
-                {
-                  "searchMode": "OR",
-                  "conditions": [
+        LambdaQueryWrapper<ModuleField> contractWrapper = new LambdaQueryWrapper<>();
+        contractWrapper.eq(ModuleField::getInternalKey, BusinessModuleField.ORDER_CONTRACT.getKey());
+        List<ModuleField> orderContracts = moduleFieldMapper.selectListByLambda(contractWrapper);
+        for (ModuleField orderContract : orderContracts) {
+            ModuleField orderCustomer = selectFieldByFormIdAndInternalKey(orderContract.getFormId(),
+                    BusinessModuleField.ORDER_CUSTOMER.getKey());
+            if (orderCustomer == null) {
+                continue;
+            }
+            ModuleFieldBlob orderContractFieldBlob = moduleFieldBlobMapper.selectByPrimaryKey(orderContract.getId());
+            if (orderContractFieldBlob == null) {
+                continue;
+            }
+            DatasourceField datasourceField = JSON.parseObject(orderContractFieldBlob.getProp(), DatasourceField.class);
+            String customerConditionJson = String.format("""
                     {
-                      "leftFieldId": "customerId",
-                      "leftFieldType": "DATA_SOURCE",
-                      "operator": "IN",
-                      "rightFieldId": "%s",
-                      "rightFieldCustom": false,
-                      "rightFieldCustomValue": "",
-                      "rightFieldType": "INPUT"
-                    }
-                  ]
-                }""", orderCustomer.getId());
-        datasourceField.setCombineSearch(JSON.parseToMap(customerConditionJson));
-        orderContractFieldBlob.setProp(JSON.toJSONString(datasourceField));
-        moduleFieldBlobMapper.updateById(orderContractFieldBlob);
+                      "searchMode": "OR",
+                      "conditions": [
+                        {
+                          "leftFieldId": "customerId",
+                          "leftFieldType": "DATA_SOURCE",
+                          "operator": "IN",
+                          "rightFieldId": "%s",
+                          "rightFieldCustom": false,
+                          "rightFieldCustomValue": "",
+                          "rightFieldType": "INPUT"
+                        }
+                      ]
+                    }""", orderCustomer.getId());
+            datasourceField.setCombineSearch(JSON.parseToMap(customerConditionJson));
+            orderContractFieldBlob.setProp(JSON.toJSONString(datasourceField));
+            moduleFieldBlobMapper.updateById(orderContractFieldBlob);
+        }
     }
 
 	/**
