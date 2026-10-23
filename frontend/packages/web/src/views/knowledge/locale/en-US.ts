@@ -20,6 +20,10 @@ export default {
   'knowledge.statusFailed': 'Failed',
   'knowledge.errorMsg': 'Failure reason',
   'knowledge.createTime': 'Uploaded at',
+  'knowledge.sortNo': 'Sort No.',
+  'knowledge.viewNoFile': 'This document was uploaded before online viewing was supported. Please re-upload to view.',
+  'knowledge.viewLoading': 'Loading…',
+  'knowledge.viewFailed': 'Failed to load file',
   'knowledge.deleteTip': 'This cannot be undone. Delete this document?',
   'knowledge.askDesc':
     'Ask questions based on uploaded documents. AI answers only from the documents with citations and never fabricates.',

@@ -18,7 +18,7 @@
           :placeholder="t('knowledge.versionPlaceholder')"
         />
         <CrmDatePicker
-          v-model:value="uploadEffectiveDate"
+          v-model:formatted-value="uploadEffectiveDate"
           type="date"
           value-format="yyyy-MM-dd"
           clearable
@@ -43,12 +43,14 @@
         @refresh="propsEvent.refresh"
       />
     </CrmCard>
+
+    <DocViewer v-model:show="viewerShow" :doc="viewerDoc" />
   </div>
 </template>
 
 <script setup lang="ts">
   import { h } from 'vue';
-  import { NButton, NInput, NTag, NUpload, useMessage } from 'naive-ui';
+  import { NButton, NInput, NInputNumber, NTag, NUpload, useMessage } from 'naive-ui';
 
   import { TableKeyEnum } from '@lib/shared/enums/tableEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -63,8 +65,14 @@
   import type { CrmDataTableColumn } from '@/components/pure/crm-table/type';
   import useTable from '@/components/pure/crm-table/useTable';
   import CrmOperationButton from '@/components/business/crm-operation-button/index.vue';
+  import DocViewer from './doc-viewer.vue';
 
-  import { deleteAiKnowledgeDoc, getAiKnowledgeDocPage, uploadKnowledgeDoc } from '@/api/modules';
+  import {
+    deleteAiKnowledgeDoc,
+    getAiKnowledgeDocPage,
+    updateKnowledgeDocSort,
+    uploadKnowledgeDoc,
+  } from '@/api/modules';
   import useModal from '@/hooks/useModal';
 
   import type { UploadCustomRequestOptions } from 'naive-ui';
@@ -80,6 +88,9 @@
   const groupList: ActionsItem[] = [{ label: t('common.delete'), key: 'delete', danger: true }];
 
   const tableRefreshId = ref(0);
+
+  const viewerShow = ref(false);
+  const viewerDoc = ref<AiKnowledgeDoc | null>(null);
 
   // ==================== 上传 ====================
   function handleUpload(options: UploadCustomRequestOptions) {
@@ -134,6 +145,21 @@
     }
   }
 
+  function handleView(row: AiKnowledgeDoc) {
+    viewerDoc.value = row;
+    viewerShow.value = true;
+  }
+
+  async function handleSortChange(row: AiKnowledgeDoc) {
+    try {
+      await updateKnowledgeDocSort(row.id as string, row.sortNo);
+      tableRefreshId.value += 1;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    }
+  }
+
   function renderStatus(row: AiKnowledgeDoc) {
     if (row.revoked === 1) {
       return h(NTag, { size: 'small', type: 'warning', bordered: false }, { default: () => t('knowledge.revoked') });
@@ -146,11 +172,32 @@
 
   const columns: CrmDataTableColumn<AiKnowledgeDoc>[] = [
     {
+      title: t('knowledge.sortNo'),
+      key: 'sortNo',
+      width: 110,
+      fixed: 'left',
+      columnSelectorDisabled: true,
+      render: (row: AiKnowledgeDoc) =>
+        h(NInputNumber, {
+          defaultValue: row.sortNo ?? null,
+          min: 0,
+          size: 'small',
+          clearable: true,
+          showButton: false,
+          style: 'width: 100%',
+          onUpdateValue: (v: number | null) => {
+            row.sortNo = v ?? undefined;
+          },
+          onBlur: () => handleSortChange(row),
+        }),
+    },
+    {
       title: t('knowledge.docName'),
       key: 'name',
       width: 240,
-      fixed: 'left',
       ellipsis: { tooltip: true },
+      render: (row: AiKnowledgeDoc) =>
+        h('span', { class: 'cursor-pointer text-[var(--primary-8)]', onClick: () => handleView(row) }, row.name || '-'),
     },
     {
       title: t('knowledge.fileType'),
@@ -206,7 +253,7 @@
     {
       title: t('common.operation'),
       key: 'operation',
-      width: 100,
+      width: 90,
       fixed: 'right',
       render: (row: AiKnowledgeDoc) =>
         h(CrmOperationButton, {

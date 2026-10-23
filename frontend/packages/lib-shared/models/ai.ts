@@ -364,6 +364,8 @@ export interface AiKnowledgeDoc {
   status?: string;
   chunkCount?: number;
   errorMsg?: string;
+  sortNo?: number;
+  attachmentId?: string;
   createUser?: string;
   createTime?: number;
 }

@@ -32,6 +32,8 @@ import cn.cordys.crm.ai.model.service.AgentModelService;
 import cn.cordys.crm.ai.search.DeepSeekSearchClient;
 import cn.cordys.crm.ai.service.AiQuotaService;
 import cn.cordys.crm.system.domain.Parameter;
+import cn.cordys.crm.system.dto.request.UploadTransferRequest;
+import cn.cordys.crm.system.service.AttachmentService;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.security.SessionUtils;
 import com.github.pagehelper.Page;
@@ -143,6 +145,8 @@ public class AiKnowledgeService {
     private BaseMapper<Parameter> parameterMapper;
     @Resource
     private DeepSeekSearchClient deepSeekSearchClient;
+    @Resource
+    private AttachmentService attachmentService;
 
     /** 按租户串行化上传：并发上传会在 revokeSameName 的 UPDATE 与插入之间互锁触发 MySQL 死锁，同租户排队即可消除 */
     private final ConcurrentHashMap<String, Object> uploadLocks = new ConcurrentHashMap<>();
@@ -198,6 +202,7 @@ public class AiKnowledgeService {
         doc.setRevoked(0);
         doc.setStatus(STATUS_READY);
         doc.setChunkCount(chunkTexts.size());
+        doc.setAttachmentId(saveSourceFile(file, orgId, userId, docId));
         doc.setCreateUser(userId);
         doc.setUpdateUser(userId);
         doc.setCreateTime(now);
@@ -226,11 +231,33 @@ public class AiKnowledgeService {
         return toResponse(doc);
     }
 
+    /** 原文件存为正式附件供在线查看；失败静默降级（不影响解析入库），历史文档无附件则不可查看 */
+    private String saveSourceFile(MultipartFile file, String orgId, String userId, String docId) {
+        try {
+            List<String> tempIds = attachmentService.uploadTemp(List.of(file));
+            if (tempIds.isEmpty()) {
+                return null;
+            }
+            String tempId = tempIds.get(0);
+            attachmentService.processTemp(new UploadTransferRequest(orgId, docId, userId, List.of(tempId)));
+            return tempId;
+        } catch (Exception e) {
+            log.warn("知识库原文件存附件失败，在线查看不可用: {}", e.getMessage());
+            return null;
+        }
+    }
+
     @Transactional(rollbackFor = Exception.class)
     public void delete(String id, String orgId) {
         checkDoc(id, orgId);
         docMapper.deleteByPrimaryKey(id);
         extChunkMapper.deleteByDocId(orgId, id);
+    }
+
+    /** 更新排序号（null 表示清空，回到列表末尾） */
+    public void updateSortNo(String id, Integer sortNo, String orgId) {
+        checkDoc(id, orgId);
+        extDocMapper.updateSortNo(id, orgId, sortNo);
     }
 
     // ==================== 检索问答 ====================
@@ -850,6 +877,8 @@ public class AiKnowledgeService {
         resp.setStatus(doc.getStatus());
         resp.setChunkCount(doc.getChunkCount());
         resp.setErrorMsg(doc.getErrorMsg());
+        resp.setSortNo(doc.getSortNo());
+        resp.setAttachmentId(doc.getAttachmentId());
         resp.setCreateUser(doc.getCreateUser());
         resp.setCreateTime(doc.getCreateTime());
         return resp;

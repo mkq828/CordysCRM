@@ -168,6 +168,7 @@ import {
   AiKnowledgeConfigUrl,
   AiKnowledgeDocDeleteUrl,
   AiKnowledgeDocPageUrl,
+  AiKnowledgeDocSortUrl,
   AiKnowledgeDocUploadUrl,
   AiMeetingMinutesUrl,
   AiPptAvailableUrl,
@@ -690,6 +691,11 @@ export default function useAiApi(CDR: CordysAxios) {
 
   function deleteAiKnowledgeDoc(id: string) {
     return CDR.get({ url: `${AiKnowledgeDocDeleteUrl}/${id}` });
+  }
+
+  function updateKnowledgeDocSort(id: string, sortNo?: number) {
+    const query = sortNo == null ? '' : `?sortNo=${sortNo}`;
+    return CDR.post({ url: `${AiKnowledgeDocSortUrl}/${id}${query}` });
   }
 
   function askKnowledge(data: AiKnowledgeAskParams) {
@@ -1326,6 +1332,7 @@ export default function useAiApi(CDR: CordysAxios) {
     getAiKnowledgeDocPage,
     uploadKnowledgeDoc,
     deleteAiKnowledgeDoc,
+    updateKnowledgeDocSort,
     askKnowledge,
     getAiKnowledgeConfig,
     saveAiKnowledgeConfig,

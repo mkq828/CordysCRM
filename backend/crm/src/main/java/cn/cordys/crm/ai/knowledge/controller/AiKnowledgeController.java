@@ -75,6 +75,12 @@ public class AiKnowledgeController extends BaseAiStreamController {
         aiKnowledgeService.delete(id, OrganizationContext.getOrganizationId());
     }
 
+    @PostMapping("/doc/sort/{id}")
+    @Operation(summary = "知识库-更新文档排序号（不传 sortNo 即清空）")
+    public void updateSort(@PathVariable String id, @RequestParam(required = false) Integer sortNo) {
+        aiKnowledgeService.updateSortNo(id, sortNo, OrganizationContext.getOrganizationId());
+    }
+
     @PostMapping("/ask")
     @Operation(summary = "知识库-检索问答")
     public AiKnowledgeAnswerResponse ask(@RequestBody AiKnowledgeAskRequest request) {

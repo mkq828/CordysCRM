@@ -15,6 +15,8 @@
             status,
             chunk_count,
             error_msg,
+            sort_no,
+            attachment_id,
             create_user,
             create_time
         from ai_knowledge_doc
@@ -22,8 +24,15 @@
         <if test="keyword != null and keyword != ''">
             and name like concat('%', #{keyword}, '%')
         </if>
-        order by update_time desc
+        order by (sort_no is null), sort_no asc, create_time desc
     </select>
+
+    <update id="updateSortNo">
+        update ai_knowledge_doc
+        set sort_no = #{sortNo}
+        where id = #{id}
+          and organization_id = #{orgId}
+    </update>
 
     <update id="revokeSameName">
         update ai_knowledge_doc

@@ -901,6 +901,7 @@ export const {
   getAiKnowledgeDocPage,
   uploadKnowledgeDoc,
   deleteAiKnowledgeDoc,
+  updateKnowledgeDocSort,
   askKnowledge,
   getAiKnowledgeConfig,
   saveAiKnowledgeConfig,

@@ -18,4 +18,9 @@ public interface ExtAiKnowledgeDocMapper {
     int revokeSameName(@Param("orgId") String orgId,
                        @Param("name") String name,
                        @Param("docId") String docId);
+
+    /** 更新文档排序号（sortNo 可为 null，清空后回到「排最后」） */
+    int updateSortNo(@Param("id") String id,
+                     @Param("orgId") String orgId,
+                     @Param("sortNo") Integer sortNo);
 }

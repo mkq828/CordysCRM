@@ -43,4 +43,10 @@ public class AiKnowledgeDoc extends BaseModel {
 
     @Schema(description = "解析失败原因")
     private String errorMsg;
+
+    @Schema(description = "排序号（列表按升序排，NULL 排最后）")
+    private Integer sortNo;
+
+    @Schema(description = "原文件附件ID，用于在线查看")
+    private String attachmentId;
 }
