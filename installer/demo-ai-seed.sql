@@ -118,3 +118,66 @@ INSERT IGNORE INTO ai_boss_brief_result
 ('910000000009310005', @ORG, '910000000009300003', '中小企业数字化转型政策加码，软件服务需求持续释放', 'https://example.com/news/4005',
  '多地加码中小企业数字化转型政策，软件服务需求持续释放。',
  '多地加码中小企业数字化转型扶持政策，企业软件服务需求持续释放，轻量、易用的 CRM 与经营分析工具迎来增长窗口。', 1791932000000, 1791932000000, @U1, @U1);
+
+-- =============================================================
+-- 演示租户 AI「运行时/列表类」种子（幂等）
+-- 覆盖：智能通话复盘 / 私信获客画像 / AI员工实例 / 智慧工作台动作 / 工具中心生成记录 / AI对话历史
+-- 内容主题：代理记账、报税
+-- =============================================================
+
+-- ---------- 9) 智能通话复盘 ----------
+INSERT IGNORE INTO ai_call_record
+(id, organization_id, supplier, caller, callee, customer_phone, customer_id, call_time, duration, record_url, transcript, review_json, status, create_time, update_time, create_user, update_user) VALUES
+('910000000009400001', @ORG, '外呼系统', '华辰财税', '个体户王老板', '13800001388', NULL, 1791600000000, 186, NULL,
+ '销售：王老板您好，我是华辰财税的小李，看到您在抖音上咨询过个体户记账报税的事。\n客户：对，我开了个小店，以前都没怎么报税，听说现在不报税会被罚款？\n销售：是的，现在查得很严，个体户不记账不报税，逾期会有滞纳金，严重的会进异常名录，影响贷款。\n客户：那你们怎么收费？\n销售：小规模个体户一个月199，包含记账、报税、工商年报。\n客户：行，我考虑一下，加个微信吧。',
+ '{"intentScore":"72","signals":["咨询个体户记账报税","担心罚款","关注价格"],"objections":["价格需要再考虑"],"emotion":"意向明确，价格敏感","competitors":[],"nextAction":"微信跟进，发套餐介绍"}', 'DONE', 1791600000000, 1791600000000, @U1, @U1),
+('910000000009400002', @ORG, '外呼系统', '华辰财税', '陈会计', '13900001399', NULL, 1791686400000, 152, NULL,
+ '客户：你好，我想咨询一下一般纳税人的代理记账。\n销售：您好，请问您公司是什么行业、开票量大概多少？\n客户：商贸公司，一个月开票30万左右。\n销售：一般纳税人我们是一个月499，包含记账、纳税申报、进销项管理。\n客户：好的，能上门面谈吗？\n销售：可以，我们约个时间。',
+ '{"intentScore":"85","signals":["一般纳税人代理记账","开票量大","要求面谈"],"objections":[],"emotion":"强意向，决策快","competitors":[],"nextAction":"预约面谈，准备方案"}', 'DONE', 1791686400000, 1791686400000, @U1, @U1);
+
+-- ---------- 10) 抖音私信账号 + 画像 ----------
+INSERT IGNORE INTO ai_dm_account
+(id, organization_id, platform, account_name, unique_id, cookie_ciphertext, status, last_crawl_time, create_time, update_time, create_user, update_user) VALUES
+('910000000009500001', @ORG, 'douyin', '华辰财税官方号', 'huachen_caishui', NULL, 'LOGGED_IN', 1791600000000, 1791500000000, 1791500000000, @U1, @U1);
+
+INSERT IGNORE INTO ai_dm_profile
+(id, organization_id, account_id, platform, sec_uid, nickname, unique_id, follower_count, following_count, liked_count, gender, bio, is_group, phone, wechat, messages_json, profile_json, status, clue_id, create_time, update_time, create_user, update_user) VALUES
+('910000000009510001', @ORG, '910000000009500001', 'douyin', 'sec_wang', '老王创业记', 'wang_laoban', 1200, 45, 8800, 1, '个体户老板，正在找靠谱的记账报税', 0, '13800001388', 'wx_wanglaoban', '[{"content":"个体户不记账会怎么样？","time":1791600000000,"from":"customer"},{"content":"您好，个体户建议规范记账报税，避免逾期罚款和异常名录。","time":1791600000000,"from":"account"}]', '{"age":"35","city":"广州","industry":"个体工商户"}', 'NEW', NULL, 1791600000000, 1791600000000, @U1, @U1),
+('910000000009510002', @ORG, '910000000009500001', 'douyin', 'sec_li', '小李的服装店', 'li_fuzhuang', 800, 12, 5600, 2, '服装店主，咨询一般纳税人代理记账', 0, '13900001399', 'wx_lifuzhuang', '[{"content":"一般纳税人代理记账多少钱？","time":1791686400000,"from":"customer"}]', '{"age":"28","city":"深圳","industry":"服装零售"}', 'NEW', NULL, 1791686400000, 1791686400000, @U1, @U1),
+('910000000009510003', @ORG, '910000000009500001', 'douyin', 'sec_chen', '陈总聊创业', 'chen_zong', 3500, 8, 21000, 1, '创业导师，咨询公司注册+代理记账打包', 0, '13600001666', 'wx_chenzong', '[{"content":"想注册个公司，记账报税一起多少钱？","time":1791772800000,"from":"customer"}]', '{"age":"40","city":"广州","industry":"企业管理咨询"}', 'CONTACTED', NULL, 1791772800000, 1791772800000, @U1, @U1),
+('910000000009510004', @ORG, '910000000009500001', 'douyin', 'sec_zhao', '赵姐的餐饮店', 'zhao_canyin', 460, 3, 2300, 2, '餐饮店主，问个体户报税逾期怎么处理', 0, '13500001888', NULL, '[{"content":"个体户报税逾期了怎么办？","time":1791859200000,"from":"customer"}]', '{"age":"45","city":"佛山","industry":"餐饮"}', 'NEW', NULL, 1791859200000, 1791859200000, @U1, @U1);
+
+-- ---------- 11) AI 员工实例（财务/税务类） ----------
+INSERT IGNORE INTO ai_employee_agent
+(id, organization_id, name, employee_id, custom_prompt, knowledge_enabled, sort, create_time, update_time, create_user, update_user, description) VALUES
+('910000000009600001', @ORG, '财税顾问', '476497561743831106', NULL, 0, 1, 1791500000000, 1791500000000, @U1, @U1, '代理记账与税务咨询 AI 员工'),
+('910000000009600002', @ORG, '税务申报助手', '476497561743831110', NULL, 0, 2, 1791500000000, 1791500000000, @U1, @U1, '自动生成纳税申报与节税建议');
+
+-- ---------- 12) 智慧工作台动作 ----------
+INSERT IGNORE INTO ai_employee_action
+(id, organization_id, action_type, resource_type, resource_id, resource_name, agent_id, customer_id, customer_name, owner_id, payload, status, result, confirm_user, confirm_time, create_time, update_time, create_user, update_user) VALUES
+('910000000009610001', @ORG, 'FOLLOW_UP_CREATE', 'CUSTOMER', '9100000000060000001', '广州联创软件信息技术有限公司', '910000000009600001', '9100000000060000001', '广州联创软件信息技术有限公司', @U1, '{"suggestion":"首次正式对接，建议先确认对方当前使用情况及关键联系人，再挖掘后续合作机会。","followMethod":"电话","content":"联系广州联创关键联系人，了解其CRM使用现状与增购意向。"}', 'EXECUTED', '已创建跟进记录', @U1, 1791600000000, 1791600000000, 1791600000000, @U1, @U1),
+('910000000009610002', @ORG, 'TAG', 'CUSTOMER', '9100000000060000001', '广州联创软件信息技术有限公司', '910000000009600001', '9100000000060000001', '广州联创软件信息技术有限公司', @U1, '{"suggestion":"根据历史沟通，客户关注数据大屏与AI能力，建议打上「AI意向」「重点跟进」标签。","tags":["AI意向","重点跟进"]}', 'PENDING', NULL, NULL, NULL, 1791600000000, 1791600000000, @U1, @U1),
+('910000000009610003', @ORG, 'DUNNING', 'CUSTOMER', '9100000000060000013', '佛山顺德家居智造有限公司', '910000000009600001', '9100000000060000013', '佛山顺德家居智造有限公司', @U1, '{"suggestion":"合同尾款已到期，建议本周内电话催收，明确到账时间。","amount":"9800"}', 'PENDING', NULL, NULL, NULL, 1791686400000, 1791686400000, @U1, @U1),
+('910000000009610004', @ORG, 'FILL_FIELD', 'CUSTOMER', '9100000000060000012', '深圳南山智造电子有限公司', '910000000009600002', '9100000000060000012', '深圳南山智造电子有限公司', @U1, '{"suggestion":"客户画像缺少行业与规模字段，建议补充完善，便于后续精准跟进。","field":"行业、规模"}', 'EXECUTED', '已补充字段', @U1, 1791772800000, 1791772800000, 1791772800000, @U1, @U1);
+
+-- ---------- 13) 工具中心生成记录 ----------
+INSERT IGNORE INTO ai_tool_task
+(id, organization_id, type, name, params, status, progress, attachment_id, create_time, update_time, create_user, update_user) VALUES
+('910000000009700001', @ORG, 'IMAGE', '个体户不记账不报税，罚款找上门', '{"size":"1080x1920","prompt":"个体户不记账不报税，罚款直接找上门，配图：焦虑的个体户老板 + 罚单"}', 'DONE', 100, NULL, 1791600000000, 1791600000000, @U1, @U1),
+('910000000009700002', @ORG, 'IMAGE', '代理记账月付199，省心又省力', '{"size":"1080x1920","prompt":"代理记账月付199海报，财税顾问形象 + 199元大字"}', 'DONE', 100, NULL, 1791686400000, 1791686400000, @U1, @U1),
+('910000000009700003', @ORG, 'TRANSCODE', '个体户报税科普.mov', '{"format":"mov","sourceAttachmentId":""}', 'DONE', 100, NULL, 1791772800000, 1791772800000, @U1, @U1),
+('910000000009700004', @ORG, 'IMAGE', '一般纳税人记账报税全攻略', '{"size":"1024x1024","prompt":"一般纳税人代理记账攻略，知识卡片风格"}', 'DONE', 100, NULL, 1791859200000, 1791859200000, @U1, @U1);
+
+-- ---------- 14) AI 对话历史（获客内容 / PPT） ----------
+INSERT IGNORE INTO agent_conversation
+(id, title, feature_code, user_id, organization_id, create_time, update_time, create_user, update_user) VALUES
+('910000000009800001', '代理记账获客文案', 'ai_acquire', @U1, @ORG, 1791600000000, 1791600000000, @U1, @U1),
+('910000000009800002', '代理记账行业解决方案', 'ai_ppt', @U1, @ORG, 1791686400000, 1791686400000, @U1, @U1);
+
+INSERT IGNORE INTO agent_message
+(id, role, run_id, conversation_id, input_tokens, output_tokens, total_tokens, content, payload, organization_id, helpful, status, create_time, update_time, create_user, update_user) VALUES
+('910000000009810001', 'user', '910000000009800001', '910000000009800001', 0, 0, 0, '帮我写一段代理记账获客文案，面向个体户老板', NULL, @ORG, NULL, 'DONE', 1791600000000, 1791600000000, @U1, @U1),
+('910000000009810002', 'assistant', '910000000009800001', '910000000009800001', 120, 260, 380, '个体户老板，别再为记账报税发愁了！一个月199元，记账、报税、工商年报全包，省心省力还省钱。现在咨询，首月立减50元！', NULL, @ORG, 1, 'DONE', 1791600000000, 1791600000000, @U1, @U1),
+('910000000009810003', 'user', '910000000009800002', '910000000009800002', 0, 0, 0, '生成一份代理记账行业的解决方案PPT大纲', NULL, @ORG, NULL, 'DONE', 1791686400000, 1791686400000, @U1, @U1),
+('910000000009810004', 'assistant', '910000000009800002', '910000000009800002', 150, 400, 550, '已生成代理记账行业解决方案大纲：一、行业痛点分析；二、产品与服务；三、客户成功案例；四、价格与套餐；五、服务保障。', NULL, @ORG, 1, 'DONE', 1791686400000, 1791686400000, @U1, @U1);
